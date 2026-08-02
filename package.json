@@ -1,0 +1,18 @@
+{
+  "name": "assistente-financeiro-whatsapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Assistente financeiro pessoal via WhatsApp, usando Claude para interpretar mensagens e Supabase para guardar os lançamentos.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  }
+}
