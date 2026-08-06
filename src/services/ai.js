@@ -1,8 +1,7 @@
-// Provedor atual: Google Gemini (grátis, usado enquanto o projeto está em teste).
-// Pode ser trocado por Anthropic/Claude no futuro sem mudar a assinatura de interpretarMensagem().
-import { GoogleGenAI, Type } from "@google/genai";
+// Provedor atual: Anthropic (Claude).
+import Anthropic from "@anthropic-ai/sdk";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
 
 const CATEGORIAS = [
   "alimentacao",
@@ -19,55 +18,54 @@ const CATEGORIAS = [
   "outros",
 ];
 
-const RESPONSE_SCHEMA = {
-  type: Type.OBJECT,
-  properties: {
-    eh_lancamento_financeiro: { type: Type.BOOLEAN },
-    valor: { type: Type.NUMBER },
-    tipo: { type: Type.STRING, enum: ["receita", "despesa"] },
-    categoria: { type: Type.STRING, enum: CATEGORIAS },
-    descricao: { type: Type.STRING },
+const TOOL = {
+  name: "registrar_transacao",
+  description:
+    "Registra um lançamento financeiro (receita ou despesa) extraído da mensagem do usuário.",
+  input_schema: {
+    type: "object",
+    properties: {
+      valor: { type: "number", description: "Valor em reais" },
+      tipo: { type: "string", enum: ["receita", "despesa"] },
+      categoria: { type: "string", enum: CATEGORIAS },
+      descricao: { type: "string", description: "Descrição curta, opcional" },
+    },
+    required: ["valor", "tipo", "categoria"],
   },
-  required: ["eh_lancamento_financeiro"],
 };
 
 const SYSTEM_PROMPT = `Você é um assistente financeiro que interpreta mensagens de WhatsApp em português do Brasil.
-Para cada mensagem, decida se ela descreve um lançamento financeiro (um gasto ou um recebimento de dinheiro).
-Se for, preencha valor (número), tipo ("receita" ou "despesa") e a categoria mais adequada da lista permitida.
-Se a mensagem não for um lançamento financeiro (ex: uma saudação, uma pergunta, um comando como "resumo do mês"),
-defina eh_lancamento_financeiro como false e não preencha os outros campos.`;
+Se a mensagem descrever um lançamento financeiro (um gasto ou um recebimento de dinheiro), use a ferramenta
+registrar_transacao com os dados extraídos. Se a mensagem NÃO for um lançamento financeiro (ex: saudação, pergunta,
+comando como "resumo do mês"), não use nenhuma ferramenta.`;
 
 let client;
 function getClient() {
   if (!client) {
-    client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
   return client;
 }
 
 export async function interpretarMensagem(texto) {
-  const ai = getClient();
+  const anthropic = getClient();
 
-  const response = await ai.models.generateContent({
+  const response = await anthropic.messages.create({
     model: MODEL,
-    contents: texto,
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: "application/json",
-      responseSchema: RESPONSE_SCHEMA,
-    },
+    max_tokens: 256,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: texto }],
+    tools: [TOOL],
   });
 
-  const dados = JSON.parse(response.text);
+  const toolUse = response.content.find(
+    (bloco) => bloco.type === "tool_use" && bloco.name === "registrar_transacao"
+  );
 
-  if (!dados.eh_lancamento_financeiro) {
+  if (!toolUse) {
     return null;
   }
 
-  return {
-    valor: dados.valor,
-    tipo: dados.tipo,
-    categoria: dados.categoria,
-    descricao: dados.descricao || "",
-  };
+  const { valor, tipo, categoria, descricao } = toolUse.input;
+  return { valor, tipo, categoria, descricao: descricao || "" };
 }

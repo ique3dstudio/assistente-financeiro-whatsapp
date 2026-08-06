@@ -5,9 +5,9 @@ salva no banco de dados e responde confirmando o lançamento.
 
 ## Status atual
 
-Projeto em construção, por etapas. A interpretação das mensagens (Etapa 2) já está implementada, usando o **Google
-Gemini** como provedor de IA (gratuito, enquanto o projeto está em fase de teste). A ideia é migrar para a API da
-Anthropic (Claude) no futuro, se/quando fizer sentido — o código foi feito para essa troca ser simples.
+Projeto em construção, por etapas. A interpretação das mensagens (Etapa 2) já está implementada, usando a **API da
+Anthropic (Claude)**. (Chegamos a testar o Google Gemini gratuito antes, mas a conta bateu num bloqueio de cota que não
+foi possível contornar, então seguimos direto com Claude.)
 
 ## Como rodar localmente
 
@@ -20,7 +20,7 @@ Depois abra `http://localhost:3000/` no navegador — deve aparecer `{"status":"
 
 ## Como testar a interpretação de mensagens
 
-Com o `GEMINI_API_KEY` preenchido no `.env`:
+Com o `ANTHROPIC_API_KEY` preenchido no `.env`:
 
 ```bash
 node scripts/test-ai.js "gastei 50 reais no mercado"
@@ -31,7 +31,7 @@ node scripts/test-ai.js "recebi 2000 de salário"
 
 - `src/server.js` — ponto de partida do servidor.
 - `src/routes/webhook.js` — vai receber as mensagens do WhatsApp (Etapa 4).
-- `src/services/ai.js` — interpreta as mensagens e extrai valor/tipo/categoria (hoje via Gemini; Claude é upgrade futuro).
+- `src/services/ai.js` — interpreta as mensagens e extrai valor/tipo/categoria, via API da Anthropic (Claude).
 - `src/services/supabase.js` — vai salvar/consultar os lançamentos no banco (Etapa 3).
 - `src/services/whatsapp.js` — vai enviar as respostas de volta pelo WhatsApp (Etapa 4).
 - `scripts/test-ai.js` — script manual para testar a interpretação sem precisar do WhatsApp/banco de dados.
@@ -41,7 +41,7 @@ node scripts/test-ai.js "recebi 2000 de salário"
 ## Roteiro das próximas etapas
 
 1. ~~Estruturar o projeto~~ (feito)
-2. ~~Interpretar mensagens com IA~~ (feito, usando Gemini gratuito — Claude fica como upgrade futuro opcional)
+2. ~~Interpretar mensagens com IA~~ (feito, usando a API da Anthropic/Claude)
 3. Criar conta no Supabase e a tabela de lançamentos
 4. Criar o app no Meta for Developers e configurar o número de teste do WhatsApp
 5. Ligar tudo: receber mensagem → interpretar → salvar → responder
