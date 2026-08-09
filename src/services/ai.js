@@ -75,5 +75,5 @@ export async function interpretarMensagem(texto) {
   }
 
   const { valor, tipo, categoria, descricao } = JSON.parse(toolCall.function.arguments);
-  return { valor, tipo, categoria, descricao: descricao || "" };
+  return { valor: Number(valor), tipo, categoria, descricao: descricao || "" };
 }
