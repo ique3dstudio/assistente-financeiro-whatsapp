@@ -58,4 +58,13 @@ create policy "pedidos_3d_delete" on pedidos_3d
   for delete to authenticated using (true);
 
 -- Habilita o realtime (as duas telas se atualizam sozinhas quando uma mexe em um pedido).
-alter publication supabase_realtime add table pedidos_3d;
+-- Só adiciona se ainda não estiver na publicação (evita erro "already member of publication" ao rodar de novo).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'pedidos_3d'
+  ) then
+    alter publication supabase_realtime add table pedidos_3d;
+  end if;
+end $$;
