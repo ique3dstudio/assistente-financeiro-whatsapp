@@ -28,14 +28,26 @@ node scripts/test-ai.js "gastei 50 reais no mercado"
 node scripts/test-ai.js "recebi 2000 de salário"
 ```
 
+## Como testar a gravação no banco de dados
+
+Com `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` preenchidos no `.env` e a tabela `transacoes` já criada (veja instruções de
+setup):
+
+```bash
+node scripts/test-supabase.js
+```
+
+Deve imprimir a linha recém-criada. Você também pode conferir em Table Editor, no painel do Supabase.
+
 ## Estrutura do projeto
 
 - `src/server.js` — ponto de partida do servidor.
 - `src/routes/webhook.js` — vai receber as mensagens do WhatsApp (Etapa 4).
 - `src/services/ai.js` — interpreta as mensagens e extrai valor/tipo/categoria, via NVIDIA Build (provedor de teste).
-- `src/services/supabase.js` — vai salvar/consultar os lançamentos no banco (Etapa 3).
+- `src/services/supabase.js` — salva os lançamentos na tabela `transacoes` do Supabase.
 - `src/services/whatsapp.js` — vai enviar as respostas de volta pelo WhatsApp (Etapa 4).
 - `scripts/test-ai.js` — script manual para testar a interpretação sem precisar do WhatsApp/banco de dados.
+- `scripts/test-supabase.js` — script manual para testar a gravação de uma transação no banco.
 - `.env.example` — modelo das variáveis de ambiente (chaves de acesso). Copie para `.env` e preencha; o `.env` nunca é
   enviado ao GitHub.
 
@@ -43,7 +55,7 @@ node scripts/test-ai.js "recebi 2000 de salário"
 
 1. ~~Estruturar o projeto~~ (feito)
 2. ~~Interpretar mensagens com IA~~ (feito, usando a NVIDIA Build como provedor de teste gratuito)
-3. Criar conta no Supabase e a tabela de lançamentos
+3. ~~Criar conta no Supabase e a tabela de lançamentos~~ (código pronto, aguardando setup da conta)
 4. Criar o app no Meta for Developers e configurar o número de teste do WhatsApp
 5. Ligar tudo: receber mensagem → interpretar → salvar → responder
 6. Comando "resumo do mês"
