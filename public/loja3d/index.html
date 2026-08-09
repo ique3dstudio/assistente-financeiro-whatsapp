@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pedidos 3D</title>
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="/loja3d/manifest.json" />
+  <link rel="icon" href="/loja3d/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/loja3d/icon.svg" />
+  <link rel="stylesheet" href="/loja3d/styles.css" />
+</head>
+<body>
+  <!-- Tela de login -->
+  <section id="login-screen" class="screen">
+    <form id="login-form" class="login-card">
+      <h1>🖨️ Pedidos 3D</h1>
+      <p class="subtitle">Entre com a conta da loja</p>
+      <label>
+        E-mail
+        <input type="email" id="login-email" autocomplete="username" required />
+      </label>
+      <label>
+        Senha
+        <input type="password" id="login-password" autocomplete="current-password" required />
+      </label>
+      <button type="submit">Entrar</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- App principal -->
+  <section id="app-screen" class="screen" hidden>
+    <header class="topbar">
+      <h1>🖨️ Pedidos 3D</h1>
+      <div class="topbar-actions">
+        <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
+        <button id="filter-atrasados" class="chip" type="button">⏰ Atrasados: 0</button>
+        <button id="new-order-btn" class="primary" type="button">+ Novo pedido</button>
+        <button id="logout-btn" class="ghost" type="button">Sair</button>
+      </div>
+    </header>
+
+    <main id="board" class="board" aria-live="polite"></main>
+  </section>
+
+  <!-- Modal de pedido (criar/editar) -->
+  <dialog id="order-dialog">
+    <form id="order-form" method="dialog">
+      <h2 id="order-dialog-title">Novo pedido</h2>
+
+      <div class="grid">
+        <label>
+          Cliente *
+          <input name="cliente_nome" required maxlength="120" />
+        </label>
+        <label>
+          Contato (WhatsApp)
+          <input name="cliente_contato" maxlength="60" placeholder="(11) 99999-9999" />
+        </label>
+      </div>
+
+      <label>
+        O que é / descrição da peça *
+        <input name="descricao" required maxlength="200" placeholder="Ex: Vaso geométrico 15cm" />
+      </label>
+
+      <label>
+        Link do modelo (STL, Thingiverse, etc.)
+        <input name="modelo_link" type="url" maxlength="300" placeholder="https://…" />
+      </label>
+
+      <div class="grid grid-4">
+        <label>
+          Cor
+          <input name="cor" maxlength="60" />
+        </label>
+        <label>
+          Material
+          <input name="material" list="material-options" maxlength="60" placeholder="PLA" />
+          <datalist id="material-options">
+            <option value="PLA"></option>
+            <option value="PETG"></option>
+            <option value="ABS"></option>
+            <option value="TPU"></option>
+            <option value="Resina"></option>
+          </datalist>
+        </label>
+        <label>
+          Quantidade
+          <input name="quantidade" type="number" min="1" step="1" value="1" required />
+        </label>
+        <label>
+          Tempo estimado (h)
+          <input name="tempo_estimado_horas" type="number" min="0" step="0.5" />
+        </label>
+      </div>
+
+      <div class="grid">
+        <label>
+          Prazo de entrega
+          <input name="prazo_entrega" type="date" />
+        </label>
+        <label>
+          Valor (R$)
+          <input name="valor" type="number" min="0" step="0.01" />
+        </label>
+      </div>
+
+      <div class="grid">
+        <label>
+          Pagamento
+          <select name="pagamento">
+            <option value="pendente">Pendente</option>
+            <option value="parcial">Parcial</option>
+            <option value="pago">Pago</option>
+          </select>
+        </label>
+        <label>
+          Status
+          <select name="status">
+            <option value="recebido">Pedido recebido</option>
+            <option value="fila">Na fila de produção</option>
+            <option value="produzindo">Em produção</option>
+            <option value="pronto">Pronto</option>
+            <option value="entregue">Entregue</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        Observações (cor de suporte, infill, acabamento…)
+        <textarea name="observacoes" rows="2" maxlength="500"></textarea>
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" id="delete-order-btn" class="danger" hidden>Excluir pedido</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-order-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="order-error" class="error" hidden></p>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/loja3d/config.js"></script>
+  <script src="/loja3d/app.js"></script>
+</body>
+</html>

@@ -51,6 +51,45 @@ node scripts/test-whatsapp.js 5511999999999 "Oi! Teste do assistente financeiro.
 Troque `5511999999999` pelo seu número, no formato DDI+DDD+número, sem espaços, `+` ou traços. Você deve receber a
 mensagem no WhatsApp.
 
+## Loja 3D — gestão de pedidos e produção
+
+App web (funciona como PWA, dá pra "adicionar à tela inicial" no celular) para a loja de impressão 3D. Uma pessoa
+lança os pedidos com todos os dados da impressão, a outra acompanha e vai movendo cada pedido pelas etapas de
+produção — as duas veem tudo em tempo real, sem planilha.
+
+Fica em `/loja3d`, dentro do mesmo servidor Express, e usa o **mesmo projeto Supabase** já configurado neste
+repositório (só cria tabelas novas — nada dos dados financeiros é misturado com os pedidos).
+
+### Setup (uma vez só)
+
+1. **Criar a tabela.** No painel do Supabase, abra o SQL Editor e rode o conteúdo de `sql/pedidos_3d.sql`. Isso cria a
+   tabela `pedidos_3d`, as regras de segurança (RLS) e liga o realtime nela.
+2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
+   `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
+   preenchidos).
+3. **Criar as duas contas.** Em Authentication > Users, clique em "Add user" e crie um login (e-mail + senha) para
+   você e outro para sua irmã. Não existe tela de cadastro no app — só vocês duas conseguem entrar.
+4. **Rodar e acessar.** Com `npm run dev`, abra `http://localhost:3000/loja3d` e entre com um dos logins criados.
+   Depois do deploy (ex: Render), é o mesmo caminho: `https://SEU-DOMINIO/loja3d`.
+
+### Como funciona
+
+- **Pedido.** Cada card tem cliente, contato, descrição da peça, link do modelo (STL etc.), cor, material,
+  quantidade, tempo estimado, prazo de entrega, valor, status de pagamento e observações.
+- **Etapas (colunas do quadro):** Pedido recebido → Na fila de produção → Em produção → Pronto → Entregue. Os botões
+  ◀ ▶ no card movem o pedido de etapa sem precisar abrir o formulário; clicar no card abre os detalhes completos.
+- **Atrasado** não é uma etapa manual — é calculado automaticamente: todo pedido com prazo vencido que ainda não
+  está "Pronto" ou "Entregue" ganha um destaque vermelho no card, e o filtro "⏰ Atrasados" no topo mostra só esses.
+- **Tempo real.** Se uma mexe em um pedido, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
+  atualizar a página.
+
+### Estrutura
+
+- `public/loja3d/` — front-end (HTML/CSS/JS puro, sem build) e o manifest/service worker do PWA.
+- `sql/pedidos_3d.sql` — schema da tabela, políticas de RLS e ativação do realtime.
+- Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
+  do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
+
 ## Estrutura do projeto
 
 - `src/server.js` — ponto de partida do servidor.
