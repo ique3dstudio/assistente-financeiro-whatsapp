@@ -5,9 +5,10 @@ salva no banco de dados e responde confirmando o lançamento.
 
 ## Status atual
 
-Projeto em construção, por etapas. A interpretação das mensagens (Etapa 2) já está implementada, usando a **API da
-Anthropic (Claude)**. (Chegamos a testar o Google Gemini gratuito antes, mas a conta bateu num bloqueio de cota que não
-foi possível contornar, então seguimos direto com Claude.)
+Projeto em construção, por etapas. A interpretação das mensagens (Etapa 2) já está implementada, usando a **NVIDIA
+Build** (modelo `meta/llama-3.1-70b-instruct`) como provedor de teste gratuito, enquanto o projeto está em fase de
+validação. (Antes tentamos o Google Gemini, que bateu num bloqueio de cota; a versão com a API da Anthropic/Claude, que
+é o destino final, já foi implementada uma vez e está preservada no histórico do Git para quando fizer sentido migrar.)
 
 ## Como rodar localmente
 
@@ -20,7 +21,7 @@ Depois abra `http://localhost:3000/` no navegador — deve aparecer `{"status":"
 
 ## Como testar a interpretação de mensagens
 
-Com o `ANTHROPIC_API_KEY` preenchido no `.env`:
+Com o `NVIDIA_API_KEY` preenchido no `.env`:
 
 ```bash
 node scripts/test-ai.js "gastei 50 reais no mercado"
@@ -31,7 +32,7 @@ node scripts/test-ai.js "recebi 2000 de salário"
 
 - `src/server.js` — ponto de partida do servidor.
 - `src/routes/webhook.js` — vai receber as mensagens do WhatsApp (Etapa 4).
-- `src/services/ai.js` — interpreta as mensagens e extrai valor/tipo/categoria, via API da Anthropic (Claude).
+- `src/services/ai.js` — interpreta as mensagens e extrai valor/tipo/categoria, via NVIDIA Build (provedor de teste).
 - `src/services/supabase.js` — vai salvar/consultar os lançamentos no banco (Etapa 3).
 - `src/services/whatsapp.js` — vai enviar as respostas de volta pelo WhatsApp (Etapa 4).
 - `scripts/test-ai.js` — script manual para testar a interpretação sem precisar do WhatsApp/banco de dados.
@@ -41,7 +42,7 @@ node scripts/test-ai.js "recebi 2000 de salário"
 ## Roteiro das próximas etapas
 
 1. ~~Estruturar o projeto~~ (feito)
-2. ~~Interpretar mensagens com IA~~ (feito, usando a API da Anthropic/Claude)
+2. ~~Interpretar mensagens com IA~~ (feito, usando a NVIDIA Build como provedor de teste gratuito)
 3. Criar conta no Supabase e a tabela de lançamentos
 4. Criar o app no Meta for Developers e configurar o número de teste do WhatsApp
 5. Ligar tudo: receber mensagem → interpretar → salvar → responder
