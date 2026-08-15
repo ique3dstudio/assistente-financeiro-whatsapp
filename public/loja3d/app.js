@@ -65,6 +65,7 @@ const movBuscaInput = document.getElementById("mov-busca");
 const movFiltroConta = document.getElementById("mov-filtro-conta");
 const movFiltroCategoria = document.getElementById("mov-filtro-categoria");
 const movFiltroStatus = document.getElementById("mov-filtro-status");
+const movFiltroResponsavel = document.getElementById("mov-filtro-responsavel");
 const novoMovimentoBtn = document.getElementById("novo-movimento-btn");
 const transferenciaBtn = document.getElementById("transferencia-btn");
 const searchInput = document.getElementById("search-input");
@@ -300,7 +301,7 @@ async function init() {
   iaFotoInput.addEventListener("change", handleIaFoto);
   iaAudioBtn.addEventListener("click", handleIaAudio);
 
-  [movBuscaInput, movFiltroConta, movFiltroCategoria, movFiltroStatus].forEach((el) =>
+  [movBuscaInput, movFiltroConta, movFiltroCategoria, movFiltroStatus, movFiltroResponsavel].forEach((el) =>
     el.addEventListener("input", renderMovimentosList)
   );
 
@@ -809,6 +810,19 @@ function renderFinanceiroDashboard() {
     </div>`;
   }
 
+  // Gasto por pessoa: só conta o que já saiu de fato (realizado), não o que ainda está previsto.
+  const RESPONSAVEIS = ["Tamires", "Gustavo"];
+  const gastoPorPessoa = RESPONSAVEIS.map((nome) => ({
+    nome,
+    total: movimentos
+      .filter((m) => m.tipo === "saida" && m.status === "realizado" && m.responsavel === nome)
+      .reduce((s, m) => s + Number(m.valor), 0),
+  }));
+  html += `<div class="stat-card contas-saldo-card">
+    <div class="stat-label">Gasto por pessoa</div>
+    ${gastoPorPessoa.map((g) => `<div class="conta-saldo-linha"><span>${escapeHtml(g.nome)}</span><span>${formatMoney(g.total)}</span></div>`).join("")}
+  </div>`;
+
   financeiroDashboardEl.innerHTML = html;
 }
 
@@ -869,12 +883,14 @@ function renderMovimentosList() {
   const filtroConta = movFiltroConta.value;
   const filtroCategoria = movFiltroCategoria.value;
   const filtroStatus = movFiltroStatus.value;
+  const filtroResponsavel = movFiltroResponsavel.value;
 
   let lista = movimentos;
   if (filtroConta) lista = lista.filter((m) => m.conta_id === filtroConta);
   if (filtroCategoria) lista = lista.filter((m) => m.categoria_id === filtroCategoria);
   if (filtroStatus === "atrasado") lista = lista.filter(isMovimentoAtrasado);
   else if (filtroStatus) lista = lista.filter((m) => m.status === filtroStatus);
+  if (filtroResponsavel) lista = lista.filter((m) => m.responsavel === filtroResponsavel);
   if (busca) lista = lista.filter((m) => (m.descricao || "").toLowerCase().includes(busca));
 
   lista = [...lista].sort((a, b) => (a.data_movimento < b.data_movimento ? 1 : -1));
@@ -886,7 +902,7 @@ function renderMovimentosList() {
 
   const statusLabel = { previsto: "Previsto", realizado: "Realizado", cancelado: "Cancelado" };
   let html = `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
-    <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th>Status</th>
+    <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Responsável</th><th>Valor</th><th>Status</th>
   </tr></thead><tbody>`;
   for (const m of lista) {
     const categoria = categoriasFinanceiras.find((c) => c.id === m.categoria_id);
@@ -897,6 +913,7 @@ function renderMovimentosList() {
       <td>${escapeHtml(m.descricao || "")}${m.pedido_id ? ' <span class="mov-tag-pedido">🔗 pedido</span>' : ""}</td>
       <td>${escapeHtml(categoria?.nome || "—")}</td>
       <td>${escapeHtml(conta?.nome || "—")}</td>
+      <td>${escapeHtml(m.responsavel || "—")}</td>
       <td class="mov-tipo-${m.tipo}">${m.tipo === "saida" ? "− " : "+ "}${formatMoney(m.valor)}</td>
       <td><span class="status-badge ${atrasado ? "atrasado" : m.status}">${atrasado ? "Atrasado" : statusLabel[m.status]}</span></td>
     </tr>`;
@@ -950,6 +967,7 @@ function openMovimentoDialog(movimento) {
     movimentoForm.elements.namedItem("valor").value = movimento.valor;
     movimentoForm.elements.namedItem("data_movimento").value = movimento.data_movimento;
     movimentoForm.elements.namedItem("status").value = movimento.status;
+    movimentoForm.elements.namedItem("responsavel").value = movimento.responsavel || "";
     movimentoForm.elements.namedItem("descricao").value = movimento.descricao || "";
   } else {
     movimentoForm.elements.namedItem("data_movimento").value = new Date().toISOString().slice(0, 10);
@@ -981,6 +999,7 @@ async function handleSaveMovimento(e) {
     status: fd.get("status"),
     categoria_id: fd.get("categoria_id") || null,
     conta_id: fd.get("conta_id") || null,
+    responsavel: fd.get("responsavel") || null,
     descricao: fd.get("descricao").trim() || null,
   };
 

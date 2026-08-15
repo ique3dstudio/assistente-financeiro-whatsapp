@@ -156,6 +156,11 @@
             <option value="realizado">Realizado</option>
             <option value="cancelado">Cancelado</option>
           </select>
+          <select id="mov-filtro-responsavel">
+            <option value="">Todos os responsáveis</option>
+            <option value="Tamires">Tamires</option>
+            <option value="Gustavo">Gustavo</option>
+          </select>
           <span class="spacer"></span>
           <button type="button" id="ia-lancamento-btn" class="ghost">✨ Entrada rápida</button>
           <button type="button" id="transferencia-btn" class="ghost">🔁 Transferir</button>
@@ -518,6 +523,14 @@
           Conta
           <select name="conta_id" id="movimento-conta-select">
             <option value="">— A definir —</option>
+          </select>
+        </label>
+        <label>
+          Responsável
+          <select name="responsavel">
+            <option value="">— Não se aplica —</option>
+            <option value="Tamires">Tamires</option>
+            <option value="Gustavo">Gustavo</option>
           </select>
         </label>
       </div>
