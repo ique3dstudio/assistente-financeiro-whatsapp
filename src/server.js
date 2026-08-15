@@ -44,7 +44,9 @@ app.get("/loja3d/logo-icon", async (req, res) => {
   } catch {
     // segue pro ícone padrão
   }
-  res.redirect(302, "/loja3d/icon.svg");
+  // PNG, não SVG: ícone de tela inicial do iOS (apple-touch-icon) não reconhece SVG e cai
+  // num "I" genérico (primeira letra do nome do app) se o formato não for suportado.
+  res.redirect(302, "/loja3d/icon-512.png");
 });
 
 app.use("/loja3d", express.static(path.join(__dirname, "..", "public", "loja3d")));

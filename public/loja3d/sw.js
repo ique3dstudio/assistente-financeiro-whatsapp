@@ -1,4 +1,4 @@
-const CACHE = "pedidos3d-shell-v2";
+const CACHE = "pedidos3d-shell-v3";
 const SHELL_FILES = [
   "/loja3d/",
   "/loja3d/index.html",
@@ -6,6 +6,7 @@ const SHELL_FILES = [
   "/loja3d/app.js",
   "/loja3d/manifest.json",
   "/loja3d/icon.svg",
+  "/loja3d/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
