@@ -71,6 +71,7 @@ const transferenciaBtn = document.getElementById("transferencia-btn");
 const searchInput = document.getElementById("search-input");
 const filterAtrasadosBtn = document.getElementById("filter-atrasados");
 const newOrderBtn = document.getElementById("new-order-btn");
+const topbarNovoMovimentoBtn = document.getElementById("topbar-novo-movimento-btn");
 const exportCsvBtn = document.getElementById("export-csv-btn");
 const clientesOptions = document.getElementById("clientes-options");
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -238,6 +239,7 @@ async function init() {
     renderBoard();
   });
   newOrderBtn.addEventListener("click", () => openOrderDialog(null));
+  topbarNovoMovimentoBtn.addEventListener("click", () => openMovimentoDialog(null));
   cancelOrderBtn.addEventListener("click", () => orderDialog.close());
   closeOrderBtn.addEventListener("click", () => orderDialog.close());
   orderForm.addEventListener("submit", handleSaveOrder);
