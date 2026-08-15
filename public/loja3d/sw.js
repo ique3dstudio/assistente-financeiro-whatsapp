@@ -1,4 +1,4 @@
-const CACHE = "pedidos3d-shell-v1";
+const CACHE = "pedidos3d-shell-v2";
 const SHELL_FILES = [
   "/loja3d/",
   "/loja3d/index.html",
@@ -23,6 +23,8 @@ self.addEventListener("activate", (event) => {
 });
 
 // Só cuida do "app shell" (HTML/CSS/JS estáticos). Dados do Supabase sempre vão direto pra rede.
+// Estratégia "rede primeiro": sempre busca a versão mais nova quando há internet (essencial numa
+// app que recebe atualizações com frequência) e só usa o cache como reserva se estiver offline.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || !url.pathname.startsWith("/loja3d/")) {
@@ -33,15 +35,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
