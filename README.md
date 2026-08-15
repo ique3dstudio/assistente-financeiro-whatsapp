@@ -66,6 +66,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
    - `sql/pedidos_3d.sql` (schema original)
    - `sql/002_bloco1.sql` (clientes, pedidos com múltiplos itens, anexos, prioridade — já migra os dados que
      estiverem em `pedidos_3d` automaticamente, e já cria o bucket de armazenamento pros anexos)
+   - `sql/003_bloco2.sql` (configurações da loja, materiais, catálogo de produtos e campos de custo — já cria a
+     linha de configurações com valores padrão, revise em "⚙ Configurações" dentro do app)
 2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
    `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
    preenchidos).
@@ -92,8 +94,19 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   mostra só esses.
 - **Anexos.** Fotos de referência, arquivo STL/3MF ou print da conversa do WhatsApp podem ser anexados a cada
   pedido (guardados no Supabase Storage, de forma privada).
-- **Painel.** Aba com 5 números do momento: pedidos abertos, itens atrasados, faturamento do mês, horas de
-  produção na fila e clientes ativos.
+- **Painel.** Aba com 6 números do momento: pedidos abertos, itens atrasados, faturamento do mês, lucro do mês
+  (só considera itens com custo calculado), horas de produção na fila e clientes ativos.
+- **Financeiro.** Aba com as contas a receber: todo pedido não pago ainda, com total, sinal recebido, saldo
+  devedor e prazo — e o total geral a receber no topo.
+- **Calculadora de custo e preço.** Dentro de cada item do pedido: informe peso (g), tempo de impressão, mão de
+  obra e o material (escolhido de um catálogo cadastrado em "⚙ Configurações"), clique em "💰 Calcular preço
+  sugerido" e o app preenche o valor cobrado com base no custo de material + energia + depreciação da impressora +
+  mão de obra + uma margem de risco/falha e de lucro — tudo configurável em "⚙ Configurações". O lucro estimado
+  daquele item aparece na hora.
+- **Catálogo de produtos.** Depois de montar um item do jeito certo, dá pra "💾 Salvar como produto" — da próxima
+  vez, é só escolher em "Carregar produto salvo" que todos os campos (incluindo o preço) vêm prontos.
+- **Orçamento em PDF e WhatsApp.** No pedido já com itens, os botões "📄 Orçamento PDF" e "📲 Enviar WhatsApp"
+  geram o resumo (itens, total, sinal, saldo, prazo) pra baixar ou mandar direto pro número do cliente.
 - **Exportar CSV.** Botão no topo baixa todos os itens (com dados do cliente e do pedido) numa planilha, pra abrir
   no Excel/Google Sheets quando quiser.
 - **Tempo real.** Se uma mexe em algo, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
@@ -105,6 +118,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 - `sql/pedidos_3d.sql` — schema original (tabela única, mantida como histórico/backup).
 - `sql/002_bloco1.sql` — clientes, pedidos, itens_pedido, anexos, políticas de RLS, realtime, bucket de
   armazenamento e migração automática dos dados do schema original.
+- `sql/003_bloco2.sql` — configurações (dados da loja e premissas de custo), materiais, produtos e os campos de
+  custo em itens_pedido.
 - Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
   do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
 

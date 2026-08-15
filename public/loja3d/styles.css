@@ -432,6 +432,133 @@ legend {
   background: transparent;
 }
 
+/* Calculadora de custo dentro do item */
+.calc-box {
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calc-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.calc-actions button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.calc-breakdown {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.calc-breakdown:empty {
+  display: none;
+}
+
+/* Materiais (dentro de Configurações) */
+.materiais-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.materiais-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.materiais-list button {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
+#material-form {
+  align-items: end;
+}
+
+#material-form button {
+  grid-column: span 1;
+  align-self: end;
+}
+
+/* Financeiro */
+.financeiro {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.financeiro-total {
+  max-width: 260px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.financeiro-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.financeiro-table th,
+.financeiro-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.financeiro-table th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.financeiro-table tr {
+  cursor: pointer;
+}
+
+.financeiro-table tr:hover {
+  background: var(--panel-2);
+}
+
+.financeiro-table tr.late-row td:last-child {
+  color: var(--danger);
+}
+
+#config-dialog {
+  width: min(680px, 92vw);
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

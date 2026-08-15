@@ -36,11 +36,13 @@
       <nav class="tabs">
         <button type="button" class="tab-btn active" data-tab="quadro">Quadro</button>
         <button type="button" class="tab-btn" data-tab="painel">Painel</button>
+        <button type="button" class="tab-btn" data-tab="financeiro">Financeiro</button>
       </nav>
       <div class="topbar-actions">
         <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
         <button id="filter-atrasados" class="chip" type="button">⏰ Atrasados: 0</button>
         <button id="export-csv-btn" class="ghost" type="button">⬇ Exportar CSV</button>
+        <button id="config-btn" class="ghost" type="button" title="Configurações">⚙</button>
         <button id="new-order-btn" class="primary" type="button">+ Novo pedido</button>
         <button id="logout-btn" class="ghost" type="button">Sair</button>
       </div>
@@ -52,6 +54,10 @@
 
     <main id="tab-painel" class="tab-panel" hidden>
       <div id="dashboard" class="dashboard"></div>
+    </main>
+
+    <main id="tab-financeiro" class="tab-panel" hidden>
+      <div id="financeiro" class="financeiro"></div>
     </main>
   </section>
 
@@ -133,12 +139,96 @@
 
       <div class="dialog-actions">
         <button type="button" id="delete-order-btn" class="danger" hidden>Excluir pedido</button>
+        <button type="button" id="pdf-order-btn" class="ghost" hidden>📄 Orçamento PDF</button>
+        <button type="button" id="whatsapp-order-btn" class="ghost" hidden>📲 Enviar WhatsApp</button>
         <span class="spacer"></span>
         <button type="button" id="cancel-order-btn" class="ghost">Cancelar</button>
         <button type="submit" class="primary">Salvar</button>
       </div>
       <p id="order-error" class="error" hidden></p>
     </form>
+  </dialog>
+
+  <!-- Modal de configurações (dados da loja, precificação e materiais) -->
+  <dialog id="config-dialog">
+    <form id="config-form">
+      <h2>Configurações</h2>
+
+      <fieldset>
+        <legend>Dados da loja</legend>
+        <label>
+          Nome da loja (aparece no orçamento em PDF)
+          <input name="nome_loja" maxlength="120" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Premissas para calcular custo e preço sugerido</legend>
+        <div class="grid grid-4">
+          <label>
+            Preço do kWh (R$)
+            <input name="valor_kwh" type="number" min="0" step="0.01" required />
+          </label>
+          <label>
+            Potência média da impressora (W)
+            <input name="potencia_media_watts" type="number" min="0" step="1" required />
+          </label>
+          <label>
+            Valor da impressora (R$)
+            <input name="valor_maquina" type="number" min="0" step="1" required />
+          </label>
+          <label>
+            Vida útil (horas)
+            <input name="vida_util_horas" type="number" min="1" step="1" required />
+          </label>
+        </div>
+        <div class="grid grid-4">
+          <label>
+            Valor da hora de mão de obra (R$)
+            <input name="valor_hora_mao_obra" type="number" min="0" step="0.5" required />
+          </label>
+          <label>
+            Taxa de risco/falha (%)
+            <input name="taxa_risco_percentual" type="number" min="0" step="1" required />
+          </label>
+          <label>
+            Margem de lucro padrão (%)
+            <input name="margem_padrao_percentual" type="number" min="0" step="1" required />
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="cancel-config-btn" class="ghost">Fechar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="config-error" class="error" hidden></p>
+    </form>
+
+    <fieldset>
+      <legend>Materiais cadastrados</legend>
+      <ul id="materiais-list" class="materiais-list"></ul>
+      <form id="material-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="80" placeholder="PLA Preto" />
+        </label>
+        <label>
+          Tipo
+          <input name="tipo" list="material-options" maxlength="40" placeholder="PLA" />
+        </label>
+        <label>
+          Preço do rolo (R$)
+          <input name="preco_rolo" type="number" min="0" step="0.01" required />
+        </label>
+        <label>
+          Peso do rolo (g)
+          <input name="peso_rolo_gramas" type="number" min="1" step="1" value="1000" required />
+        </label>
+        <button type="submit" class="ghost">+ Adicionar material</button>
+      </form>
+    </fieldset>
   </dialog>
 
   <!-- Template de uma linha de item (clonado via JS) -->
@@ -169,13 +259,21 @@
           <input data-field="quantidade" type="number" min="1" step="1" value="1" required />
         </label>
         <label>
-          Tempo (h)
-          <input data-field="tempo_estimado_horas" type="number" min="0" step="0.5" />
+          Peso (g)
+          <input data-field="peso_gramas" type="number" min="0" step="1" />
         </label>
       </div>
       <div class="grid grid-4">
         <label>
-          Valor (R$)
+          Tempo de impressão (h)
+          <input data-field="tempo_estimado_horas" type="number" min="0" step="0.5" />
+        </label>
+        <label>
+          Mão de obra (h)
+          <input data-field="mao_obra_horas" type="number" min="0" step="0.5" />
+        </label>
+        <label>
+          Valor cobrado (R$)
           <input data-field="valor" type="number" min="0" step="0.01" />
         </label>
         <label>
@@ -189,6 +287,26 @@
           </select>
         </label>
       </div>
+
+      <div class="calc-box">
+        <div class="grid">
+          <label>
+            Material p/ calcular custo
+            <select data-field="material_id" class="material-select"></select>
+          </label>
+          <label>
+            Carregar produto salvo
+            <select class="produto-select"></select>
+          </label>
+        </div>
+        <div class="calc-actions">
+          <button type="button" class="calc-btn ghost">💰 Calcular preço sugerido</button>
+          <button type="button" class="save-produto-btn ghost">💾 Salvar como produto</button>
+        </div>
+        <p class="calc-breakdown"></p>
+        <input data-field="custo_calculado" type="hidden" />
+      </div>
+
       <label>
         Observações do item
         <input data-field="observacoes" maxlength="300" placeholder="Suporte, infill, acabamento…" />
@@ -205,6 +323,7 @@
   </datalist>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="/loja3d/config.js"></script>
   <script src="/loja3d/app.js"></script>
 </body>

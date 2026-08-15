@@ -22,6 +22,9 @@ const db = window.supabase.createClient(config.url, config.anonKey);
 let currentUser = null;
 let clientes = [];
 let pedidos = [];
+let materiais = [];
+let produtos = [];
+let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
 let anexosPendentes = []; // arquivos escolhidos no <input type=file> ainda não enviados
@@ -34,6 +37,7 @@ const loginError = document.getElementById("login-error");
 const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
+const financeiroEl = document.getElementById("financeiro");
 const searchInput = document.getElementById("search-input");
 const filterAtrasadosBtn = document.getElementById("filter-atrasados");
 const newOrderBtn = document.getElementById("new-order-btn");
@@ -47,11 +51,21 @@ const orderDialogTitle = document.getElementById("order-dialog-title");
 const orderError = document.getElementById("order-error");
 const deleteOrderBtn = document.getElementById("delete-order-btn");
 const cancelOrderBtn = document.getElementById("cancel-order-btn");
+const pdfOrderBtn = document.getElementById("pdf-order-btn");
+const whatsappOrderBtn = document.getElementById("whatsapp-order-btn");
 const itensList = document.getElementById("itens-list");
 const addItemBtn = document.getElementById("add-item-btn");
 const itemRowTemplate = document.getElementById("item-row-template");
 const anexoInput = document.getElementById("anexo-input");
 const anexosListEl = document.getElementById("anexos-list");
+
+const configBtn = document.getElementById("config-btn");
+const configDialog = document.getElementById("config-dialog");
+const configForm = document.getElementById("config-form");
+const cancelConfigBtn = document.getElementById("cancel-config-btn");
+const configError = document.getElementById("config-error");
+const materiaisListEl = document.getElementById("materiais-list");
+const materialForm = document.getElementById("material-form");
 
 init();
 
@@ -91,17 +105,26 @@ async function init() {
   cancelOrderBtn.addEventListener("click", () => orderDialog.close());
   orderForm.addEventListener("submit", handleSaveOrder);
   deleteOrderBtn.addEventListener("click", handleDeleteOrder);
+  pdfOrderBtn.addEventListener("click", gerarOrcamentoPdf);
+  whatsappOrderBtn.addEventListener("click", enviarWhatsapp);
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
+
+  configBtn.addEventListener("click", openConfigDialog);
+  cancelConfigBtn.addEventListener("click", () => configDialog.close());
+  configForm.addEventListener("submit", handleSaveConfig);
+  materialForm.addEventListener("submit", handleAddMaterial);
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       tabButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      document.getElementById("tab-quadro").hidden = btn.dataset.tab !== "quadro";
-      document.getElementById("tab-painel").hidden = btn.dataset.tab !== "painel";
+      document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.hidden = panel.id !== `tab-${btn.dataset.tab}`;
+      });
       if (btn.dataset.tab === "painel") renderDashboard();
+      if (btn.dataset.tab === "financeiro") renderFinanceiro();
     })
   );
 }
@@ -132,24 +155,36 @@ async function onAuthed(user) {
 }
 
 async function loadData() {
-  const [{ data: clientesData, error: eCli }, { data: pedidosData, error: ePed }] = await Promise.all([
+  const [
+    { data: clientesData, error: eCli },
+    { data: pedidosData, error: ePed },
+    { data: materiaisData, error: eMat },
+    { data: produtosData, error: eProd },
+    { data: configData, error: eCfg },
+  ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
       .from("pedidos")
       .select("*, cliente:clientes(*), itens:itens_pedido(*), anexos(*)")
       .order("created_at", { ascending: true }),
+    db.from("materiais").select("*").order("nome"),
+    db.from("produtos").select("*").order("nome"),
+    db.from("configuracoes").select("*").eq("id", 1).single(),
   ]);
 
-  if (eCli) console.error(eCli);
-  if (ePed) console.error(ePed);
+  for (const e of [eCli, ePed, eMat, eProd, eCfg]) if (e) console.error(e);
 
   clientes = clientesData || [];
   pedidos = pedidosData || [];
+  materiais = materiaisData || [];
+  produtos = produtosData || [];
+  configuracoes = configData || null;
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
 
   renderBoard();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
+  if (!document.getElementById("tab-financeiro").hidden) renderFinanceiro();
 }
 
 let realtimeChannel = null;
@@ -167,12 +202,21 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "itens_pedido" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "anexos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "materiais" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "produtos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "configuracoes" }, scheduleRefetch)
     .subscribe();
 }
 
 function isAtrasado(item, pedido) {
   if (!pedido.prazo_entrega) return false;
   if (item.status === "pronto" || item.status === "entregue") return false;
+  const hoje = new Date().toISOString().slice(0, 10);
+  return pedido.prazo_entrega < hoje;
+}
+
+function isAtrasadoPedido(pedido) {
+  if (!pedido.prazo_entrega) return false;
   const hoje = new Date().toISOString().slice(0, 10);
   return pedido.prazo_entrega < hoje;
 }
@@ -184,7 +228,7 @@ function formatDate(iso) {
 }
 
 function formatMoney(v) {
-  if (v === null || v === undefined) return null;
+  if (v === null || v === undefined) return "R$ 0,00";
   return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
@@ -353,13 +397,16 @@ function renderDashboard() {
   const pedidosAbertos = pedidos.filter((p) => (p.itens || []).some((i) => i.status !== "entregue")).length;
   const itensAtrasados = cards.filter((c) => isAtrasado(c.item, c.pedido)).length;
 
-  const faturamentoMes = cards
-    .filter((c) => {
-      if (c.item.status !== "entregue" || !c.item.updated_at) return false;
-      const d = new Date(c.item.updated_at);
-      return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
-    })
-    .reduce((sum, c) => sum + (Number(c.item.valor) || 0), 0);
+  const entreguesNoMes = cards.filter((c) => {
+    if (c.item.status !== "entregue" || !c.item.updated_at) return false;
+    const d = new Date(c.item.updated_at);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+
+  const faturamentoMes = entreguesNoMes.reduce((sum, c) => sum + (Number(c.item.valor) || 0), 0);
+  const lucroMes = entreguesNoMes
+    .filter((c) => c.item.custo_calculado !== null && c.item.custo_calculado !== undefined)
+    .reduce((sum, c) => sum + ((Number(c.item.valor) || 0) - Number(c.item.custo_calculado)), 0);
 
   const horasFila = cards
     .filter((c) => c.item.status !== "entregue")
@@ -373,6 +420,7 @@ function renderDashboard() {
     { label: "Pedidos abertos", value: pedidosAbertos },
     { label: "Itens atrasados", value: itensAtrasados },
     { label: "Faturamento do mês", value: formatMoney(faturamentoMes) },
+    { label: "Lucro do mês (itens com custo calculado)", value: formatMoney(lucroMes) },
     { label: "Horas na fila", value: `${horasFila}h` },
     { label: "Clientes ativos", value: clientesAtivos },
   ];
@@ -380,6 +428,50 @@ function renderDashboard() {
   dashboard.innerHTML = stats
     .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
     .join("");
+}
+
+/* ---------- Financeiro (contas a receber) ---------- */
+
+function renderFinanceiro() {
+  const linhas = pedidos
+    .map((pedido) => {
+      const total = (pedido.itens || []).reduce((sum, i) => sum + (Number(i.valor) || 0), 0);
+      const sinal = Number(pedido.valor_sinal) || 0;
+      return { pedido, total, sinal, saldo: total - sinal };
+    })
+    .filter((l) => l.pedido.pagamento !== "pago" && l.saldo > 0)
+    .sort((a, b) => (a.pedido.prazo_entrega || "9999") < (b.pedido.prazo_entrega || "9999") ? -1 : 1);
+
+  const totalGeral = linhas.reduce((sum, l) => sum + l.saldo, 0);
+
+  let html = `<div class="stat-card financeiro-total"><div class="stat-value">${formatMoney(totalGeral)}</div><div class="stat-label">Total a receber</div></div>`;
+
+  if (linhas.length === 0) {
+    html += `<p class="column-empty">Nenhuma conta em aberto. 🎉</p>`;
+  } else {
+    html += `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
+      <th>Cliente</th><th>Total</th><th>Sinal</th><th>Saldo</th><th>Prazo</th><th>Status</th>
+    </tr></thead><tbody>`;
+    for (const l of linhas) {
+      html += `<tr class="${isAtrasadoPedido(l.pedido) ? "late-row" : ""}" data-id="${l.pedido.id}">
+        <td>${escapeHtml(l.pedido.cliente?.nome || "")}</td>
+        <td>${formatMoney(l.total)}</td>
+        <td>${formatMoney(l.sinal)}</td>
+        <td>${formatMoney(l.saldo)}</td>
+        <td>${l.pedido.prazo_entrega ? formatDate(l.pedido.prazo_entrega) : "—"}</td>
+        <td>${l.pedido.pagamento}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  financeiroEl.innerHTML = html;
+  financeiroEl.querySelectorAll("tr[data-id]").forEach((tr) =>
+    tr.addEventListener("click", () => {
+      const pedido = pedidos.find((p) => p.id === tr.dataset.id);
+      if (pedido) openOrderDialog(pedido);
+    })
+  );
 }
 
 /* ---------- Exportar CSV ---------- */
@@ -427,7 +519,119 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+/* ---------- Configurações e materiais ---------- */
+
+function openConfigDialog() {
+  configError.hidden = true;
+  if (configuracoes) {
+    for (const [key, value] of Object.entries(configuracoes)) {
+      const field = configForm.elements.namedItem(key);
+      if (field && value !== null && value !== undefined) field.value = value;
+    }
+  }
+  renderMateriaisList();
+  configDialog.showModal();
+}
+
+async function handleSaveConfig(e) {
+  e.preventDefault();
+  const fd = new FormData(configForm);
+  const payload = {
+    nome_loja: fd.get("nome_loja").trim(),
+    valor_kwh: Number(fd.get("valor_kwh")),
+    potencia_media_watts: Number(fd.get("potencia_media_watts")),
+    valor_maquina: Number(fd.get("valor_maquina")),
+    vida_util_horas: Number(fd.get("vida_util_horas")),
+    valor_hora_mao_obra: Number(fd.get("valor_hora_mao_obra")),
+    taxa_risco_percentual: Number(fd.get("taxa_risco_percentual")),
+    margem_padrao_percentual: Number(fd.get("margem_padrao_percentual")),
+  };
+  const { error } = await db.from("configuracoes").update(payload).eq("id", 1);
+  if (error) {
+    configError.textContent = "Erro ao salvar: " + error.message;
+    configError.hidden = false;
+    return;
+  }
+  await loadData();
+  configDialog.close();
+}
+
+function renderMateriaisList() {
+  if (materiais.length === 0) {
+    materiaisListEl.innerHTML = `<li class="column-empty">Nenhum material cadastrado ainda.</li>`;
+    return;
+  }
+  materiaisListEl.innerHTML = materiais
+    .map(
+      (m) =>
+        `<li><span>${escapeHtml(m.nome)}${m.tipo ? " · " + escapeHtml(m.tipo) : ""} — ${formatMoney(m.preco_rolo)} / ${m.peso_rolo_gramas}g</span>
+        <button type="button" data-id="${m.id}" class="remove-material-btn">×</button></li>`
+    )
+    .join("");
+  materiaisListEl.querySelectorAll(".remove-material-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      if (!confirm("Remover este material?")) return;
+      await db.from("materiais").delete().eq("id", btn.dataset.id);
+      await loadData();
+      renderMateriaisList();
+    })
+  );
+}
+
+async function handleAddMaterial(e) {
+  e.preventDefault();
+  const fd = new FormData(materialForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    tipo: fd.get("tipo").trim() || null,
+    preco_rolo: Number(fd.get("preco_rolo")),
+    peso_rolo_gramas: Number(fd.get("peso_rolo_gramas")),
+  };
+  const { error } = await db.from("materiais").insert(payload);
+  if (error) {
+    alert("Erro ao adicionar material: " + error.message);
+    return;
+  }
+  materialForm.reset();
+  materialForm.elements.namedItem("peso_rolo_gramas").value = 1000;
+  await loadData();
+  renderMateriaisList();
+}
+
+/* ---------- Calculadora de custo ---------- */
+
+function calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId }) {
+  const cfg = configuracoes || {};
+  const material = materiais.find((m) => m.id === materialId);
+  const custoMaterial = material ? (material.preco_rolo / material.peso_rolo_gramas) * pesoGramas : 0;
+  const custoEnergia = ((cfg.potencia_media_watts || 0) / 1000) * tempoHoras * (cfg.valor_kwh || 0);
+  const custoMaquina = ((cfg.valor_maquina || 0) / (cfg.vida_util_horas || 1)) * tempoHoras;
+  const custoMaoObra = (cfg.valor_hora_mao_obra || 0) * maoObraHoras;
+  const custoBase = custoMaterial + custoEnergia + custoMaquina + custoMaoObra;
+  const custoComRisco = custoBase * (1 + (cfg.taxa_risco_percentual || 0) / 100);
+  const precoSugerido = custoComRisco * (1 + (cfg.margem_padrao_percentual || 0) / 100);
+  return { custoMaterial, custoEnergia, custoMaquina, custoMaoObra, custoBase, custoComRisco, precoSugerido };
+}
+
 /* ---------- Formulário de pedido (criar/editar) ---------- */
+
+function setField(row, field, value) {
+  const el = row.querySelector(`[data-field="${field}"]`);
+  if (el && value !== null && value !== undefined) el.value = value;
+}
+
+function populateMaterialSelect(select, selectedId) {
+  select.innerHTML =
+    '<option value="">— nenhum —</option>' +
+    materiais.map((m) => `<option value="${m.id}">${escapeHtml(m.nome)}</option>`).join("");
+  if (selectedId) select.value = selectedId;
+}
+
+function populateProdutoSelect(select) {
+  select.innerHTML =
+    '<option value="">— selecionar —</option>' +
+    produtos.map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
+}
 
 function addItemRow(item) {
   const fragment = itemRowTemplate.content.cloneNode(true);
@@ -441,6 +645,76 @@ function addItemRow(item) {
     }
   }
 
+  const materialSelect = row.querySelector(".material-select");
+  populateMaterialSelect(materialSelect, item?.material_id);
+  materialSelect.addEventListener("change", () => {
+    const mat = materiais.find((m) => m.id === materialSelect.value);
+    if (mat) setField(row, "material", mat.nome);
+  });
+
+  const produtoSelect = row.querySelector(".produto-select");
+  populateProdutoSelect(produtoSelect);
+  produtoSelect.addEventListener("change", () => {
+    const produto = produtos.find((p) => p.id === produtoSelect.value);
+    produtoSelect.value = "";
+    if (!produto) return;
+    setField(row, "descricao", produto.descricao || produto.nome);
+    setField(row, "cor", produto.cor);
+    setField(row, "peso_gramas", produto.peso_gramas);
+    setField(row, "tempo_estimado_horas", produto.tempo_estimado_horas);
+    setField(row, "mao_obra_horas", produto.mao_obra_horas);
+    setField(row, "valor", produto.preco_venda);
+    const mat = materiais.find((m) => m.id === produto.material_id);
+    setField(row, "material", mat ? mat.nome : "");
+    materialSelect.value = produto.material_id || "";
+  });
+
+  row.querySelector(".calc-btn").addEventListener("click", () => {
+    const pesoGramas = Number(row.querySelector('[data-field="peso_gramas"]').value) || 0;
+    const tempoHoras = Number(row.querySelector('[data-field="tempo_estimado_horas"]').value) || 0;
+    const maoObraHoras = Number(row.querySelector('[data-field="mao_obra_horas"]').value) || 0;
+    const materialId = materialSelect.value || null;
+
+    if (!materialId) {
+      alert("Selecione um material em \"Material p/ calcular custo\" antes de calcular.");
+      return;
+    }
+
+    const r = calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId });
+    setField(row, "valor", r.precoSugerido.toFixed(2));
+    row.querySelector('[data-field="custo_calculado"]').value = r.custoComRisco.toFixed(2);
+    const lucro = r.precoSugerido - r.custoComRisco;
+    row.querySelector(".calc-breakdown").textContent =
+      `Custo estimado: ${formatMoney(r.custoComRisco)} · Preço sugerido: ${formatMoney(r.precoSugerido)} · Lucro: ${formatMoney(lucro)}`;
+  });
+
+  row.querySelector(".save-produto-btn").addEventListener("click", async () => {
+    const descricaoAtual = row.querySelector('[data-field="descricao"]').value.trim();
+    const nome = prompt("Nome do produto para salvar no catálogo:", descricaoAtual);
+    if (!nome) return;
+    const payload = {
+      nome,
+      descricao: descricaoAtual || null,
+      cor: row.querySelector('[data-field="cor"]').value.trim() || null,
+      material_id: materialSelect.value || null,
+      peso_gramas: row.querySelector('[data-field="peso_gramas"]').value
+        ? Number(row.querySelector('[data-field="peso_gramas"]').value)
+        : null,
+      tempo_estimado_horas: row.querySelector('[data-field="tempo_estimado_horas"]').value
+        ? Number(row.querySelector('[data-field="tempo_estimado_horas"]').value)
+        : null,
+      mao_obra_horas: row.querySelector('[data-field="mao_obra_horas"]').value
+        ? Number(row.querySelector('[data-field="mao_obra_horas"]').value)
+        : null,
+      preco_venda: row.querySelector('[data-field="valor"]').value
+        ? Number(row.querySelector('[data-field="valor"]').value)
+        : null,
+    };
+    const { error } = await db.from("produtos").insert(payload);
+    if (error) alert("Erro ao salvar produto: " + error.message);
+    else await loadData();
+  });
+
   row.querySelector(".remove-item-btn").addEventListener("click", () => row.remove());
   itensList.appendChild(row);
 }
@@ -451,6 +725,8 @@ function openOrderDialog(pedido) {
   orderForm.dataset.id = pedido ? pedido.id : "";
   orderDialogTitle.textContent = pedido ? "Editar pedido" : "Novo pedido";
   deleteOrderBtn.hidden = !pedido;
+  pdfOrderBtn.hidden = !pedido;
+  whatsappOrderBtn.hidden = !pedido;
   itensList.innerHTML = "";
   anexosListEl.innerHTML = "";
   anexoInput.value = "";
@@ -588,12 +864,22 @@ async function handleSaveOrder(e) {
         modelo_link: row.querySelector('[data-field="modelo_link"]').value.trim() || null,
         cor: row.querySelector('[data-field="cor"]').value.trim() || null,
         material: row.querySelector('[data-field="material"]').value.trim() || null,
+        material_id: row.querySelector('[data-field="material_id"]').value || null,
         quantidade: Number(row.querySelector('[data-field="quantidade"]').value) || 1,
+        peso_gramas: row.querySelector('[data-field="peso_gramas"]').value
+          ? Number(row.querySelector('[data-field="peso_gramas"]').value)
+          : null,
         tempo_estimado_horas: row.querySelector('[data-field="tempo_estimado_horas"]').value
           ? Number(row.querySelector('[data-field="tempo_estimado_horas"]').value)
           : null,
+        mao_obra_horas: row.querySelector('[data-field="mao_obra_horas"]').value
+          ? Number(row.querySelector('[data-field="mao_obra_horas"]').value)
+          : null,
         valor: row.querySelector('[data-field="valor"]').value
           ? Number(row.querySelector('[data-field="valor"]').value)
+          : null,
+        custo_calculado: row.querySelector('[data-field="custo_calculado"]').value
+          ? Number(row.querySelector('[data-field="custo_calculado"]').value)
           : null,
         status: row.querySelector('[data-field="status"]').value,
         observacoes: row.querySelector('[data-field="observacoes"]').value.trim() || null,
@@ -659,4 +945,120 @@ async function handleDeleteOrder() {
   }
   orderDialog.close();
   await loadData();
+}
+
+/* ---------- Orçamento em PDF e WhatsApp ---------- */
+
+function gatherOrderSnapshot() {
+  const formData = new FormData(orderForm);
+  const itemRows = [...itensList.querySelectorAll(".item-row")];
+  const itens = itemRows
+    .map((row) => ({
+      descricao: row.querySelector('[data-field="descricao"]').value.trim(),
+      quantidade: Number(row.querySelector('[data-field="quantidade"]').value) || 1,
+      valor: row.querySelector('[data-field="valor"]').value
+        ? Number(row.querySelector('[data-field="valor"]').value)
+        : 0,
+    }))
+    .filter((i) => i.descricao);
+
+  return {
+    clienteNome: formData.get("cliente_nome").trim(),
+    clienteContato: formData.get("cliente_contato").trim(),
+    prazoEntrega: formData.get("prazo_entrega"),
+    valorSinal: formData.get("valor_sinal") ? Number(formData.get("valor_sinal")) : 0,
+    itens,
+  };
+}
+
+function gerarOrcamentoPdf() {
+  const snap = gatherOrderSnapshot();
+  if (snap.itens.length === 0) {
+    alert("Adicione pelo menos um item antes de gerar o orçamento.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
+
+  doc.setFontSize(16);
+  doc.text(configuracoes?.nome_loja || "Loja 3D", 14, y);
+  y += 8;
+  doc.setFontSize(11);
+  doc.text("Orçamento", 14, y);
+  y += 8;
+  doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, 14, y);
+  y += 6;
+  doc.text(`Cliente: ${snap.clienteNome}`, 14, y);
+  y += 6;
+  if (snap.clienteContato) {
+    doc.text(`Contato: ${snap.clienteContato}`, 14, y);
+    y += 6;
+  }
+  if (snap.prazoEntrega) {
+    doc.text(`Prazo de entrega: ${formatDate(snap.prazoEntrega)}`, 14, y);
+    y += 6;
+  }
+
+  y += 4;
+  doc.setFontSize(11);
+  doc.text("Item", 14, y);
+  doc.text("Qtd", 130, y);
+  doc.text("Valor", 160, y);
+  y += 2;
+  doc.line(14, y, 196, y);
+  y += 6;
+
+  let total = 0;
+  for (const item of snap.itens) {
+    doc.text(item.descricao.slice(0, 60), 14, y);
+    doc.text(String(item.quantidade), 130, y);
+    doc.text(formatMoney(item.valor || 0), 160, y);
+    total += Number(item.valor) || 0;
+    y += 7;
+  }
+
+  y += 2;
+  doc.line(14, y, 196, y);
+  y += 8;
+  doc.setFontSize(12);
+  doc.text(`Total: ${formatMoney(total)}`, 14, y);
+  y += 7;
+
+  if (snap.valorSinal) {
+    doc.text(`Sinal: ${formatMoney(snap.valorSinal)}`, 14, y);
+    y += 7;
+    doc.text(`Saldo: ${formatMoney(total - snap.valorSinal)}`, 14, y);
+    y += 7;
+  }
+
+  doc.save(`orcamento-${(snap.clienteNome || "pedido").replace(/\s+/g, "-")}.pdf`);
+}
+
+function enviarWhatsapp() {
+  const snap = gatherOrderSnapshot();
+  if (snap.itens.length === 0) {
+    alert("Adicione pelo menos um item antes de enviar.");
+    return;
+  }
+
+  const total = snap.itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+  let msg = `Olá ${snap.clienteNome}! Segue o orçamento:\n\n`;
+  for (const item of snap.itens) {
+    msg += `• ${item.descricao} (x${item.quantidade}) — ${formatMoney(item.valor || 0)}\n`;
+  }
+  msg += `\nTotal: ${formatMoney(total)}`;
+  if (snap.prazoEntrega) msg += `\nPrazo: ${formatDate(snap.prazoEntrega)}`;
+  if (snap.valorSinal) {
+    msg += `\nSinal: ${formatMoney(snap.valorSinal)}`;
+    msg += `\nSaldo: ${formatMoney(total - snap.valorSinal)}`;
+  }
+
+  const numero = (snap.clienteContato || "").replace(/\D/g, "");
+  const numeroCompleto = numero ? (numero.length <= 11 ? "55" + numero : numero) : "";
+  const url = numeroCompleto
+    ? `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, "_blank");
 }
