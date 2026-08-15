@@ -76,6 +76,16 @@ const materialForm = document.getElementById("material-form");
 const maquinasListEl = document.getElementById("maquinas-list");
 const maquinaForm = document.getElementById("maquina-form");
 
+const calcMaterial = document.getElementById("calc-material");
+const calcPeso = document.getElementById("calc-peso");
+const calcTempo = document.getElementById("calc-tempo");
+const calcMaoObra = document.getElementById("calc-mao-obra");
+const calcTerceiro = document.getElementById("calc-terceiro");
+const calcComissao = document.getElementById("calc-comissao");
+const calcItemAdicional = document.getElementById("calc-item-adicional");
+const calcResultado = document.getElementById("calc-resultado");
+const calcLimparBtn = document.getElementById("calc-limpar-btn");
+
 init();
 
 async function init() {
@@ -127,6 +137,15 @@ async function init() {
   materialForm.addEventListener("submit", handleAddMaterial);
   maquinaForm.addEventListener("submit", handleAddMaquina);
 
+  [calcMaterial, calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcItemAdicional].forEach((el) =>
+    el.addEventListener("input", renderCalculadoraLivre)
+  );
+  calcLimparBtn.addEventListener("click", () => {
+    [calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcItemAdicional].forEach((el) => (el.value = ""));
+    calcMaterial.value = "";
+    renderCalculadoraLivre();
+  });
+
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       tabButtons.forEach((b) => b.classList.remove("active"));
@@ -136,6 +155,10 @@ async function init() {
       });
       if (btn.dataset.tab === "painel") renderDashboard();
       if (btn.dataset.tab === "financeiro") renderFinanceiro();
+      if (btn.dataset.tab === "calculadora") {
+        populateMaterialSelect(calcMaterial);
+        renderCalculadoraLivre();
+      }
     })
   );
 }
@@ -202,6 +225,11 @@ async function loadData() {
   renderBoard();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
   if (!document.getElementById("tab-financeiro").hidden) renderFinanceiro();
+  if (!document.getElementById("tab-calculadora").hidden) {
+    const materialSelecionado = calcMaterial.value;
+    populateMaterialSelect(calcMaterial, materialSelecionado);
+    renderCalculadoraLivre();
+  }
 }
 
 let realtimeChannel = null;
@@ -760,6 +788,47 @@ function calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId }) {
   const custoComRisco = custoBase * (1 + (cfg.taxa_risco_percentual || 0) / 100);
   const precoSugerido = custoComRisco * (1 + (cfg.margem_padrao_percentual || 0) / 100);
   return { custoMaterial, custoEnergia, custoMaquina, custoMaoObra, custoBase, custoComRisco, precoSugerido };
+}
+
+/* ---------- Calculadora livre (aba "Calculadora", não salva nada) ---------- */
+
+function renderCalculadoraLivre() {
+  const pesoGramas = Number(calcPeso.value) || 0;
+  const tempoHoras = Number(calcTempo.value) || 0;
+  const maoObraHoras = Number(calcMaoObra.value) || 0;
+  const maoObraTerceiro = Number(calcTerceiro.value) || 0;
+  const comissaoPercentual = Number(calcComissao.value) || 0;
+  const itemAdicional = Number(calcItemAdicional.value) || 0;
+
+  const base = calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId: calcMaterial.value || null });
+  const custoTotal = base.custoBase + maoObraTerceiro + itemAdicional;
+  const custoComRisco = custoTotal * (1 + (configuracoes?.taxa_risco_percentual || 0) / 100);
+  const precoSemComissao = custoComRisco * (1 + (configuracoes?.margem_padrao_percentual || 0) / 100);
+  const precoFinal =
+    comissaoPercentual > 0 && comissaoPercentual < 100 ? precoSemComissao / (1 - comissaoPercentual / 100) : precoSemComissao;
+  const valorComissao = precoFinal - precoSemComissao;
+  const lucroLiquido = precoFinal - valorComissao - custoTotal;
+
+  const linhas = [
+    ["Custo do material", base.custoMaterial],
+    ["Custo de energia", base.custoEnergia],
+    ["Depreciação da máquina", base.custoMaquina],
+    ["Mão de obra própria", base.custoMaoObra],
+  ];
+  if (maoObraTerceiro > 0) linhas.push(["Mão de obra terceirizada", maoObraTerceiro]);
+  if (itemAdicional > 0) linhas.push(["Item adicional", itemAdicional]);
+
+  let html = linhas.map(([label, valor]) => `<div class="calc-linha"><span>${label}</span><span>${formatMoney(valor)}</span></div>`).join("");
+  html += `<div class="calc-linha calc-subtotal"><span>Custo total</span><span>${formatMoney(custoTotal)}</span></div>`;
+  html += `<div class="calc-linha"><span>Com risco de falha (${configuracoes?.taxa_risco_percentual ?? 0}%)</span><span>${formatMoney(custoComRisco)}</span></div>`;
+  html += `<div class="calc-linha"><span>Preço sugerido (margem ${configuracoes?.margem_padrao_percentual ?? 0}%)</span><span>${formatMoney(precoSemComissao)}</span></div>`;
+  if (comissaoPercentual > 0) {
+    html += `<div class="calc-linha"><span>Comissão (${comissaoPercentual}%)</span><span>${formatMoney(valorComissao)}</span></div>`;
+  }
+  html += `<div class="calc-linha calc-final"><span>Preço final de venda</span><span>${formatMoney(precoFinal)}</span></div>`;
+  html += `<div class="calc-linha calc-lucro"><span>Lucro líquido estimado</span><span>${formatMoney(lucroLiquido)}</span></div>`;
+
+  calcResultado.innerHTML = html;
 }
 
 /* ---------- Formulário de pedido (criar/editar) ---------- */

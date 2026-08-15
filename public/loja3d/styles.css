@@ -657,6 +657,62 @@ legend {
   color: var(--text);
 }
 
+/* Calculadora livre */
+.calculadora-livre {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calc-clear-label {
+  justify-content: flex-end;
+}
+
+.calc-clear-label button {
+  width: 100%;
+}
+
+.calc-resultado {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calc-linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.calc-subtotal {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.calc-final {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 10px;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.calc-lucro {
+  color: var(--ok);
+  font-weight: 700;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

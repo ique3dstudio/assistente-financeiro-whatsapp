@@ -80,6 +80,12 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 
 ### Como funciona
 
+- **Calculadora (aba solta, não salva nada).** Pra conferir rapidinho se vale a pena produzir algo, sem precisar
+  criar um pedido de teste. Mesma conta da calculadora de custo por item (material, peso, tempo, mão de obra
+  própria, energia, depreciação, risco e margem — todos vindos de "⚙ Configurações"), mais três campos exclusivos
+  dela, nenhum obrigatório: **mão de obra terceirizada** (R$, se for mandar fazer fora), **comissão de venda** (%,
+  marketplace ou vendedor — o app aumenta o preço final pra sua margem não ser corroída pela comissão) e **item
+  adicional** (R$, tipo argola de chaveiro, clipe, ímã). Atualiza sozinha a cada campo preenchido.
 - **Cliente.** Ao digitar o nome no campo "Cliente" do pedido, o app sugere clientes já cadastrados (autocompletar);
   se o nome for novo, cria o cliente na hora. Isso dá um mini-histórico: dá pra ver depois tudo que aquele cliente
   já pediu.
