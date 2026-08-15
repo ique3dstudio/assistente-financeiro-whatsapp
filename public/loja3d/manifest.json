@@ -9,9 +9,8 @@
   "theme_color": "#0b0d11",
   "icons": [
     {
-      "src": "/loja3d/icon.svg",
+      "src": "/loja3d/logo-icon",
       "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

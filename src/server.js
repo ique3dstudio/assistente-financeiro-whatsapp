@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createClient } from "@supabase/supabase-js";
 import webhookRouter from "./routes/webhook.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,26 @@ app.get("/loja3d/config.js", (req, res) => {
     })};`
   );
 });
+// Ícone dinâmico: aponta pra logo enviada pela loja (⚙ Configurações), se houver, senão cai no
+// ícone vetorial padrão. Vale pra abas novas e pra "adicionar à tela inicial" feito depois de
+// trocar a foto — um ícone já instalado no celular não se atualiza sozinho (limitação do PWA).
+let supabaseLogoClient;
+app.get("/loja3d/logo-icon", async (req, res) => {
+  try {
+    if (!supabaseLogoClient) {
+      supabaseLogoClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    }
+    const { data } = await supabaseLogoClient.rpc("obter_configuracoes_publicas");
+    const logoPath = data?.[0]?.logo_path;
+    if (logoPath) {
+      return res.redirect(302, `${process.env.SUPABASE_URL}/storage/v1/object/public/loja3d-branding/${logoPath}`);
+    }
+  } catch {
+    // segue pro ícone padrão
+  }
+  res.redirect(302, "/loja3d/icon.svg");
+});
+
 app.use("/loja3d", express.static(path.join(__dirname, "..", "public", "loja3d")));
 
 app.listen(port, () => {

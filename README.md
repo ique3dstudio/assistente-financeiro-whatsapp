@@ -144,10 +144,17 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   entre escuro e claro — a escolha fica salva no navegador. Vale em todas as telas, incluindo login e a página
   pública de acompanhamento.
 - **Logo/avatar da loja.** Em "⚙ Configurações", botão "📷 Trocar foto" abre a galeria (ou a câmera) do celular pra
-  escolher a imagem da loja — vira automaticamente um avatar circular no login, no topo do app e na página pública
-  de acompanhamento (essa última busca a logo sem precisar de login, por uma função do banco que só expõe nome da
-  loja e a foto — nada de preço ou dado sensível). O favicon/ícone do PWA quando "instalado" no celular continua
-  sendo o emblema vetorial (navegadores não atualizam esse ícone depois de instalado).
+  escolher a imagem da loja. Antes de confirmar, mostra a foto inteira com um círculo de referência em cima —
+  exatamente o recorte que vai virar o ícone — pra você ver o que fica dentro e fora antes de salvar. Depois de
+  confirmada, a foto vira um avatar circular no login, no topo do app e na página pública de acompanhamento (essa
+  última busca a logo sem precisar de login, por uma função do banco que só expõe nome da loja e a foto — nada de
+  preço ou dado sensível), e também no favicon (aba do navegador) e no ícone do PWA. Só uma ressalva: um ícone que
+  já está instalado na tela inicial do celular não se atualiza sozinho depois de trocar a foto — vale pra abas
+  novas e pra quando adicionar à tela inicial de novo (limitação de como todo PWA funciona, não é bug).
+- **Layout responsivo.** O quadro (Kanban) se ajusta à largura da tela: no celular as colunas ficam empilhadas uma
+  embaixo da outra; no computador, quantas colunas couberem lado a lado, com o excedente indo pra próxima linha —
+  sem precisar rolar pro lado em nenhum dos dois casos. O zoom por toque duplo (que confundia com pinça-pra-zoom
+  de imagem) foi desativado, mantendo o zoom por pinça normal.
 
 ### Estrutura
 
@@ -163,8 +170,12 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 - `public/loja3d/acompanhar.html` — página pública de acompanhamento do pedido, sem login.
 - `sql/005_calculadora.sql` — tabelas canais_venda (com 3 canais de referência já cadastrados) e
   consultas_calculadora (histórico da aba Calculadora).
+- `sql/006_logo.sql` — avatar/logo da loja: campo `logo_path`, bucket público `loja3d-branding` e a função pública
+  `obter_configuracoes_publicas`.
 - Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
   do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
+- Rota `/loja3d/logo-icon`, em `src/server.js` — redireciona pra logo enviada pela loja (ou pro ícone padrão, se
+  nenhuma foi enviada); usada como favicon e ícone do PWA.
 
 ## Estrutura do projeto
 

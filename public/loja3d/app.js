@@ -99,7 +99,13 @@ const canalVendaForm = document.getElementById("canal-venda-form");
 
 const logoUploadBtn = document.getElementById("logo-upload-btn");
 const logoInput = document.getElementById("logo-input");
+const avatarCropBox = document.getElementById("avatar-crop-box");
+const avatarCropImg = document.getElementById("avatar-crop-img");
+const avatarCropCircle = document.getElementById("avatar-crop-circle");
+const avatarCropCancelBtn = document.getElementById("avatar-crop-cancel-btn");
+const avatarCropConfirmBtn = document.getElementById("avatar-crop-confirm-btn");
 const LOGO_BUCKET = "loja3d-branding";
+let arquivoLogoPendente = null;
 
 function atualizarTextoTema() {
   const claro = document.documentElement.dataset.theme === "light";
@@ -189,7 +195,9 @@ async function init() {
   calcSalvarBtn.addEventListener("click", salvarConsulta);
   canalVendaForm.addEventListener("submit", handleAddCanalVenda);
   logoUploadBtn.addEventListener("click", () => logoInput.click());
-  logoInput.addEventListener("change", handleLogoUpload);
+  logoInput.addEventListener("change", handleLogoSelecionado);
+  avatarCropCancelBtn.addEventListener("click", cancelarSelecaoLogo);
+  avatarCropConfirmBtn.addEventListener("click", confirmarUploadLogo);
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -738,8 +746,46 @@ function atualizarBrandMarks() {
   document.querySelectorAll(".brand-mark").forEach((img) => (img.src = src));
 }
 
-async function handleLogoUpload(e) {
+function handleLogoSelecionado(e) {
   const file = e.target.files[0];
+  if (!file) return;
+  arquivoLogoPendente = file;
+
+  const leitor = new FileReader();
+  leitor.onload = () => {
+    avatarCropImg.src = leitor.result;
+    avatarCropBox.hidden = false;
+    avatarCropBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  leitor.readAsDataURL(file);
+}
+
+// Mostra, sobre a foto inteira, o círculo exato que vira o avatar (mesmo recorte que o
+// object-fit:cover vai aplicar de verdade) — assim dá pra ver o que vai ficar de fora antes de
+// confirmar, sem precisar cortar a imagem antes.
+avatarCropImg?.addEventListener("load", () => {
+  const frame = avatarCropImg.parentElement;
+  const tamanho = frame.clientWidth; // moldura é quadrada (aspect-ratio 1/1)
+  const escala = Math.min(tamanho / avatarCropImg.naturalWidth, tamanho / avatarCropImg.naturalHeight);
+  const larguraRenderizada = avatarCropImg.naturalWidth * escala;
+  const alturaRenderizada = avatarCropImg.naturalHeight * escala;
+  const diametro = Math.min(larguraRenderizada, alturaRenderizada);
+
+  avatarCropCircle.style.width = `${diametro}px`;
+  avatarCropCircle.style.height = `${diametro}px`;
+  avatarCropCircle.style.left = `${(tamanho - diametro) / 2}px`;
+  avatarCropCircle.style.top = `${(tamanho - diametro) / 2}px`;
+});
+
+function cancelarSelecaoLogo() {
+  arquivoLogoPendente = null;
+  avatarCropBox.hidden = true;
+  avatarCropImg.src = "";
+  logoInput.value = "";
+}
+
+async function confirmarUploadLogo() {
+  const file = arquivoLogoPendente;
   if (!file) return;
 
   const extensao = (file.name.split(".").pop() || "png").toLowerCase();
@@ -749,14 +795,12 @@ async function handleLogoUpload(e) {
   const { error: uploadError } = await db.storage.from(LOGO_BUCKET).upload(novoPath, file);
   if (uploadError) {
     alert("Erro ao enviar a foto: " + uploadError.message);
-    logoInput.value = "";
     return;
   }
 
   const { error } = await db.from("configuracoes").update({ logo_path: novoPath }).eq("id", 1);
   if (error) {
     alert("Erro ao salvar a foto: " + error.message);
-    logoInput.value = "";
     return;
   }
 
@@ -764,7 +808,7 @@ async function handleLogoUpload(e) {
     await db.storage.from(LOGO_BUCKET).remove([pathAntigo]);
   }
 
-  logoInput.value = "";
+  cancelarSelecaoLogo();
   await loadData();
 }
 

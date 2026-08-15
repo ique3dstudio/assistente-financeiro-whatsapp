@@ -6,8 +6,8 @@
   <title>IQUE 3D Studio</title>
   <meta name="theme-color" content="#0b0d11" />
   <link rel="manifest" href="/loja3d/manifest.json" />
-  <link rel="icon" href="/loja3d/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/loja3d/icon.svg" />
+  <link rel="icon" href="/loja3d/logo-icon" />
+  <link rel="apple-touch-icon" href="/loja3d/logo-icon" />
   <link rel="stylesheet" href="/loja3d/styles.css" />
   <script>
     document.documentElement.dataset.theme = localStorage.getItem("loja3d-theme") || "dark";
@@ -234,6 +234,20 @@
             <p class="subtitle">Escolha uma foto da galeria ou tire uma na hora.</p>
           </div>
         </div>
+
+        <div id="avatar-crop-box" class="avatar-crop-box" hidden>
+          <p class="subtitle">Essa é a parte que vai aparecer no ícone (dentro do círculo):</p>
+          <div class="avatar-crop-frame">
+            <img id="avatar-crop-img" alt="Prévia da foto" />
+            <div id="avatar-crop-circle" class="avatar-crop-circle"></div>
+          </div>
+          <div class="dialog-actions">
+            <span class="spacer"></span>
+            <button type="button" id="avatar-crop-cancel-btn" class="ghost">Cancelar</button>
+            <button type="button" id="avatar-crop-confirm-btn" class="primary">Usar essa foto</button>
+          </div>
+        </div>
+
         <label>
           Nome da loja (aparece no orçamento em PDF)
           <input name="nome_loja" maxlength="120" required />
