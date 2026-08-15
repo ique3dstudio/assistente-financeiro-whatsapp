@@ -2171,6 +2171,116 @@ async function handleAddCanalVenda(e) {
   renderCanaisVendaList();
 }
 
+/* ---------- Leitura automática de peso/tempo do arquivo fatiado (G-code) ---------- */
+// .stl não tem essa informação (é só a geometria, antes de passar pela fatiadora) e .3mf
+// exigiria descompactar um ZIP e ler XML específico de cada fatiadora — não deu pra validar
+// isso com segurança sem arquivos reais de amostra, então por enquanto só G-code mesmo.
+// Cobre os formatos de comentário do Cura, PrusaSlicer/SuperSlicer e Bambu Studio (que herda
+// do PrusaSlicer). Sempre pré-preenche os campos existentes pra conferência — nunca salva
+// sozinho.
+
+const DENSIDADE_FILAMENTO_G_CM3 = { pla: 1.24, petg: 1.27, abs: 1.04, tpu: 1.21, asa: 1.05, nylon: 1.14, pa: 1.14 };
+
+function parseGcodeMetadados(texto) {
+  let tempoHoras = null;
+  let pesoGramas = null;
+
+  // PrusaSlicer / SuperSlicer / Bambu Studio (herda do Slic3r):
+  // "; estimated printing time (normal mode) = 2h 15m 30s"
+  let m = texto.match(/estimated printing time[^=\n]*=\s*((?:\d+d\s*)?(?:\d+h\s*)?(?:\d+m\s*)?(?:\d+s)?)/i);
+  if (m && m[1].trim()) {
+    const partes = m[1];
+    const d = Number(partes.match(/(\d+)d/)?.[1] || 0);
+    const h = Number(partes.match(/(\d+)h/)?.[1] || 0);
+    const min = Number(partes.match(/(\d+)m(?!s)/)?.[1] || 0);
+    const s = Number(partes.match(/(\d+)s/)?.[1] || 0);
+    tempoHoras = d * 24 + h + min / 60 + s / 3600;
+  }
+
+  // Cura: ";TIME:12345" (segundos)
+  if (tempoHoras === null) {
+    m = texto.match(/;TIME:(\d+)/);
+    if (m) tempoHoras = Number(m[1]) / 3600;
+  }
+
+  // PrusaSlicer/SuperSlicer/Bambu: "; filament used [g] = 45.32" (pode ter mais de um valor,
+  // separado por vírgula, um por extrusor/cor — soma todos).
+  const pesosDiretos = [...texto.matchAll(/filament used \[g\]\s*=\s*([\d.,\s]+)/gi)];
+  if (pesosDiretos.length > 0) {
+    const valores = pesosDiretos
+      .flatMap((match) => match[1].split(","))
+      .map((v) => parseFloat(v.trim()))
+      .filter((v) => !isNaN(v));
+    if (valores.length > 0) pesoGramas = valores.reduce((a, b) => a + b, 0);
+  }
+
+  // Cura (algumas versões): ";Filament weight = 45.00"
+  if (pesoGramas === null) {
+    m = texto.match(/;\s*Filament weight\s*=\s*([\d.]+)/i);
+    if (m) pesoGramas = parseFloat(m[1]);
+  }
+
+  // Só tem o comprimento do filamento (Cura clássico: ";Filament used: 3.2m") — converte por
+  // densidade, assumindo 1,75mm de diâmetro (padrão em impressoras FDM de mesa) e tentando
+  // identificar o material no próprio arquivo pra escolher a densidade certa (senão usa PLA).
+  if (pesoGramas === null) {
+    m = texto.match(/;\s*Filament used:\s*([\d.]+)\s*m\b/i);
+    if (m) {
+      const metros = parseFloat(m[1]);
+      const materialDetectado = texto.match(/;\s*(?:Filament type|filament_type)\s*[=:]\s*(\w+)/i)?.[1]?.toLowerCase();
+      const densidade = DENSIDADE_FILAMENTO_G_CM3[materialDetectado] || DENSIDADE_FILAMENTO_G_CM3.pla;
+      const raioCm = 0.175 / 2;
+      const volumeCm3 = Math.PI * raioCm * raioCm * (metros * 100);
+      pesoGramas = volumeCm3 * densidade;
+    }
+  }
+
+  return { pesoGramas, tempoHoras };
+}
+
+async function handleGcodeCarregado(file, row) {
+  const extensao = (file.name.split(".").pop() || "").toLowerCase();
+
+  if (extensao === "stl") {
+    alert(
+      "Arquivo .stl não tem peso nem tempo de impressão — é só a geometria 3D, antes de passar pela fatiadora. " +
+        "Fatia o modelo e carrega o G-code exportado aqui, ou preenche peso/tempo manualmente."
+    );
+    return;
+  }
+  if (extensao === "3mf") {
+    alert(
+      "Leitura automática de .3mf ainda não é suportada. Exporta o G-code da fatiadora e carrega ele aqui, " +
+        "ou preenche peso/tempo manualmente."
+    );
+    return;
+  }
+
+  const texto = await file.text();
+  const { pesoGramas, tempoHoras } = parseGcodeMetadados(texto);
+
+  if (pesoGramas === null && tempoHoras === null) {
+    alert(
+      "Não consegui identificar peso nem tempo de impressão nesse arquivo. Confere se foi fatiado no Cura, " +
+        "PrusaSlicer, SuperSlicer ou Bambu Studio — ou preenche manualmente."
+    );
+    return;
+  }
+
+  const partes = [];
+  if (pesoGramas !== null) {
+    const arredondado = Math.round(pesoGramas);
+    setField(row, "peso_gramas", arredondado);
+    partes.push(`${arredondado}g de filamento`);
+  }
+  if (tempoHoras !== null) {
+    const arredondado = Math.round(tempoHoras * 10) / 10;
+    setField(row, "tempo_estimado_horas", arredondado);
+    partes.push(`${arredondado}h de impressão`);
+  }
+  alert(`Lido do arquivo: ${partes.join(" e ")}. Confere os campos antes de salvar.`);
+}
+
 /* ---------- Calculadora de custo ---------- */
 
 function calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId }) {
@@ -2386,6 +2496,14 @@ function addItemRow(item) {
     const mat = materiais.find((m) => m.id === produto.material_id);
     setField(row, "material", mat ? mat.nome : "");
     materialSelect.value = produto.material_id || "";
+  });
+
+  const gcodeInput = row.querySelector(".gcode-input");
+  row.querySelector(".gcode-btn").addEventListener("click", () => gcodeInput.click());
+  gcodeInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    gcodeInput.value = "";
+    if (file) await handleGcodeCarregado(file, row);
   });
 
   row.querySelector(".calc-btn").addEventListener("click", () => {
