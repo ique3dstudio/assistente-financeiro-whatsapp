@@ -962,6 +962,34 @@ legend {
   overflow-x: auto;
 }
 
+.indicadores-tabelas {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 16px 16px;
+}
+
+.indicador-titulo {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.financeiro-table td.indicador-rotulo-cell {
+  white-space: normal;
+  max-width: 200px;
+  word-break: break-word;
+  font-family: var(--font-sans);
+}
+
+@media (max-width: 640px) {
+  .indicador-custo-col {
+    display: none;
+  }
+}
+
 .financeiro-table {
   width: 100%;
   border-collapse: collapse;

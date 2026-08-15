@@ -60,6 +60,8 @@ const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
 const financeiroEl = document.getElementById("financeiro");
 const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
+const indicadoresDashboardEl = document.getElementById("indicadores-dashboard");
+const indicadoresTabelasEl = document.getElementById("indicadores-tabelas");
 const subtabButtons = document.querySelectorAll(".subtab-btn");
 const movimentosListEl = document.getElementById("movimentos-list");
 const movBuscaInput = document.getElementById("mov-busca");
@@ -354,6 +356,7 @@ function renderFinanceiroAtivo() {
     populateFiltroSelects();
     renderMovimentosList();
   }
+  if (subtabAtiva === "indicadores") renderFinanceiroIndicadores();
 }
 
 async function handleLogin(e) {
@@ -908,6 +911,118 @@ function renderContasAReceber() {
       if (movimento) openMovimentoDialog(movimento);
     })
   );
+}
+
+/* ---------- Indicadores: custeio, margem, receita/hora-máquina, ponto de equilíbrio ---------- */
+// Tudo calculado em cima de dados que já existem (itens_pedido.valor/custo_calculado/
+// tempo_estimado_horas, despesas_fixas, maquinas) — sem tabela nova.
+
+function calcularIndicadores() {
+  const todosItens = pedidos.flatMap((p) => (p.itens || []).map((i) => ({ ...i, pedido: p })));
+  const itensComCusto = todosItens.filter((i) => i.valor !== null && i.valor !== undefined && i.custo_calculado !== null && i.custo_calculado !== undefined);
+
+  const somaValor = itensComCusto.reduce((s, i) => s + Number(i.valor), 0);
+  const somaCusto = itensComCusto.reduce((s, i) => s + Number(i.custo_calculado), 0);
+  const margemPercentual = somaValor > 0 ? (somaValor - somaCusto) / somaValor : 0;
+
+  const itensComTempo = itensComCusto.filter((i) => Number(i.tempo_estimado_horas) > 0);
+  const somaTempo = itensComTempo.reduce((s, i) => s + Number(i.tempo_estimado_horas), 0);
+  const somaValorComTempo = itensComTempo.reduce((s, i) => s + Number(i.valor), 0);
+  const somaMargemComTempo = itensComTempo.reduce((s, i) => s + (Number(i.valor) - Number(i.custo_calculado)), 0);
+  const receitaPorHora = somaTempo > 0 ? somaValorComTempo / somaTempo : 0;
+  const lucroPorHora = somaTempo > 0 ? somaMargemComTempo / somaTempo : 0;
+
+  const custosFixosMensais = despesasFixas.reduce((s, d) => s + Number(d.valor), 0);
+  const pontoEquilibrioReais = margemPercentual > 0 ? custosFixosMensais / margemPercentual : null;
+  const pontoEquilibrioHoras = pontoEquilibrioReais !== null && receitaPorHora > 0 ? pontoEquilibrioReais / receitaPorHora : null;
+
+  // Ocupação da frota no mês atual: horas de itens criados no mês (com máquina disponível pra
+  // rodar 24h/dia, já que impressão não precisa de operador acompanhando) ÷ capacidade teórica.
+  const hoje = new Date();
+  const mesAtual = hoje.toISOString().slice(0, 7);
+  const horasUsadasMes = todosItens
+    .filter((i) => (i.created_at || "").startsWith(mesAtual))
+    .reduce((s, i) => s + (Number(i.tempo_estimado_horas) || 0), 0);
+  const maquinasAtivas = maquinas.filter((m) => m.status === "ativa").length;
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const horasDisponiveisMes = maquinasAtivas * diasNoMes * 24;
+  const ocupacaoFrota = horasDisponiveisMes > 0 ? horasUsadasMes / horasDisponiveisMes : null;
+
+  function agrupar(itens, chaveFn) {
+    const grupos = {};
+    for (const i of itens) {
+      const chave = chaveFn(i);
+      if (!grupos[chave]) grupos[chave] = { chave, valor: 0, custo: 0, qtd: 0 };
+      grupos[chave].valor += Number(i.valor);
+      grupos[chave].custo += Number(i.custo_calculado);
+      grupos[chave].qtd += 1;
+    }
+    return Object.values(grupos)
+      .map((g) => ({ ...g, margem: g.valor - g.custo, margemPercentual: g.valor > 0 ? (g.valor - g.custo) / g.valor : 0 }))
+      .sort((a, b) => b.margem - a.margem);
+  }
+
+  const porPedido = agrupar(itensComCusto, (i) => i.pedido.id).map((g) => {
+    const pedido = pedidos.find((p) => p.id === g.chave);
+    return { ...g, rotulo: pedido?.cliente?.nome ? `${pedido.cliente.nome} (${formatDate(pedido.created_at?.slice(0, 10))})` : g.chave };
+  });
+  const porProduto = agrupar(itensComCusto, (i) => i.descricao || "(sem descrição)").map((g) => ({ ...g, rotulo: g.chave }));
+  const porCliente = agrupar(itensComCusto, (i) => i.pedido.cliente?.nome || "(sem cliente)").map((g) => ({ ...g, rotulo: g.chave }));
+
+  return {
+    margemPercentual, custosFixosMensais, pontoEquilibrioReais, pontoEquilibrioHoras,
+    receitaPorHora, lucroPorHora, ocupacaoFrota, maquinasAtivas,
+    porPedido, porProduto, porCliente,
+  };
+}
+
+function renderTabelaIndicador(titulo, linhas) {
+  if (linhas.length === 0) {
+    return `<div class="table-wrap"><h3 class="indicador-titulo">${titulo}</h3><p class="column-empty">Sem itens com custo calculado ainda.</p></div>`;
+  }
+  const linhasHtml = linhas
+    .slice(0, 20)
+    .map(
+      (l) => `<tr>
+        <td class="indicador-rotulo-cell">${escapeHtml(l.rotulo)}</td>
+        <td>${formatMoney(l.valor)}</td>
+        <td class="indicador-custo-col">${formatMoney(l.custo)}</td>
+        <td class="${l.margem >= 0 ? "mov-tipo-entrada" : "mov-tipo-saida"}">${formatMoney(l.margem)}</td>
+        <td>${(l.margemPercentual * 100).toFixed(0)}%</td>
+      </tr>`
+    )
+    .join("");
+  return `<div class="table-wrap">
+    <h3 class="indicador-titulo">${titulo}${linhas.length > 20 ? ` (top 20 de ${linhas.length})` : ""}</h3>
+    <table class="financeiro-table"><thead><tr>
+      <th></th><th>Receita</th><th class="indicador-custo-col">Custo</th><th>Margem</th><th>%</th>
+    </tr></thead><tbody>${linhasHtml}</tbody></table>
+  </div>`;
+}
+
+function renderFinanceiroIndicadores() {
+  const ind = calcularIndicadores();
+
+  const stats = [
+    { label: "Margem de contribuição média", value: `${(ind.margemPercentual * 100).toFixed(0)}%` },
+    { label: "Receita por hora de impressão", value: formatMoney(ind.receitaPorHora) },
+    { label: "Lucro por hora de impressão", value: formatMoney(ind.lucroPorHora) },
+    { label: "Ponto de equilíbrio (mês)", value: ind.pontoEquilibrioReais !== null ? formatMoney(ind.pontoEquilibrioReais) : "—" },
+    { label: "Ponto de equilíbrio (horas de impressão)", value: ind.pontoEquilibrioHoras !== null ? `${ind.pontoEquilibrioHoras.toFixed(1)}h` : "—" },
+    {
+      label: `Ocupação da frota (mês, ${ind.maquinasAtivas} máquina${ind.maquinasAtivas === 1 ? "" : "s"} ativa${ind.maquinasAtivas === 1 ? "" : "s"})`,
+      value: ind.ocupacaoFrota !== null ? `${(ind.ocupacaoFrota * 100).toFixed(1)}%` : "—",
+    },
+  ];
+
+  indicadoresDashboardEl.innerHTML = stats
+    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
+    .join("");
+
+  indicadoresTabelasEl.innerHTML =
+    renderTabelaIndicador("Margem por pedido", ind.porPedido) +
+    renderTabelaIndicador("Margem por produto", ind.porProduto) +
+    renderTabelaIndicador("Margem por cliente", ind.porCliente);
 }
 
 function populateFiltroSelects() {
