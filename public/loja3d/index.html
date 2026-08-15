@@ -137,6 +137,7 @@
   <!-- Modal de pedido (criar/editar) -->
   <dialog id="order-dialog">
     <button type="button" id="close-order-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
     <form id="order-form">
       <h2 id="order-dialog-title">Novo pedido</h2>
 
@@ -223,11 +224,13 @@
       </div>
       <p id="order-error" class="error" hidden></p>
     </form>
+    </div>
   </dialog>
 
   <!-- Modal de configurações (dados da loja, precificação e materiais) -->
   <dialog id="config-dialog">
     <button type="button" id="close-config-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
     <form id="config-form">
       <h2>Configurações</h2>
 
@@ -389,6 +392,7 @@
         <button type="submit" class="ghost">+ Adicionar canal</button>
       </form>
     </fieldset>
+    </div>
   </dialog>
 
   <!-- Template de uma linha de item (clonado via JS) -->
