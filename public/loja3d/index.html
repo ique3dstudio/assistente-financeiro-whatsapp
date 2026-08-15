@@ -226,6 +226,14 @@
 
       <fieldset>
         <legend>Dados da loja</legend>
+        <div class="avatar-row">
+          <img id="logo-preview" src="/loja3d/icon.svg" alt="Logo da loja" class="brand-mark avatar-preview" />
+          <div class="avatar-actions">
+            <button type="button" id="logo-upload-btn" class="ghost">📷 Trocar foto</button>
+            <input type="file" id="logo-input" accept="image/*" hidden />
+            <p class="subtitle">Escolha uma foto da galeria ou tire uma na hora.</p>
+          </div>
+        </div>
         <label>
           Nome da loja (aparece no orçamento em PDF)
           <input name="nome_loja" maxlength="120" required />

@@ -236,8 +236,36 @@ button.chip.active {
 .brand-mark {
   width: 1.4em;
   height: 1.4em;
-  border-radius: 6px;
+  border-radius: 50%;
+  object-fit: cover;
   flex-shrink: 0;
+  background: var(--panel-2);
+}
+
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-preview {
+  width: 64px;
+  height: 64px;
+  font-size: initial;
+  border: 2px solid var(--border);
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.avatar-actions .subtitle {
+  margin: 0;
+  text-align: left;
+  font-size: 12px;
 }
 
 .login-card h1,

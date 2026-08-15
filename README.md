@@ -72,6 +72,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
      link público de acompanhamento do pedido)
    - `sql/005_calculadora.sql` (histórico da Calculadora e canais de venda com comissão — já cria 3 canais de
      referência: Shopee, TikTok Shop e Mercado Livre, todos editáveis em "⚙ Configurações")
+   - `sql/006_logo.sql` (avatar/logo da loja — cria o bucket público `loja3d-branding` e o campo para trocar a
+     imagem direto pelo app, em "⚙ Configurações")
 2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
    `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
    preenchidos).
@@ -141,6 +143,11 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 - **Tema.** Visual "técnico/industrial" (grafite + laranja + grid tipo blueprint), com botão 🌙/☀️ pra alternar
   entre escuro e claro — a escolha fica salva no navegador. Vale em todas as telas, incluindo login e a página
   pública de acompanhamento.
+- **Logo/avatar da loja.** Em "⚙ Configurações", botão "📷 Trocar foto" abre a galeria (ou a câmera) do celular pra
+  escolher a imagem da loja — vira automaticamente um avatar circular no login, no topo do app e na página pública
+  de acompanhamento (essa última busca a logo sem precisar de login, por uma função do banco que só expõe nome da
+  loja e a foto — nada de preço ou dado sensível). O favicon/ícone do PWA quando "instalado" no celular continua
+  sendo o emblema vetorial (navegadores não atualizam esse ícone depois de instalado).
 
 ### Estrutura
 

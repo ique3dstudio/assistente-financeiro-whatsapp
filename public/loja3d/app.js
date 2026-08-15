@@ -97,6 +97,10 @@ const calcHistoricoEl = document.getElementById("calc-historico");
 const canaisVendaListEl = document.getElementById("canais-venda-list");
 const canalVendaForm = document.getElementById("canal-venda-form");
 
+const logoUploadBtn = document.getElementById("logo-upload-btn");
+const logoInput = document.getElementById("logo-input");
+const LOGO_BUCKET = "loja3d-branding";
+
 function atualizarTextoTema() {
   const claro = document.documentElement.dataset.theme === "light";
   themeToggleBtn.textContent = claro ? "☀️" : "🌙";
@@ -184,6 +188,8 @@ async function init() {
   });
   calcSalvarBtn.addEventListener("click", salvarConsulta);
   canalVendaForm.addEventListener("submit", handleAddCanalVenda);
+  logoUploadBtn.addEventListener("click", () => logoInput.click());
+  logoInput.addEventListener("change", handleLogoUpload);
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -268,6 +274,7 @@ async function loadData() {
   consultasCalculadora = consultasData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
+  atualizarBrandMarks();
 
   renderBoard();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
@@ -718,6 +725,47 @@ async function handleSaveConfig(e) {
   }
   await loadData();
   configDialog.close();
+}
+
+/* ---------- Logo/avatar da loja ---------- */
+
+function logoUrl(path) {
+  return `${config.url}/storage/v1/object/public/${LOGO_BUCKET}/${path}`;
+}
+
+function atualizarBrandMarks() {
+  const src = configuracoes?.logo_path ? logoUrl(configuracoes.logo_path) : "/loja3d/icon.svg";
+  document.querySelectorAll(".brand-mark").forEach((img) => (img.src = src));
+}
+
+async function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const extensao = (file.name.split(".").pop() || "png").toLowerCase();
+  const novoPath = `logo-${crypto.randomUUID()}.${extensao}`;
+  const pathAntigo = configuracoes?.logo_path;
+
+  const { error: uploadError } = await db.storage.from(LOGO_BUCKET).upload(novoPath, file);
+  if (uploadError) {
+    alert("Erro ao enviar a foto: " + uploadError.message);
+    logoInput.value = "";
+    return;
+  }
+
+  const { error } = await db.from("configuracoes").update({ logo_path: novoPath }).eq("id", 1);
+  if (error) {
+    alert("Erro ao salvar a foto: " + error.message);
+    logoInput.value = "";
+    return;
+  }
+
+  if (pathAntigo) {
+    await db.storage.from(LOGO_BUCKET).remove([pathAntigo]);
+  }
+
+  logoInput.value = "";
+  await loadData();
 }
 
 function renderMateriaisList() {

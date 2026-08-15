@@ -14,7 +14,7 @@
 <body>
   <section class="screen tracking-screen">
     <div class="tracking-card corner-marks">
-      <h1><img src="/loja3d/icon.svg" class="brand-mark" alt="" /> IQUE 3D Studio</h1>
+      <h1><img src="/loja3d/icon.svg" class="brand-mark" id="brand-mark" alt="" /> <span id="brand-nome">IQUE 3D Studio</span></h1>
       <p class="subtitle">Acompanhar pedido</p>
       <div id="tracking-content">
         <p class="column-empty">Carregando…</p>
@@ -42,6 +42,17 @@
       content.innerHTML = `<p class="error">${msg}</p>`;
     }
 
+    async function carregarMarca(db) {
+      const { data } = await db.rpc("obter_configuracoes_publicas");
+      const info = data && data[0];
+      if (!info) return;
+      if (info.nome_loja) document.getElementById("brand-nome").textContent = info.nome_loja;
+      if (info.logo_path) {
+        document.getElementById("brand-mark").src =
+          `${config.url}/storage/v1/object/public/loja3d-branding/${info.logo_path}`;
+      }
+    }
+
     async function carregar() {
       if (!config.url || !config.anonKey) {
         showError("Configuração ausente.");
@@ -55,6 +66,7 @@
       }
 
       const db = window.supabase.createClient(config.url, config.anonKey);
+      carregarMarca(db);
       const { data, error } = await db.rpc("acompanhar_pedido", { p_token: token });
 
       if (error || !data || data.length === 0) {
