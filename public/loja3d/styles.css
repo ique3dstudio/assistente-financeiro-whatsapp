@@ -139,6 +139,19 @@ label {
   color: var(--muted);
 }
 
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
 input,
 select,
 textarea {
@@ -308,21 +321,43 @@ button.chip.active {
   background: #000;
   overflow: hidden;
   border-radius: 6px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.avatar-crop-frame.dragging {
+  cursor: grabbing;
 }
 
 .avatar-crop-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .avatar-crop-circle {
   position: absolute;
+  inset: 0;
   border-radius: 50%;
   border: 2px solid var(--accent);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
   pointer-events: none;
+}
+
+.avatar-crop-zoom-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.avatar-crop-zoom-label input[type="range"] {
+  width: 160px;
 }
 
 .login-card h1,
@@ -517,6 +552,8 @@ button.chip.active {
 .card-actions button {
   padding: 4px 8px;
   font-size: 12px;
+  min-width: 44px;
+  min-height: 40px;
 }
 
 /* Painel (dashboard) */
@@ -550,6 +587,7 @@ button.chip.active {
 
 /* Dialog */
 dialog {
+  position: relative;
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
@@ -558,10 +596,38 @@ dialog {
   width: min(640px, 92vw);
   max-height: 88vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog-close-btn {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  margin-bottom: 4px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.dialog-close-btn:hover {
+  background: var(--panel);
+  border-color: var(--accent);
 }
 
 #order-form {
@@ -604,7 +670,8 @@ legend {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 2px 8px;
+  padding: 6px 12px;
+  min-height: 36px;
   border-color: var(--danger);
   color: var(--danger);
   background: transparent;
@@ -636,7 +703,8 @@ legend {
 
 .anexos-list button {
   margin-left: auto;
-  padding: 2px 8px;
+  padding: 6px 12px;
+  min-height: 36px;
   border-color: var(--danger);
   color: var(--danger);
   background: transparent;
@@ -698,7 +766,8 @@ legend {
 }
 
 .materiais-list button {
-  padding: 2px 8px;
+  padding: 6px 12px;
+  min-height: 36px;
   border-color: var(--danger);
   color: var(--danger);
   background: transparent;

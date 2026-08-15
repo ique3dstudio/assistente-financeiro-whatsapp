@@ -21,7 +21,15 @@ if (!config.url || !config.anonKey) {
   throw new Error("Supabase config ausente");
 }
 
-const db = window.supabase.createClient(config.url, config.anonKey);
+// "Manter-me conectado" decide onde a sessão é guardada: localStorage sobrevive a fechar o
+// navegador, sessionStorage é esquecida junto com a aba. A escolha feita no login só passa a
+// valer no próximo carregamento da página, porque o client já nasce com esse storage fixado.
+const LEMBRAR_KEY = "loja3d-lembrar-conectado";
+const EMAIL_LEMBRADO_KEY = "loja3d-email-lembrado";
+const lembrarConectado = localStorage.getItem(LEMBRAR_KEY) !== "false";
+const db = window.supabase.createClient(config.url, config.anonKey, {
+  auth: { persistSession: true, autoRefreshToken: true, storage: lembrarConectado ? window.localStorage : window.sessionStorage },
+});
 
 let currentUser = null;
 let clientes = [];
@@ -42,6 +50,7 @@ const loginScreen = document.getElementById("login-screen");
 const appScreen = document.getElementById("app-screen");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
+const loginRememberCheckbox = document.getElementById("login-remember");
 const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
@@ -61,6 +70,7 @@ const orderDialogTitle = document.getElementById("order-dialog-title");
 const orderError = document.getElementById("order-error");
 const deleteOrderBtn = document.getElementById("delete-order-btn");
 const cancelOrderBtn = document.getElementById("cancel-order-btn");
+const closeOrderBtn = document.getElementById("close-order-btn");
 const pdfOrderBtn = document.getElementById("pdf-order-btn");
 const whatsappOrderBtn = document.getElementById("whatsapp-order-btn");
 const trackingLinkBtn = document.getElementById("tracking-link-btn");
@@ -74,6 +84,7 @@ const configBtn = document.getElementById("config-btn");
 const configDialog = document.getElementById("config-dialog");
 const configForm = document.getElementById("config-form");
 const cancelConfigBtn = document.getElementById("cancel-config-btn");
+const closeConfigBtn = document.getElementById("close-config-btn");
 const configError = document.getElementById("config-error");
 const materiaisListEl = document.getElementById("materiais-list");
 const materialForm = document.getElementById("material-form");
@@ -100,12 +111,25 @@ const canalVendaForm = document.getElementById("canal-venda-form");
 const logoUploadBtn = document.getElementById("logo-upload-btn");
 const logoInput = document.getElementById("logo-input");
 const avatarCropBox = document.getElementById("avatar-crop-box");
+const avatarCropFrame = document.getElementById("avatar-crop-frame");
 const avatarCropImg = document.getElementById("avatar-crop-img");
-const avatarCropCircle = document.getElementById("avatar-crop-circle");
+const avatarCropZoom = document.getElementById("avatar-crop-zoom");
 const avatarCropCancelBtn = document.getElementById("avatar-crop-cancel-btn");
 const avatarCropConfirmBtn = document.getElementById("avatar-crop-confirm-btn");
 const LOGO_BUCKET = "loja3d-branding";
 let arquivoLogoPendente = null;
+// Estado do recorte: baseScale cobre o círculo no zoom mínimo; zoom (1-3) multiplica isso;
+// offsetX/offsetY é a posição (em px renderizados) do canto superior-esquerdo da foto dentro
+// da moldura — sempre mantido nos limites que garantem que a foto cobre o círculo inteiro.
+let cropBaseScale = 1;
+let cropZoom = 1;
+let cropOffsetX = 0;
+let cropOffsetY = 0;
+let cropDragging = false;
+let cropDragStartX = 0;
+let cropDragStartY = 0;
+let cropDragOffsetX = 0;
+let cropDragOffsetY = 0;
 
 function atualizarTextoTema() {
   const claro = document.documentElement.dataset.theme === "light";
@@ -123,6 +147,10 @@ function alternarTema() {
 init();
 
 async function init() {
+  const emailLembrado = localStorage.getItem(EMAIL_LEMBRADO_KEY);
+  if (emailLembrado) document.getElementById("login-email").value = emailLembrado;
+  loginRememberCheckbox.checked = lembrarConectado;
+
   const { data } = await db.auth.getSession();
   if (data.session) {
     await onAuthed(data.session.user);
@@ -160,6 +188,7 @@ async function init() {
   });
   newOrderBtn.addEventListener("click", () => openOrderDialog(null));
   cancelOrderBtn.addEventListener("click", () => orderDialog.close());
+  closeOrderBtn.addEventListener("click", () => orderDialog.close());
   orderForm.addEventListener("submit", handleSaveOrder);
   deleteOrderBtn.addEventListener("click", handleDeleteOrder);
   pdfOrderBtn.addEventListener("click", gerarOrcamentoPdf);
@@ -171,6 +200,7 @@ async function init() {
 
   configBtn.addEventListener("click", openConfigDialog);
   cancelConfigBtn.addEventListener("click", () => configDialog.close());
+  closeConfigBtn.addEventListener("click", () => configDialog.close());
   configForm.addEventListener("submit", handleSaveConfig);
   materialForm.addEventListener("submit", handleAddMaterial);
   maquinaForm.addEventListener("submit", handleAddMaquina);
@@ -227,7 +257,17 @@ async function handleLogin(e) {
   if (error) {
     loginError.textContent = "Não foi possível entrar. Confira e-mail e senha.";
     loginError.hidden = false;
+    return;
   }
+
+  if (loginRememberCheckbox.checked) {
+    localStorage.setItem(EMAIL_LEMBRADO_KEY, email);
+  } else {
+    localStorage.removeItem(EMAIL_LEMBRADO_KEY);
+  }
+  // Só afeta o próximo login (o client atual já está com o storage decidido), mas já deixa a
+  // preferência salva pra valer na próxima vez que a página carregar.
+  localStorage.setItem(LEMBRAR_KEY, String(loginRememberCheckbox.checked));
 }
 
 function showLogin() {
@@ -760,22 +800,86 @@ function handleLogoSelecionado(e) {
   leitor.readAsDataURL(file);
 }
 
-// Mostra, sobre a foto inteira, o círculo exato que vira o avatar (mesmo recorte que o
-// object-fit:cover vai aplicar de verdade) — assim dá pra ver o que vai ficar de fora antes de
-// confirmar, sem precisar cortar a imagem antes.
+// Ao carregar a foto, calcula a escala mínima que cobre o círculo inteiro (igual ao
+// object-fit:cover) e centraliza — a partir daí o usuário arrasta pra reposicionar e usa o
+// controle de zoom pra aproximar, como em Instagram/TikTok.
 avatarCropImg?.addEventListener("load", () => {
-  const frame = avatarCropImg.parentElement;
-  const tamanho = frame.clientWidth; // moldura é quadrada (aspect-ratio 1/1)
-  const escala = Math.min(tamanho / avatarCropImg.naturalWidth, tamanho / avatarCropImg.naturalHeight);
+  const tamanho = avatarCropFrame.clientWidth; // moldura é quadrada (aspect-ratio 1/1)
+  cropBaseScale = Math.max(tamanho / avatarCropImg.naturalWidth, tamanho / avatarCropImg.naturalHeight);
+  cropZoom = 1;
+  avatarCropZoom.value = "1";
+
+  const escala = cropBaseScale * cropZoom;
+  cropOffsetX = (tamanho - avatarCropImg.naturalWidth * escala) / 2;
+  cropOffsetY = (tamanho - avatarCropImg.naturalHeight * escala) / 2;
+  aplicarTransformCrop();
+});
+
+function aplicarTransformCrop() {
+  const tamanho = avatarCropFrame.clientWidth;
+  const escala = cropBaseScale * cropZoom;
   const larguraRenderizada = avatarCropImg.naturalWidth * escala;
   const alturaRenderizada = avatarCropImg.naturalHeight * escala;
-  const diametro = Math.min(larguraRenderizada, alturaRenderizada);
 
-  avatarCropCircle.style.width = `${diametro}px`;
-  avatarCropCircle.style.height = `${diametro}px`;
-  avatarCropCircle.style.left = `${(tamanho - diametro) / 2}px`;
-  avatarCropCircle.style.top = `${(tamanho - diametro) / 2}px`;
-});
+  // A foto sempre tem que cobrir o círculo inteiro: o canto não pode "entrar" além de 0
+  // nem deixar sobrar espaço em branco do outro lado.
+  cropOffsetX = Math.min(0, Math.max(tamanho - larguraRenderizada, cropOffsetX));
+  cropOffsetY = Math.min(0, Math.max(tamanho - alturaRenderizada, cropOffsetY));
+
+  avatarCropImg.style.width = `${larguraRenderizada}px`;
+  avatarCropImg.style.height = `${alturaRenderizada}px`;
+  avatarCropImg.style.left = `${cropOffsetX}px`;
+  avatarCropImg.style.top = `${cropOffsetY}px`;
+}
+
+function handleCropZoomChange() {
+  const tamanho = avatarCropFrame.clientWidth;
+  const escalaAntiga = cropBaseScale * cropZoom;
+  // Mantém fixo, na tela, o ponto da foto que estava no centro do círculo.
+  const centroNaturalX = (tamanho / 2 - cropOffsetX) / escalaAntiga;
+  const centroNaturalY = (tamanho / 2 - cropOffsetY) / escalaAntiga;
+
+  cropZoom = Number(avatarCropZoom.value);
+  const escalaNova = cropBaseScale * cropZoom;
+  cropOffsetX = tamanho / 2 - centroNaturalX * escalaNova;
+  cropOffsetY = tamanho / 2 - centroNaturalY * escalaNova;
+  aplicarTransformCrop();
+}
+
+function cropPointerPos(e) {
+  return e.touches?.[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+}
+
+function handleCropDragStart(e) {
+  cropDragging = true;
+  avatarCropFrame.classList.add("dragging");
+  const pos = cropPointerPos(e);
+  cropDragStartX = pos.x;
+  cropDragStartY = pos.y;
+  cropDragOffsetX = cropOffsetX;
+  cropDragOffsetY = cropOffsetY;
+  e.preventDefault();
+}
+
+function handleCropDragMove(e) {
+  if (!cropDragging) return;
+  const pos = cropPointerPos(e);
+  cropOffsetX = cropDragOffsetX + (pos.x - cropDragStartX);
+  cropOffsetY = cropDragOffsetY + (pos.y - cropDragStartY);
+  aplicarTransformCrop();
+  e.preventDefault();
+}
+
+function handleCropDragEnd() {
+  cropDragging = false;
+  avatarCropFrame.classList.remove("dragging");
+}
+
+avatarCropZoom?.addEventListener("input", handleCropZoomChange);
+avatarCropFrame?.addEventListener("pointerdown", handleCropDragStart);
+avatarCropFrame?.addEventListener("pointermove", handleCropDragMove);
+window.addEventListener("pointerup", handleCropDragEnd);
+window.addEventListener("pointercancel", handleCropDragEnd);
 
 function cancelarSelecaoLogo() {
   arquivoLogoPendente = null;
@@ -784,15 +888,45 @@ function cancelarSelecaoLogo() {
   logoInput.value = "";
 }
 
-async function confirmarUploadLogo() {
-  const file = arquivoLogoPendente;
-  if (!file) return;
+// Recorta de verdade (canvas) o quadrado exibido dentro do círculo — o arquivo enviado já sai
+// pronto, então favicon/ícone do PWA (que não respeitam o object-fit:cover do CSS) também
+// mostram a foto certa, e não a imagem inteira sem recorte.
+async function recortarLogoParaBlob() {
+  const tamanho = avatarCropFrame.clientWidth;
+  const escala = cropBaseScale * cropZoom;
+  const TAMANHO_SAIDA = 512;
 
-  const extensao = (file.name.split(".").pop() || "png").toLowerCase();
-  const novoPath = `logo-${crypto.randomUUID()}.${extensao}`;
+  const canvas = document.createElement("canvas");
+  canvas.width = TAMANHO_SAIDA;
+  canvas.height = TAMANHO_SAIDA;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(
+    avatarCropImg,
+    -cropOffsetX / escala,
+    -cropOffsetY / escala,
+    tamanho / escala,
+    tamanho / escala,
+    0,
+    0,
+    TAMANHO_SAIDA,
+    TAMANHO_SAIDA
+  );
+
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+}
+
+async function confirmarUploadLogo() {
+  if (!arquivoLogoPendente) return;
+
+  const blob = await recortarLogoParaBlob();
+  if (!blob) {
+    alert("Não foi possível recortar a foto. Tente novamente.");
+    return;
+  }
+  const novoPath = `logo-${crypto.randomUUID()}.jpg`;
   const pathAntigo = configuracoes?.logo_path;
 
-  const { error: uploadError } = await db.storage.from(LOGO_BUCKET).upload(novoPath, file);
+  const { error: uploadError } = await db.storage.from(LOGO_BUCKET).upload(novoPath, blob, { contentType: "image/jpeg" });
   if (uploadError) {
     alert("Erro ao enviar a foto: " + uploadError.message);
     return;

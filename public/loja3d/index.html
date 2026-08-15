@@ -27,6 +27,10 @@
         Senha
         <input type="password" id="login-password" autocomplete="current-password" required />
       </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="login-remember" checked />
+        Manter-me conectado neste dispositivo
+      </label>
       <button type="submit" class="primary">Entrar</button>
       <p id="login-error" class="error" hidden></p>
       <button type="button" id="login-theme-toggle-btn" class="ghost" title="Alternar tema">🌙 Modo claro</button>
@@ -132,6 +136,7 @@
 
   <!-- Modal de pedido (criar/editar) -->
   <dialog id="order-dialog">
+    <button type="button" id="close-order-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
     <form id="order-form">
       <h2 id="order-dialog-title">Novo pedido</h2>
 
@@ -168,6 +173,7 @@
               <option value="WhatsApp"></option>
               <option value="Instagram"></option>
               <option value="Indicação"></option>
+              <option value="Conhecidos"></option>
               <option value="Feira"></option>
             </datalist>
           </label>
@@ -221,6 +227,7 @@
 
   <!-- Modal de configurações (dados da loja, precificação e materiais) -->
   <dialog id="config-dialog">
+    <button type="button" id="close-config-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
     <form id="config-form">
       <h2>Configurações</h2>
 
@@ -236,11 +243,15 @@
         </div>
 
         <div id="avatar-crop-box" class="avatar-crop-box" hidden>
-          <p class="subtitle">Essa é a parte que vai aparecer no ícone (dentro do círculo):</p>
-          <div class="avatar-crop-frame">
-            <img id="avatar-crop-img" alt="Prévia da foto" />
+          <p class="subtitle">Arraste a foto pra escolher a posição dentro do círculo:</p>
+          <div class="avatar-crop-frame" id="avatar-crop-frame">
+            <img id="avatar-crop-img" alt="Prévia da foto" draggable="false" />
             <div id="avatar-crop-circle" class="avatar-crop-circle"></div>
           </div>
+          <label class="avatar-crop-zoom-label">
+            🔍 Zoom
+            <input type="range" id="avatar-crop-zoom" min="1" max="3" step="0.01" value="1" />
+          </label>
           <div class="dialog-actions">
             <span class="spacer"></span>
             <button type="button" id="avatar-crop-cancel-btn" class="ghost">Cancelar</button>
