@@ -713,6 +713,53 @@ legend {
   font-weight: 700;
 }
 
+.calc-historico-titulo {
+  margin: 8px 0 0;
+  font-size: 16px;
+}
+
+.calc-historico {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calc-historico li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.calc-historico-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.calc-historico-info span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.calc-historico button {
+  padding: 4px 10px;
+}
+
+.calc-historico .remover-consulta-btn {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

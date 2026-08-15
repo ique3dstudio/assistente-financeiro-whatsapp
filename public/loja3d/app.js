@@ -30,6 +30,8 @@ let materiais = [];
 let produtos = [];
 let maquinas = [];
 let falhas = [];
+let canaisVenda = [];
+let consultasCalculadora = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -81,10 +83,17 @@ const calcPeso = document.getElementById("calc-peso");
 const calcTempo = document.getElementById("calc-tempo");
 const calcMaoObra = document.getElementById("calc-mao-obra");
 const calcTerceiro = document.getElementById("calc-terceiro");
+const calcCanal = document.getElementById("calc-canal");
 const calcComissao = document.getElementById("calc-comissao");
+const calcComissaoFixa = document.getElementById("calc-comissao-fixa");
 const calcItemAdicional = document.getElementById("calc-item-adicional");
 const calcResultado = document.getElementById("calc-resultado");
 const calcLimparBtn = document.getElementById("calc-limpar-btn");
+const calcSalvarBtn = document.getElementById("calc-salvar-btn");
+const calcHistoricoEl = document.getElementById("calc-historico");
+
+const canaisVendaListEl = document.getElementById("canais-venda-list");
+const canalVendaForm = document.getElementById("canal-venda-form");
 
 init();
 
@@ -137,14 +146,25 @@ async function init() {
   materialForm.addEventListener("submit", handleAddMaterial);
   maquinaForm.addEventListener("submit", handleAddMaquina);
 
-  [calcMaterial, calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcItemAdicional].forEach((el) =>
-    el.addEventListener("input", renderCalculadoraLivre)
+  [calcMaterial, calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcComissaoFixa, calcItemAdicional].forEach(
+    (el) => el.addEventListener("input", renderCalculadoraLivre)
   );
-  calcLimparBtn.addEventListener("click", () => {
-    [calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcItemAdicional].forEach((el) => (el.value = ""));
-    calcMaterial.value = "";
+  calcCanal.addEventListener("change", () => {
+    const canal = canaisVenda.find((c) => c.id === calcCanal.value);
+    calcComissao.value = canal ? canal.comissao_percentual : "";
+    calcComissaoFixa.value = canal ? canal.taxa_fixa : "";
     renderCalculadoraLivre();
   });
+  calcLimparBtn.addEventListener("click", () => {
+    [calcPeso, calcTempo, calcMaoObra, calcTerceiro, calcComissao, calcComissaoFixa, calcItemAdicional].forEach(
+      (el) => (el.value = "")
+    );
+    calcMaterial.value = "";
+    calcCanal.value = "";
+    renderCalculadoraLivre();
+  });
+  calcSalvarBtn.addEventListener("click", salvarConsulta);
+  canalVendaForm.addEventListener("submit", handleAddCanalVenda);
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -157,7 +177,9 @@ async function init() {
       if (btn.dataset.tab === "financeiro") renderFinanceiro();
       if (btn.dataset.tab === "calculadora") {
         populateMaterialSelect(calcMaterial);
+        populateCanalSelect();
         renderCalculadoraLivre();
+        renderHistoricoConsultas();
       }
     })
   );
@@ -197,6 +219,8 @@ async function loadData() {
     { data: configData, error: eCfg },
     { data: maquinasData, error: eMaq },
     { data: falhasData, error: eFal },
+    { data: canaisVendaData, error: eCanal },
+    { data: consultasData, error: eCons },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -208,9 +232,11 @@ async function loadData() {
     db.from("configuracoes").select("*").eq("id", 1).single(),
     db.from("maquinas").select("*").order("nome"),
     db.from("falhas").select("*").order("created_at", { ascending: false }),
+    db.from("canais_venda").select("*").order("nome"),
+    db.from("consultas_calculadora").select("*").order("created_at", { ascending: false }).limit(50),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal]) if (e) console.error(e);
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons]) if (e) console.error(e);
 
   clientes = clientesData || [];
   pedidos = pedidosData || [];
@@ -219,6 +245,8 @@ async function loadData() {
   configuracoes = configData || null;
   maquinas = maquinasData || [];
   falhas = falhasData || [];
+  canaisVenda = canaisVendaData || [];
+  consultasCalculadora = consultasData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
 
@@ -228,8 +256,18 @@ async function loadData() {
   if (!document.getElementById("tab-calculadora").hidden) {
     const materialSelecionado = calcMaterial.value;
     populateMaterialSelect(calcMaterial, materialSelecionado);
+    populateCanalSelect();
     renderCalculadoraLivre();
+    renderHistoricoConsultas();
   }
+}
+
+function populateCanalSelect() {
+  const selecionado = calcCanal.value;
+  calcCanal.innerHTML =
+    '<option value="">Personalizado</option>' +
+    canaisVenda.map((c) => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+  if (selecionado) calcCanal.value = selecionado;
 }
 
 let realtimeChannel = null;
@@ -252,6 +290,8 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "configuracoes" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "maquinas" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "falhas" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "canais_venda" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "consultas_calculadora" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -272,6 +312,11 @@ function formatDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function formatDateTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatMoney(v) {
@@ -628,6 +673,7 @@ function openConfigDialog() {
   }
   renderMateriaisList();
   renderMaquinasList();
+  renderCanaisVendaList();
   configDialog.showModal();
 }
 
@@ -775,6 +821,49 @@ async function handleAddMaquina(e) {
   renderMaquinasList();
 }
 
+/* ---------- Canais de venda ---------- */
+
+function renderCanaisVendaList() {
+  if (canaisVenda.length === 0) {
+    canaisVendaListEl.innerHTML = `<li class="column-empty">Nenhum canal cadastrado ainda.</li>`;
+    return;
+  }
+  canaisVendaListEl.innerHTML = canaisVenda
+    .map(
+      (c) => `<li>
+        <span>${escapeHtml(c.nome)} — ${c.comissao_percentual}% + ${formatMoney(c.taxa_fixa)}</span>
+        <button type="button" data-id="${c.id}" class="remove-canal-btn">×</button>
+      </li>`
+    )
+    .join("");
+  canaisVendaListEl.querySelectorAll(".remove-canal-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      if (!confirm("Remover este canal de venda?")) return;
+      await db.from("canais_venda").delete().eq("id", btn.dataset.id);
+      await loadData();
+      renderCanaisVendaList();
+    })
+  );
+}
+
+async function handleAddCanalVenda(e) {
+  e.preventDefault();
+  const fd = new FormData(canalVendaForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    comissao_percentual: Number(fd.get("comissao_percentual")),
+    taxa_fixa: Number(fd.get("taxa_fixa")) || 0,
+  };
+  const { error } = await db.from("canais_venda").insert(payload);
+  if (error) {
+    alert("Erro ao adicionar canal: " + error.message);
+    return;
+  }
+  canalVendaForm.reset();
+  await loadData();
+  renderCanaisVendaList();
+}
+
 /* ---------- Calculadora de custo ---------- */
 
 function calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId }) {
@@ -792,43 +881,148 @@ function calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId }) {
 
 /* ---------- Calculadora livre (aba "Calculadora", não salva nada) ---------- */
 
-function renderCalculadoraLivre() {
-  const pesoGramas = Number(calcPeso.value) || 0;
-  const tempoHoras = Number(calcTempo.value) || 0;
-  const maoObraHoras = Number(calcMaoObra.value) || 0;
-  const maoObraTerceiro = Number(calcTerceiro.value) || 0;
-  const comissaoPercentual = Number(calcComissao.value) || 0;
-  const itemAdicional = Number(calcItemAdicional.value) || 0;
+function lerCalculadoraLivre() {
+  return {
+    materialId: calcMaterial.value || null,
+    pesoGramas: Number(calcPeso.value) || 0,
+    tempoHoras: Number(calcTempo.value) || 0,
+    maoObraHoras: Number(calcMaoObra.value) || 0,
+    maoObraTerceiro: Number(calcTerceiro.value) || 0,
+    canalId: calcCanal.value || null,
+    comissaoPercentual: Number(calcComissao.value) || 0,
+    comissaoFixa: Number(calcComissaoFixa.value) || 0,
+    itemAdicional: Number(calcItemAdicional.value) || 0,
+  };
+}
 
-  const base = calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId: calcMaterial.value || null });
+// Comissão pode ter percentual + taxa fixa por item (ex: Shopee "20% + R$4"). Pra manter a
+// margem desejada mesmo com a comissão, o preço final é "engordado" o suficiente pra, depois de
+// descontar os dois, ainda sobrar o preço-sem-comissão calculado (custo + risco + margem).
+function calcularPrecificacaoLivre(entrada) {
+  const { materialId, pesoGramas, tempoHoras, maoObraHoras, maoObraTerceiro, comissaoPercentual, comissaoFixa, itemAdicional } =
+    entrada;
+  const base = calcularCusto({ pesoGramas, tempoHoras, maoObraHoras, materialId });
   const custoTotal = base.custoBase + maoObraTerceiro + itemAdicional;
   const custoComRisco = custoTotal * (1 + (configuracoes?.taxa_risco_percentual || 0) / 100);
   const precoSemComissao = custoComRisco * (1 + (configuracoes?.margem_padrao_percentual || 0) / 100);
   const precoFinal =
-    comissaoPercentual > 0 && comissaoPercentual < 100 ? precoSemComissao / (1 - comissaoPercentual / 100) : precoSemComissao;
+    comissaoPercentual > 0 && comissaoPercentual < 100
+      ? (precoSemComissao + comissaoFixa) / (1 - comissaoPercentual / 100)
+      : precoSemComissao + comissaoFixa;
   const valorComissao = precoFinal - precoSemComissao;
   const lucroLiquido = precoFinal - valorComissao - custoTotal;
 
+  return { ...base, custoTotal, custoComRisco, precoSemComissao, precoFinal, valorComissao, lucroLiquido };
+}
+
+function renderCalculadoraLivre() {
+  const entrada = lerCalculadoraLivre();
+  const r = calcularPrecificacaoLivre(entrada);
+
   const linhas = [
-    ["Custo do material", base.custoMaterial],
-    ["Custo de energia", base.custoEnergia],
-    ["Depreciação da máquina", base.custoMaquina],
-    ["Mão de obra própria", base.custoMaoObra],
+    ["Custo do material", r.custoMaterial],
+    ["Custo de energia", r.custoEnergia],
+    ["Depreciação da máquina", r.custoMaquina],
+    ["Mão de obra própria", r.custoMaoObra],
   ];
-  if (maoObraTerceiro > 0) linhas.push(["Mão de obra terceirizada", maoObraTerceiro]);
-  if (itemAdicional > 0) linhas.push(["Item adicional", itemAdicional]);
+  if (entrada.maoObraTerceiro > 0) linhas.push(["Mão de obra terceirizada", entrada.maoObraTerceiro]);
+  if (entrada.itemAdicional > 0) linhas.push(["Item adicional", entrada.itemAdicional]);
 
   let html = linhas.map(([label, valor]) => `<div class="calc-linha"><span>${label}</span><span>${formatMoney(valor)}</span></div>`).join("");
-  html += `<div class="calc-linha calc-subtotal"><span>Custo total</span><span>${formatMoney(custoTotal)}</span></div>`;
-  html += `<div class="calc-linha"><span>Com risco de falha (${configuracoes?.taxa_risco_percentual ?? 0}%)</span><span>${formatMoney(custoComRisco)}</span></div>`;
-  html += `<div class="calc-linha"><span>Preço sugerido (margem ${configuracoes?.margem_padrao_percentual ?? 0}%)</span><span>${formatMoney(precoSemComissao)}</span></div>`;
-  if (comissaoPercentual > 0) {
-    html += `<div class="calc-linha"><span>Comissão (${comissaoPercentual}%)</span><span>${formatMoney(valorComissao)}</span></div>`;
+  html += `<div class="calc-linha calc-subtotal"><span>Custo total</span><span>${formatMoney(r.custoTotal)}</span></div>`;
+  html += `<div class="calc-linha"><span>Com risco de falha (${configuracoes?.taxa_risco_percentual ?? 0}%)</span><span>${formatMoney(r.custoComRisco)}</span></div>`;
+  html += `<div class="calc-linha"><span>Preço sugerido (margem ${configuracoes?.margem_padrao_percentual ?? 0}%)</span><span>${formatMoney(r.precoSemComissao)}</span></div>`;
+  if (entrada.comissaoPercentual > 0 || entrada.comissaoFixa > 0) {
+    html += `<div class="calc-linha"><span>Comissão (${entrada.comissaoPercentual}% + ${formatMoney(entrada.comissaoFixa)})</span><span>${formatMoney(r.valorComissao)}</span></div>`;
   }
-  html += `<div class="calc-linha calc-final"><span>Preço final de venda</span><span>${formatMoney(precoFinal)}</span></div>`;
-  html += `<div class="calc-linha calc-lucro"><span>Lucro líquido estimado</span><span>${formatMoney(lucroLiquido)}</span></div>`;
+  html += `<div class="calc-linha calc-final"><span>Preço final de venda</span><span>${formatMoney(r.precoFinal)}</span></div>`;
+  html += `<div class="calc-linha calc-lucro"><span>Lucro líquido estimado</span><span>${formatMoney(r.lucroLiquido)}</span></div>`;
 
   calcResultado.innerHTML = html;
+}
+
+async function salvarConsulta() {
+  const entrada = lerCalculadoraLivre();
+  const r = calcularPrecificacaoLivre(entrada);
+
+  const descricao = prompt("Nome/descrição pra essa consulta (opcional):", "") || null;
+  const material = materiais.find((m) => m.id === entrada.materialId);
+  const canal = canaisVenda.find((c) => c.id === entrada.canalId);
+
+  const payload = {
+    descricao,
+    material_id: entrada.materialId,
+    material_nome: material ? material.nome : null,
+    peso_gramas: entrada.pesoGramas || null,
+    tempo_horas: entrada.tempoHoras || null,
+    mao_obra_horas: entrada.maoObraHoras || null,
+    mao_obra_terceiro: entrada.maoObraTerceiro || null,
+    canal_venda_id: entrada.canalId,
+    canal_venda_nome: canal ? canal.nome : null,
+    comissao_percentual: entrada.comissaoPercentual || null,
+    taxa_fixa_comissao: entrada.comissaoFixa || null,
+    item_adicional: entrada.itemAdicional || null,
+    custo_total: r.custoTotal,
+    custo_com_risco: r.custoComRisco,
+    preco_sem_comissao: r.precoSemComissao,
+    preco_final: r.precoFinal,
+    lucro_liquido: r.lucroLiquido,
+    criado_por: currentUser.email,
+  };
+
+  const { error } = await db.from("consultas_calculadora").insert(payload);
+  if (error) {
+    alert("Erro ao salvar consulta: " + error.message);
+    return;
+  }
+  await loadData();
+}
+
+function renderHistoricoConsultas() {
+  if (consultasCalculadora.length === 0) {
+    calcHistoricoEl.innerHTML = `<li class="column-empty">Nenhuma consulta salva ainda.</li>`;
+    return;
+  }
+  calcHistoricoEl.innerHTML = consultasCalculadora
+    .map(
+      (c) => `<li data-id="${c.id}">
+        <div class="calc-historico-info">
+          <strong>${escapeHtml(c.descricao || c.material_nome || "Consulta")}</strong>
+          <span>${formatDateTime(c.created_at)} · custo ${formatMoney(c.custo_total)} · preço final ${formatMoney(c.preco_final)} · lucro ${formatMoney(c.lucro_liquido)}</span>
+        </div>
+        <button type="button" class="carregar-consulta-btn ghost" title="Carregar de volta na calculadora">↩️</button>
+        <button type="button" class="remover-consulta-btn" title="Excluir">×</button>
+      </li>`
+    )
+    .join("");
+
+  calcHistoricoEl.querySelectorAll(".carregar-consulta-btn").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const consulta = consultasCalculadora.find((c) => c.id === btn.closest("li").dataset.id);
+      if (consulta) carregarConsulta(consulta);
+    })
+  );
+  calcHistoricoEl.querySelectorAll(".remover-consulta-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const id = btn.closest("li").dataset.id;
+      await db.from("consultas_calculadora").delete().eq("id", id);
+      await loadData();
+    })
+  );
+}
+
+function carregarConsulta(consulta) {
+  calcMaterial.value = consulta.material_id || "";
+  calcPeso.value = consulta.peso_gramas || "";
+  calcTempo.value = consulta.tempo_horas || "";
+  calcMaoObra.value = consulta.mao_obra_horas || "";
+  calcTerceiro.value = consulta.mao_obra_terceiro || "";
+  calcCanal.value = consulta.canal_venda_id || "";
+  calcComissao.value = consulta.comissao_percentual || "";
+  calcComissaoFixa.value = consulta.taxa_fixa_comissao || "";
+  calcItemAdicional.value = consulta.item_adicional || "";
+  renderCalculadoraLivre();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /* ---------- Formulário de pedido (criar/editar) ---------- */

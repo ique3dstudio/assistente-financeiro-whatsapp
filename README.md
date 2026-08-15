@@ -70,6 +70,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
      linha de configurações com valores padrão, revise em "⚙ Configurações" dentro do app)
    - `sql/004_bloco3.sql` (estoque por material, máquinas, registro de falhas, etapa de pós-processamento e o
      link público de acompanhamento do pedido)
+   - `sql/005_calculadora.sql` (histórico da Calculadora e canais de venda com comissão — já cria 3 canais de
+     referência: Shopee, TikTok Shop e Mercado Livre, todos editáveis em "⚙ Configurações")
 2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
    `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
    preenchidos).
@@ -80,12 +82,15 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 
 ### Como funciona
 
-- **Calculadora (aba solta, não salva nada).** Pra conferir rapidinho se vale a pena produzir algo, sem precisar
-  criar um pedido de teste. Mesma conta da calculadora de custo por item (material, peso, tempo, mão de obra
-  própria, energia, depreciação, risco e margem — todos vindos de "⚙ Configurações"), mais três campos exclusivos
-  dela, nenhum obrigatório: **mão de obra terceirizada** (R$, se for mandar fazer fora), **comissão de venda** (%,
-  marketplace ou vendedor — o app aumenta o preço final pra sua margem não ser corroída pela comissão) e **item
-  adicional** (R$, tipo argola de chaveiro, clipe, ímã). Atualiza sozinha a cada campo preenchido.
+- **Calculadora (aba solta, de conferência rápida).** Pra ver se vale a pena produzir algo, sem precisar criar um
+  pedido. Mesma conta da calculadora de custo por item (material, peso, tempo, mão de obra própria, energia,
+  depreciação, risco e margem — vindos de "⚙ Configurações"), mais campos exclusivos dela, nenhum obrigatório:
+  **mão de obra terceirizada** (R$, se for mandar fazer fora), **item adicional** (R$, tipo argola de chaveiro,
+  clipe, ímã) e **canal de venda** — um seletor com comissões pré-cadastradas (Shopee, TikTok Shop, Mercado Livre)
+  que já preenche o percentual e a taxa fixa de cada uma (dá pra editar na hora ou cadastrar outros canais em "⚙
+  Configurações"). O preço final é calculado pra cobrir a comissão sem perder a margem desejada. Atualiza sozinha a
+  cada campo preenchido, e **só fica salvo se você clicar em "💾 Salvar consulta"** — aí entra no histórico embaixo,
+  com botão pra recarregar os campos de uma consulta antiga (↩️) ou apagar (×).
 - **Cliente.** Ao digitar o nome no campo "Cliente" do pedido, o app sugere clientes já cadastrados (autocompletar);
   se o nome for novo, cria o cliente na hora. Isso dá um mini-histórico: dá pra ver depois tudo que aquele cliente
   já pediu.
@@ -146,6 +151,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   pública `acompanhar_pedido` (roda com privilégios elevados de propósito, ignorando RLS, mas só devolve dados não
   sensíveis de um único pedido — e só pra quem já tem o token/link).
 - `public/loja3d/acompanhar.html` — página pública de acompanhamento do pedido, sem login.
+- `sql/005_calculadora.sql` — tabelas canais_venda (com 3 canais de referência já cadastrados) e
+  consultas_calculadora (histórico da aba Calculadora).
 - Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
   do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
 

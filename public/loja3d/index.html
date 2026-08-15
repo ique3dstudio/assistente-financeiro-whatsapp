@@ -52,7 +52,8 @@
     <main id="tab-calculadora" class="tab-panel" hidden>
       <div class="calculadora-livre">
         <p class="subtitle">
-          Confira rapidinho se vale a pena produzir algo — nada aqui é salvo, é só pra conferência.
+          Confira rapidinho se vale a pena produzir algo. Nenhum campo é obrigatório — e só fica salvo se você
+          clicar em "💾 Salvar consulta".
         </p>
         <div class="grid grid-4">
           <label>
@@ -78,19 +79,36 @@
             <input id="calc-terceiro" type="number" min="0" step="0.01" placeholder="se for mandar fazer fora" />
           </label>
           <label>
-            Comissão de venda (%)
-            <input id="calc-comissao" type="number" min="0" max="100" step="1" placeholder="marketplace/vendedor" />
-          </label>
-          <label>
             Item adicional (R$)
             <input id="calc-item-adicional" type="number" min="0" step="0.01" placeholder="argola, clipe, ímã…" />
+          </label>
+          <label>
+            Canal de venda
+            <select id="calc-canal"><option value="">Personalizado</option></select>
           </label>
           <label class="calc-clear-label">
             <span>&nbsp;</span>
             <button type="button" id="calc-limpar-btn" class="ghost">🔄 Limpar</button>
           </label>
         </div>
+        <div class="grid grid-4">
+          <label>
+            Comissão (%)
+            <input id="calc-comissao" type="number" min="0" max="100" step="1" />
+          </label>
+          <label>
+            Comissão fixa (R$)
+            <input id="calc-comissao-fixa" type="number" min="0" step="0.01" />
+          </label>
+        </div>
         <div id="calc-resultado" class="calc-resultado"></div>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <button type="button" id="calc-salvar-btn" class="primary">💾 Salvar consulta</button>
+        </div>
+
+        <h2 class="calc-historico-titulo">Histórico de consultas</h2>
+        <ul id="calc-historico" class="calc-historico"></ul>
       </div>
     </main>
 
@@ -310,6 +328,27 @@
           </select>
         </label>
         <button type="submit" class="ghost">+ Adicionar máquina</button>
+      </form>
+    </fieldset>
+
+    <fieldset>
+      <legend>Canais de venda (comissão)</legend>
+      <p class="subtitle">Usados na Calculadora — taxas mudam com frequência, revise de vez em quando.</p>
+      <ul id="canais-venda-list" class="materiais-list"></ul>
+      <form id="canal-venda-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="80" placeholder="Shopee (frete grátis)" />
+        </label>
+        <label>
+          Comissão (%)
+          <input name="comissao_percentual" type="number" min="0" max="100" step="0.1" required />
+        </label>
+        <label>
+          Taxa fixa (R$)
+          <input name="taxa_fixa" type="number" min="0" step="0.01" value="0" required />
+        </label>
+        <button type="submit" class="ghost">+ Adicionar canal</button>
       </form>
     </fieldset>
   </dialog>
