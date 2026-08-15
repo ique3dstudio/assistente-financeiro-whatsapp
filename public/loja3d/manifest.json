@@ -1,7 +1,7 @@
 {
-  "name": "Pedidos 3D",
-  "short_name": "Pedidos 3D",
-  "description": "Gestão de pedidos e produção da loja de impressão 3D",
+  "name": "IQUE 3D Studio",
+  "short_name": "IQUE 3D",
+  "description": "Gestão de pedidos e produção da IQUE 3D Studio",
   "start_url": "/loja3d/",
   "scope": "/loja3d/",
   "display": "standalone",

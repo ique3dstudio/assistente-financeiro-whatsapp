@@ -1493,7 +1493,7 @@ function gerarOrcamentoPdf() {
   let y = 20;
 
   doc.setFontSize(16);
-  doc.text(configuracoes?.nome_loja || "Loja 3D", 14, y);
+  doc.text(configuracoes?.nome_loja || "IQUE 3D Studio", 14, y);
   y += 8;
   doc.setFontSize(11);
   doc.text("Orçamento", 14, y);

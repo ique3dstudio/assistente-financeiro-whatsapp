@@ -51,7 +51,7 @@ node scripts/test-whatsapp.js 5511999999999 "Oi! Teste do assistente financeiro.
 Troque `5511999999999` pelo seu número, no formato DDI+DDD+número, sem espaços, `+` ou traços. Você deve receber a
 mensagem no WhatsApp.
 
-## Loja 3D — gestão de pedidos e produção
+## IQUE 3D Studio — gestão de pedidos e produção
 
 App web (funciona como PWA, dá pra "adicionar à tela inicial" no celular) para a loja de impressão 3D. Uma pessoa
 lança os pedidos com todos os dados da impressão, a outra acompanha e vai movendo cada pedido pelas etapas de
