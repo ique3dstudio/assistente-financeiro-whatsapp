@@ -986,6 +986,13 @@ legend {
   font-family: var(--font-mono);
 }
 
+.financeiro-table td.mov-descricao-cell {
+  white-space: normal;
+  max-width: 280px;
+  word-break: break-word;
+  font-family: var(--font-sans);
+}
+
 .financeiro-table th {
   color: var(--muted);
   font-weight: 700;

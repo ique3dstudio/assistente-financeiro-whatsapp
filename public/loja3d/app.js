@@ -956,7 +956,7 @@ function renderMovimentosList() {
     const atrasado = isMovimentoAtrasado(m);
     html += `<tr data-id="${m.id}" class="${atrasado ? "late-row" : ""}">
       <td>${formatDate(m.data_movimento)}</td>
-      <td>${escapeHtml(m.descricao || "")}${m.pedido_id ? ' <span class="mov-tag-pedido">🔗 pedido</span>' : ""}</td>
+      <td class="mov-descricao-cell">${escapeHtml(m.descricao || "")}${m.pedido_id ? ' <span class="mov-tag-pedido">🔗 pedido</span>' : ""}</td>
       <td>${escapeHtml(categoria?.nome || "—")}</td>
       <td>${escapeHtml(conta?.nome || "—")}</td>
       <td>${escapeHtml(m.responsavel || "—")}</td>
