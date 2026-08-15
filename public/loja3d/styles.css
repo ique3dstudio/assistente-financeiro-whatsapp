@@ -1,15 +1,44 @@
 :root {
-  --bg: #0f172a;
-  --panel: #1e293b;
-  --panel-2: #273449;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #38bdf8;
-  --danger: #f87171;
-  --ok: #4ade80;
-  --warn: #fbbf24;
-  --border: #334155;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Paleta "oficina" (padrão, escura): grafite + laranja de nozzle quente + amarelo de segurança */
+  --bg: #0b0d11;
+  --panel: #14171d;
+  --panel-2: #1b1f27;
+  --text: #e7e9ec;
+  --muted: #8991a1;
+  --accent: #e8890c;
+  --accent-contrast: #1a0f00;
+  --danger: #ef4444;
+  --ok: #22c55e;
+  --warn: #ffd23f;
+  --warn-contrast: #241a00;
+  --border: #2a2f3a;
+  --badge-bg: #0c0f14;
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --info: #5b8fd4;
+  --stage-post: #a78bfa;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: var(--font-sans);
+}
+
+:root[data-theme="light"] {
+  /* Paleta clara: papel de blueprint em vez de grafite */
+  --bg: #f1f2f5;
+  --panel: #ffffff;
+  --panel-2: #edeff2;
+  --text: #14171d;
+  --muted: #5b6472;
+  --accent: #c2680a;
+  --accent-contrast: #fff7ec;
+  --danger: #dc2626;
+  --ok: #15803d;
+  --warn: #a15c00;
+  --warn-contrast: #fff7e0;
+  --border: #d7dbe1;
+  --badge-bg: #f6f7f9;
+  --grid-line: rgba(20, 23, 29, 0.05);
+  --info: #2f6fb8;
+  --stage-post: #7c3aed;
 }
 
 * {
@@ -18,7 +47,10 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
   color: var(--text);
   min-height: 100vh;
 }
@@ -39,13 +71,43 @@ body {
 .login-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 32px;
   width: 100%;
   max-width: 360px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Marcas de canto tipo blueprint/mira, usadas nos cartões de destaque */
+.corner-marks {
+  position: relative;
+}
+
+.corner-marks::before,
+.corner-marks::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.corner-marks::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-marks::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
 }
 
 .login-card h1 {
@@ -72,7 +134,7 @@ select,
 textarea {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 10px 12px;
   color: var(--text);
   font-size: 15px;
@@ -87,7 +149,7 @@ textarea:focus {
 
 button {
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1px solid var(--border);
   padding: 10px 16px;
   font-size: 14px;
@@ -99,7 +161,10 @@ button {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #04202e;
+  color: var(--accent-contrast);
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.04em;
 }
 
 button.danger {
@@ -121,7 +186,19 @@ button.chip {
 button.chip.active {
   background: var(--danger);
   border-color: var(--danger);
-  color: #2b0b0b;
+  color: #fff;
+}
+
+#theme-toggle-btn {
+  font-size: 16px;
+  padding: 8px 12px;
+}
+
+#login-theme-toggle-btn,
+#tracking-theme-toggle-btn {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .error {
@@ -137,6 +214,7 @@ button.chip.active {
   z-index: 5;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 0 var(--accent);
   padding: 12px 16px;
   display: flex;
   flex-wrap: wrap;
@@ -149,6 +227,7 @@ button.chip.active {
   margin: 0;
   font-size: 20px;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .topbar-actions {
@@ -194,7 +273,7 @@ button.chip.active {
 .column {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   min-width: 260px;
   max-width: 280px;
   flex: 0 0 auto;
@@ -206,6 +285,7 @@ button.chip.active {
 .column-header {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
+  border-top: 3px solid var(--stage-color, var(--border));
   font-weight: 700;
   display: flex;
   justify-content: space-between;
@@ -213,8 +293,15 @@ button.chip.active {
   position: sticky;
   top: 0;
   background: var(--panel);
-  border-radius: 12px 12px 0 0;
+  border-radius: 6px 6px 0 0;
 }
+
+.column[data-status="recebido"] { --stage-color: var(--muted); }
+.column[data-status="fila"] { --stage-color: var(--info); }
+.column[data-status="produzindo"] { --stage-color: var(--accent); }
+.column[data-status="pos_processamento"] { --stage-color: var(--stage-post); }
+.column[data-status="pronto"] { --stage-color: var(--ok); }
+.column[data-status="entregue"] { --stage-color: var(--muted); }
 
 .column-count {
   background: var(--panel-2);
@@ -242,7 +329,7 @@ button.chip.active {
 .card {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 10px 12px;
   cursor: pointer;
   display: flex;
@@ -277,11 +364,14 @@ button.chip.active {
 }
 
 .badge {
-  background: #0b1220;
+  background: var(--badge-bg);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
   color: var(--muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge.late {
@@ -321,7 +411,7 @@ button.chip.active {
 .stat-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 18px;
   text-align: center;
 }
@@ -330,6 +420,7 @@ button.chip.active {
   font-size: 28px;
   font-weight: 800;
   color: var(--accent);
+  font-family: var(--font-mono);
 }
 
 .stat-label {
@@ -343,7 +434,7 @@ dialog {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 6px;
   padding: 20px;
   width: min(640px, 92vw);
   max-height: 88vh;
@@ -362,7 +453,7 @@ dialog::backdrop {
 
 fieldset {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -382,7 +473,7 @@ legend {
   position: relative;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -415,7 +506,7 @@ legend {
   gap: 8px;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 6px 10px;
   font-size: 13px;
 }
@@ -436,7 +527,7 @@ legend {
 .calc-box {
   background: var(--panel);
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -482,7 +573,7 @@ legend {
   gap: 8px;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 6px 10px;
   font-size: 13px;
 }
@@ -548,7 +639,7 @@ legend {
   border-collapse: collapse;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -559,6 +650,12 @@ legend {
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   white-space: nowrap;
+}
+
+.financeiro-table td:nth-child(2),
+.financeiro-table td:nth-child(3),
+.financeiro-table td:nth-child(4) {
+  font-family: var(--font-mono);
 }
 
 .financeiro-table th {
@@ -594,7 +691,7 @@ legend {
 .tracking-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 28px;
   width: 100%;
   max-width: 420px;
@@ -623,7 +720,7 @@ legend {
 .tracking-itens li {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 12px;
   display: flex;
   justify-content: space-between;
@@ -633,13 +730,14 @@ legend {
 
 .tracking-item-desc {
   font-weight: 600;
+  min-width: 0;
 }
 
 /* Alertas de estoque baixo (Painel) */
 .estoque-alerta {
   background: var(--panel);
   border: 1px solid var(--warn);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 14px 18px;
   grid-column: 1 / -1;
 }
@@ -678,7 +776,7 @@ legend {
 .calc-resultado {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -690,6 +788,10 @@ legend {
   justify-content: space-between;
   font-size: 14px;
   color: var(--muted);
+}
+
+.calc-linha span:last-child {
+  font-family: var(--font-mono);
 }
 
 .calc-subtotal {
@@ -733,7 +835,7 @@ legend {
   gap: 10px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 10px 12px;
 }
 

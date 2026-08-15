@@ -138,6 +138,9 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   login, e sem ver preço, forma de pagamento ou seus dados internos.
 - **Tempo real.** Se uma mexe em algo, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
   atualizar a página.
+- **Tema.** Visual "técnico/industrial" (grafite + laranja + grid tipo blueprint), com botão 🌙/☀️ pra alternar
+  entre escuro e claro — a escolha fica salva no navegador. Vale em todas as telas, incluindo login e a página
+  pública de acompanhamento.
 
 ### Estrutura
 

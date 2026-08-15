@@ -4,16 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pedidos 3D</title>
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0b0d11" />
   <link rel="manifest" href="/loja3d/manifest.json" />
   <link rel="icon" href="/loja3d/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/loja3d/icon.svg" />
   <link rel="stylesheet" href="/loja3d/styles.css" />
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem("loja3d-theme") || "dark";
+  </script>
 </head>
 <body>
   <!-- Tela de login -->
   <section id="login-screen" class="screen">
-    <form id="login-form" class="login-card">
+    <form id="login-form" class="login-card corner-marks">
       <h1>🖨️ Pedidos 3D</h1>
       <p class="subtitle">Entre com a conta da loja</p>
       <label>
@@ -24,8 +27,9 @@
         Senha
         <input type="password" id="login-password" autocomplete="current-password" required />
       </label>
-      <button type="submit">Entrar</button>
+      <button type="submit" class="primary">Entrar</button>
       <p id="login-error" class="error" hidden></p>
+      <button type="button" id="login-theme-toggle-btn" class="ghost" title="Alternar tema">🌙 Modo claro</button>
     </form>
   </section>
 
@@ -43,6 +47,7 @@
         <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
         <button id="filter-atrasados" class="chip" type="button">⏰ Atrasados: 0</button>
         <button id="export-csv-btn" class="ghost" type="button">⬇ Exportar CSV</button>
+        <button id="theme-toggle-btn" class="ghost" type="button" title="Alternar tema">🌙</button>
         <button id="config-btn" class="ghost" type="button" title="Configurações">⚙</button>
         <button id="new-order-btn" class="primary" type="button">+ Novo pedido</button>
         <button id="logout-btn" class="ghost" type="button">Sair</button>

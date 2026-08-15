@@ -4,17 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Acompanhar pedido</title>
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0b0d11" />
   <link rel="icon" href="/loja3d/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/loja3d/styles.css" />
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem("loja3d-theme") || "dark";
+  </script>
 </head>
 <body>
   <section class="screen tracking-screen">
-    <div class="tracking-card">
+    <div class="tracking-card corner-marks">
       <h1>🖨️ Acompanhar pedido</h1>
       <div id="tracking-content">
         <p class="column-empty">Carregando…</p>
       </div>
+      <button type="button" id="tracking-theme-toggle-btn" class="ghost" title="Alternar tema">🌙 Modo claro</button>
     </div>
   </section>
 
@@ -90,6 +94,19 @@
       div.textContent = str ?? "";
       return div.innerHTML;
     }
+
+    const themeToggleBtn = document.getElementById("tracking-theme-toggle-btn");
+    function atualizarTextoTema() {
+      themeToggleBtn.textContent =
+        document.documentElement.dataset.theme === "light" ? "🌙 Modo escuro" : "☀️ Modo claro";
+    }
+    themeToggleBtn.addEventListener("click", () => {
+      const novo = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = novo;
+      localStorage.setItem("loja3d-theme", novo);
+      atualizarTextoTema();
+    });
+    atualizarTextoTema();
 
     carregar();
   </script>

@@ -52,6 +52,8 @@ const newOrderBtn = document.getElementById("new-order-btn");
 const exportCsvBtn = document.getElementById("export-csv-btn");
 const clientesOptions = document.getElementById("clientes-options");
 const tabButtons = document.querySelectorAll(".tab-btn");
+const themeToggleBtn = document.getElementById("theme-toggle-btn");
+const loginThemeToggleBtn = document.getElementById("login-theme-toggle-btn");
 
 const orderDialog = document.getElementById("order-dialog");
 const orderForm = document.getElementById("order-form");
@@ -95,6 +97,19 @@ const calcHistoricoEl = document.getElementById("calc-historico");
 const canaisVendaListEl = document.getElementById("canais-venda-list");
 const canalVendaForm = document.getElementById("canal-venda-form");
 
+function atualizarTextoTema() {
+  const claro = document.documentElement.dataset.theme === "light";
+  themeToggleBtn.textContent = claro ? "☀️" : "🌙";
+  loginThemeToggleBtn.textContent = claro ? "🌙 Modo escuro" : "☀️ Modo claro";
+}
+
+function alternarTema() {
+  const novo = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = novo;
+  localStorage.setItem("loja3d-theme", novo);
+  atualizarTextoTema();
+}
+
 init();
 
 async function init() {
@@ -117,6 +132,10 @@ async function init() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/loja3d/sw.js").catch(() => {});
   }
+
+  atualizarTextoTema();
+  themeToggleBtn.addEventListener("click", alternarTema);
+  loginThemeToggleBtn.addEventListener("click", alternarTema);
 
   loginForm.addEventListener("submit", handleLogin);
   logoutBtn.addEventListener("click", () => db.auth.signOut());
@@ -374,6 +393,7 @@ function renderBoard() {
 
     const column = document.createElement("div");
     column.className = "column";
+    column.dataset.status = def.key;
 
     const header = document.createElement("div");
     header.className = "column-header";
