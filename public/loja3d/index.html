@@ -130,7 +130,39 @@
     </main>
 
     <main id="tab-financeiro" class="tab-panel" hidden>
-      <div id="financeiro" class="financeiro"></div>
+      <nav class="subtabs">
+        <button type="button" class="subtab-btn active" data-subtab="visao-geral">Visão geral</button>
+        <button type="button" class="subtab-btn" data-subtab="a-receber">Contas a receber</button>
+        <button type="button" class="subtab-btn" data-subtab="lancamentos">Lançamentos</button>
+      </nav>
+
+      <div id="subtab-visao-geral" class="financeiro-subpanel">
+        <div id="financeiro-dashboard" class="dashboard"></div>
+      </div>
+
+      <div id="subtab-a-receber" class="financeiro-subpanel" hidden>
+        <div id="financeiro" class="financeiro"></div>
+      </div>
+
+      <div id="subtab-lancamentos" class="financeiro-subpanel" hidden>
+        <div class="financeiro-toolbar">
+          <input id="mov-busca" type="search" placeholder="Buscar lançamento…" />
+          <select id="mov-filtro-conta"><option value="">Todas as contas</option></select>
+          <select id="mov-filtro-categoria"><option value="">Todas as categorias</option></select>
+          <select id="mov-filtro-status">
+            <option value="">Todos os status</option>
+            <option value="previsto">Previsto</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="realizado">Realizado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+          <span class="spacer"></span>
+          <button type="button" id="ia-lancamento-btn" class="ghost">✨ Entrada rápida</button>
+          <button type="button" id="transferencia-btn" class="ghost">🔁 Transferir</button>
+          <button type="button" id="novo-movimento-btn" class="primary">+ Novo lançamento</button>
+        </div>
+        <div id="movimentos-list"></div>
+      </div>
     </main>
   </section>
 
@@ -392,6 +424,180 @@
         <button type="submit" class="ghost">+ Adicionar canal</button>
       </form>
     </fieldset>
+
+    <fieldset>
+      <legend>Contas financeiras (carteiras)</legend>
+      <ul id="contas-financeiras-list" class="materiais-list"></ul>
+      <form id="conta-financeira-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="60" placeholder="Banco PJ" />
+        </label>
+        <label>
+          Tipo
+          <select name="tipo">
+            <option value="banco">Banco</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="maquininha">Maquininha</option>
+            <option value="pix">Pix</option>
+            <option value="outro">Outro</option>
+          </select>
+        </label>
+        <label>
+          Saldo inicial (R$)
+          <input name="saldo_inicial" type="number" step="0.01" value="0" />
+        </label>
+        <button type="submit" class="ghost">+ Adicionar conta</button>
+      </form>
+    </fieldset>
+
+    <fieldset>
+      <legend>Categorias financeiras (plano de contas)</legend>
+      <ul id="categorias-financeiras-list" class="materiais-list"></ul>
+      <form id="categoria-financeira-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="60" placeholder="Ex: Frete" />
+        </label>
+        <label>
+          Tipo
+          <select name="tipo">
+            <option value="saida">Saída</option>
+            <option value="entrada">Entrada</option>
+          </select>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="protegida" />
+          🔒 Pró-labore/retirada
+        </label>
+        <button type="submit" class="ghost">+ Adicionar categoria</button>
+      </form>
+    </fieldset>
+    </div>
+  </dialog>
+
+  <!-- Modal de lançamento financeiro manual -->
+  <dialog id="movimento-dialog">
+    <button type="button" id="close-movimento-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="movimento-form">
+      <h2 id="movimento-dialog-title">Novo lançamento</h2>
+      <p id="movimento-origem-aviso" class="subtitle" hidden>🔗 Gerado automaticamente por um pedido — o valor não pode ser editado aqui.</p>
+
+      <div class="grid grid-4">
+        <label>
+          Tipo
+          <select name="tipo" id="movimento-tipo-select" required>
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+        </label>
+        <label>
+          Valor (R$)
+          <input name="valor" id="movimento-valor-input" type="number" min="0.01" step="0.01" required />
+        </label>
+        <label>
+          Data
+          <input name="data_movimento" type="date" required />
+        </label>
+        <label>
+          Status
+          <select name="status" required>
+            <option value="previsto">Previsto</option>
+            <option value="realizado">Realizado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid">
+        <label>
+          Categoria
+          <select name="categoria_id" id="movimento-categoria-select"></select>
+        </label>
+        <label>
+          Conta
+          <select name="conta_id" id="movimento-conta-select">
+            <option value="">— A definir —</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        Descrição
+        <input name="descricao" maxlength="200" placeholder="Ex: Compra de filamento PLA" />
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" id="delete-movimento-btn" class="danger" hidden>Excluir lançamento</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-movimento-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="movimento-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de transferência entre contas -->
+  <dialog id="transferencia-dialog">
+    <button type="button" id="close-transferencia-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="transferencia-form">
+      <h2>Transferir entre contas</h2>
+      <p class="subtitle">Transferência não conta como receita nem despesa nos relatórios.</p>
+      <div class="grid">
+        <label>
+          De
+          <select name="conta_origem_id" id="transferencia-origem-select" required></select>
+        </label>
+        <label>
+          Para
+          <select name="conta_destino_id" id="transferencia-destino-select" required></select>
+        </label>
+      </div>
+      <div class="grid">
+        <label>
+          Valor (R$)
+          <input name="valor" type="number" min="0.01" step="0.01" required />
+        </label>
+        <label>
+          Data
+          <input name="data_movimento" type="date" required />
+        </label>
+      </div>
+      <label>
+        Descrição (opcional)
+        <input name="descricao" maxlength="200" />
+      </label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="cancel-transferencia-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Transferir</button>
+      </div>
+      <p id="transferencia-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de entrada rápida por IA (texto/foto/áudio) -->
+  <dialog id="ia-lancamento-dialog">
+    <button type="button" id="close-ia-lancamento-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <div>
+      <h2>✨ Entrada rápida (IA)</h2>
+      <p class="subtitle">Descreva, tire uma foto do recibo ou grave um áudio — a IA prepara o lançamento pra você conferir antes de salvar.</p>
+      <label>
+        Descreva o que aconteceu
+        <textarea id="ia-texto-input" rows="3" placeholder="Ex: comprei um rolo de PLA preto por 89 reais"></textarea>
+      </label>
+      <div class="ia-lancamento-actions">
+        <button type="button" id="ia-texto-btn" class="primary">Interpretar texto</button>
+        <button type="button" id="ia-foto-btn" class="ghost">📷 Foto do recibo</button>
+        <input type="file" id="ia-foto-input" accept="image/*" capture="environment" hidden />
+        <button type="button" id="ia-audio-btn" class="ghost">🎤 Gravar áudio</button>
+      </div>
+      <p id="ia-status" class="subtitle" hidden></p>
+      <p id="ia-error" class="error" hidden></p>
+    </div>
     </div>
   </dialog>
 

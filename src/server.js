@@ -4,18 +4,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import webhookRouter from "./routes/webhook.js";
+import loja3dIaRouter from "./routes/loja3d-ia.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
+// Limite maior que o padrão (100kb): a entrada rápida por IA da Loja 3D manda foto/áudio em
+// base64 dentro do JSON.
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/", (req, res) => {
   res.json({ status: "ok", app: "assistente-financeiro-whatsapp" });
 });
 
 app.use("/webhook", webhookRouter);
+
+// Loja 3D: entrada rápida por IA (texto/foto/áudio) — ver src/routes/loja3d-ia.js.
+app.use("/loja3d/api", loja3dIaRouter);
 
 // Loja 3D: app web (PWA) de gestão de pedidos, usado pela dupla comercial/produção.
 app.get("/loja3d/config.js", (req, res) => {

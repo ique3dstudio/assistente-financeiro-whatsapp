@@ -40,6 +40,9 @@ let maquinas = [];
 let falhas = [];
 let canaisVenda = [];
 let consultasCalculadora = [];
+let contasFinanceiras = [];
+let categoriasFinanceiras = [];
+let movimentos = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -55,6 +58,15 @@ const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
 const financeiroEl = document.getElementById("financeiro");
+const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
+const subtabButtons = document.querySelectorAll(".subtab-btn");
+const movimentosListEl = document.getElementById("movimentos-list");
+const movBuscaInput = document.getElementById("mov-busca");
+const movFiltroConta = document.getElementById("mov-filtro-conta");
+const movFiltroCategoria = document.getElementById("mov-filtro-categoria");
+const movFiltroStatus = document.getElementById("mov-filtro-status");
+const novoMovimentoBtn = document.getElementById("novo-movimento-btn");
+const transferenciaBtn = document.getElementById("transferencia-btn");
 const searchInput = document.getElementById("search-input");
 const filterAtrasadosBtn = document.getElementById("filter-atrasados");
 const newOrderBtn = document.getElementById("new-order-btn");
@@ -90,6 +102,44 @@ const materiaisListEl = document.getElementById("materiais-list");
 const materialForm = document.getElementById("material-form");
 const maquinasListEl = document.getElementById("maquinas-list");
 const maquinaForm = document.getElementById("maquina-form");
+const contasFinanceirasListEl = document.getElementById("contas-financeiras-list");
+const contaFinanceiraForm = document.getElementById("conta-financeira-form");
+const categoriasFinanceirasListEl = document.getElementById("categorias-financeiras-list");
+const categoriaFinanceiraForm = document.getElementById("categoria-financeira-form");
+
+const movimentoDialog = document.getElementById("movimento-dialog");
+const movimentoForm = document.getElementById("movimento-form");
+const movimentoDialogTitle = document.getElementById("movimento-dialog-title");
+const movimentoError = document.getElementById("movimento-error");
+const movimentoOrigemAviso = document.getElementById("movimento-origem-aviso");
+const movimentoTipoSelect = document.getElementById("movimento-tipo-select");
+const movimentoValorInput = document.getElementById("movimento-valor-input");
+const movimentoCategoriaSelect = document.getElementById("movimento-categoria-select");
+const movimentoContaSelect = document.getElementById("movimento-conta-select");
+const deleteMovimentoBtn = document.getElementById("delete-movimento-btn");
+const cancelMovimentoBtn = document.getElementById("cancel-movimento-btn");
+const closeMovimentoBtn = document.getElementById("close-movimento-btn");
+
+const transferenciaDialog = document.getElementById("transferencia-dialog");
+const transferenciaForm = document.getElementById("transferencia-form");
+const transferenciaError = document.getElementById("transferencia-error");
+const transferenciaOrigemSelect = document.getElementById("transferencia-origem-select");
+const transferenciaDestinoSelect = document.getElementById("transferencia-destino-select");
+const cancelTransferenciaBtn = document.getElementById("cancel-transferencia-btn");
+const closeTransferenciaBtn = document.getElementById("close-transferencia-btn");
+
+const iaLancamentoBtn = document.getElementById("ia-lancamento-btn");
+const iaLancamentoDialog = document.getElementById("ia-lancamento-dialog");
+const closeIaLancamentoBtn = document.getElementById("close-ia-lancamento-btn");
+const iaTextoInput = document.getElementById("ia-texto-input");
+const iaTextoBtn = document.getElementById("ia-texto-btn");
+const iaFotoBtn = document.getElementById("ia-foto-btn");
+const iaFotoInput = document.getElementById("ia-foto-input");
+const iaAudioBtn = document.getElementById("ia-audio-btn");
+const iaStatus = document.getElementById("ia-status");
+const iaError = document.getElementById("ia-error");
+let iaGravador = null;
+let iaAudioChunks = [];
 
 const calcMaterial = document.getElementById("calc-material");
 const calcPeso = document.getElementById("calc-peso");
@@ -229,6 +279,42 @@ async function init() {
   avatarCropCancelBtn.addEventListener("click", cancelarSelecaoLogo);
   avatarCropConfirmBtn.addEventListener("click", confirmarUploadLogo);
 
+  contaFinanceiraForm.addEventListener("submit", handleAddContaFinanceira);
+  categoriaFinanceiraForm.addEventListener("submit", handleAddCategoriaFinanceira);
+
+  novoMovimentoBtn.addEventListener("click", () => openMovimentoDialog(null));
+  cancelMovimentoBtn.addEventListener("click", () => movimentoDialog.close());
+  closeMovimentoBtn.addEventListener("click", () => movimentoDialog.close());
+  movimentoForm.addEventListener("submit", handleSaveMovimento);
+  deleteMovimentoBtn.addEventListener("click", handleDeleteMovimento);
+
+  transferenciaBtn.addEventListener("click", openTransferenciaDialog);
+  cancelTransferenciaBtn.addEventListener("click", () => transferenciaDialog.close());
+  closeTransferenciaBtn.addEventListener("click", () => transferenciaDialog.close());
+  transferenciaForm.addEventListener("submit", handleSaveTransferencia);
+
+  iaLancamentoBtn.addEventListener("click", openIaLancamentoDialog);
+  closeIaLancamentoBtn.addEventListener("click", () => iaLancamentoDialog.close());
+  iaTextoBtn.addEventListener("click", handleIaTexto);
+  iaFotoBtn.addEventListener("click", () => iaFotoInput.click());
+  iaFotoInput.addEventListener("change", handleIaFoto);
+  iaAudioBtn.addEventListener("click", handleIaAudio);
+
+  [movBuscaInput, movFiltroConta, movFiltroCategoria, movFiltroStatus].forEach((el) =>
+    el.addEventListener("input", renderMovimentosList)
+  );
+
+  subtabButtons.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      subtabButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".financeiro-subpanel").forEach((panel) => {
+        panel.hidden = panel.id !== `subtab-${btn.dataset.subtab}`;
+      });
+      renderFinanceiroAtivo();
+    })
+  );
+
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       tabButtons.forEach((b) => b.classList.remove("active"));
@@ -237,7 +323,7 @@ async function init() {
         panel.hidden = panel.id !== `tab-${btn.dataset.tab}`;
       });
       if (btn.dataset.tab === "painel") renderDashboard();
-      if (btn.dataset.tab === "financeiro") renderFinanceiro();
+      if (btn.dataset.tab === "financeiro") renderFinanceiroAtivo();
       if (btn.dataset.tab === "calculadora") {
         populateMaterialSelect(calcMaterial);
         populateCanalSelect();
@@ -246,6 +332,19 @@ async function init() {
       }
     })
   );
+}
+
+// Redesenha o que estiver visível dentro da aba Financeiro no momento (visão geral, contas a
+// receber ou lançamentos) — chamado tanto ao trocar de aba/sub-aba quanto depois de recarregar
+// os dados (loadData), sem precisar saber de fora qual sub-aba está ativa.
+function renderFinanceiroAtivo() {
+  const subtabAtiva = document.querySelector(".subtab-btn.active")?.dataset.subtab || "visao-geral";
+  if (subtabAtiva === "visao-geral") renderFinanceiroDashboard();
+  if (subtabAtiva === "a-receber") renderContasAReceber();
+  if (subtabAtiva === "lancamentos") {
+    populateFiltroSelects();
+    renderMovimentosList();
+  }
 }
 
 async function handleLogin(e) {
@@ -294,6 +393,9 @@ async function loadData() {
     { data: falhasData, error: eFal },
     { data: canaisVendaData, error: eCanal },
     { data: consultasData, error: eCons },
+    { data: contasFinanceirasData, error: eContas },
+    { data: categoriasFinanceirasData, error: eCategorias },
+    { data: movimentosData, error: eMov },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -307,9 +409,13 @@ async function loadData() {
     db.from("falhas").select("*").order("created_at", { ascending: false }),
     db.from("canais_venda").select("*").order("nome"),
     db.from("consultas_calculadora").select("*").order("created_at", { ascending: false }).limit(50),
+    db.from("contas_financeiras").select("*").order("nome"),
+    db.from("categorias_financeiras").select("*").order("ordem"),
+    db.from("movimentos").select("*").order("data_movimento", { ascending: false }),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons]) if (e) console.error(e);
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov])
+    if (e) console.error(e);
 
   clientes = clientesData || [];
   pedidos = pedidosData || [];
@@ -320,13 +426,16 @@ async function loadData() {
   falhas = falhasData || [];
   canaisVenda = canaisVendaData || [];
   consultasCalculadora = consultasData || [];
+  contasFinanceiras = contasFinanceirasData || [];
+  categoriasFinanceiras = categoriasFinanceirasData || [];
+  movimentos = movimentosData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
   atualizarBrandMarks();
 
   renderBoard();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
-  if (!document.getElementById("tab-financeiro").hidden) renderFinanceiro();
+  if (!document.getElementById("tab-financeiro").hidden) renderFinanceiroAtivo();
   if (!document.getElementById("tab-calculadora").hidden) {
     const materialSelecionado = calcMaterial.value;
     populateMaterialSelect(calcMaterial, materialSelecionado);
@@ -366,18 +475,15 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "falhas" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "canais_venda" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "consultas_calculadora" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "contas_financeiras" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "categorias_financeiras" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "movimentos" }, scheduleRefetch)
     .subscribe();
 }
 
 function isAtrasado(item, pedido) {
   if (!pedido.prazo_entrega) return false;
   if (item.status === "pronto" || item.status === "entregue") return false;
-  const hoje = new Date().toISOString().slice(0, 10);
-  return pedido.prazo_entrega < hoje;
-}
-
-function isAtrasadoPedido(pedido) {
-  if (!pedido.prazo_entrega) return false;
   const hoje = new Date().toISOString().slice(0, 10);
   return pedido.prazo_entrega < hoje;
 }
@@ -647,19 +753,73 @@ function renderDashboard() {
   dashboard.innerHTML = html;
 }
 
-/* ---------- Financeiro (contas a receber) ---------- */
+/* ---------- Financeiro: ledger central (movimentos), contas e categorias ---------- */
+// Arquitetura: uma tabela só (movimentos) pra tudo — lançamento manual, transferência entre
+// contas e o que o pedido gera automaticamente (sinal/saldo). O pedido continua sendo a única
+// tela onde a venda é digitada; sincronizarMovimentosDoPedido() espelha isso no ledger sempre
+// que um pedido é salvo, sem exigir lançar a mesma coisa duas vezes.
 
-function renderFinanceiro() {
-  const linhas = pedidos
-    .map((pedido) => {
-      const total = (pedido.itens || []).reduce((sum, i) => sum + (Number(i.valor) || 0), 0);
-      const sinal = Number(pedido.valor_sinal) || 0;
-      return { pedido, total, sinal, saldo: total - sinal };
-    })
-    .filter((l) => l.pedido.pagamento !== "pago" && l.saldo > 0)
-    .sort((a, b) => (a.pedido.prazo_entrega || "9999") < (b.pedido.prazo_entrega || "9999") ? -1 : 1);
+// "Atrasado" nunca é gravado — é sempre calculado (previsto + data no passado), assim não
+// depende de nenhum job rodando pra manter o status em dia.
+function isMovimentoAtrasado(m) {
+  return m.status === "previsto" && m.data_movimento && m.data_movimento < new Date().toISOString().slice(0, 10);
+}
 
-  const totalGeral = linhas.reduce((sum, l) => sum + l.saldo, 0);
+function calcularSaldosContas() {
+  const saldos = {};
+  for (const conta of contasFinanceiras) saldos[conta.id] = Number(conta.saldo_inicial) || 0;
+  for (const m of movimentos) {
+    if (m.status !== "realizado" || !m.conta_id || !(m.conta_id in saldos)) continue;
+    saldos[m.conta_id] += m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor);
+  }
+  return saldos;
+}
+
+function renderFinanceiroDashboard() {
+  const saldos = calcularSaldosContas();
+  const saldoHoje = Object.values(saldos).reduce((s, v) => s + v, 0);
+
+  const previstos = movimentos.filter((m) => m.status === "previsto");
+  const aReceber = previstos.filter((m) => m.tipo === "entrada").reduce((s, m) => s + Number(m.valor), 0);
+  const aPagar = previstos.filter((m) => m.tipo === "saida").reduce((s, m) => s + Number(m.valor), 0);
+  const atrasados = movimentos.filter(isMovimentoAtrasado).length;
+
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const noMes = (m) => (m.data_movimento || "").startsWith(mesAtual);
+  const aReceberMes = previstos.filter((m) => m.tipo === "entrada" && noMes(m)).reduce((s, m) => s + Number(m.valor), 0);
+  const aPagarMes = previstos.filter((m) => m.tipo === "saida" && noMes(m)).reduce((s, m) => s + Number(m.valor), 0);
+  const saldoProjetadoMes = saldoHoje + aReceberMes - aPagarMes;
+
+  const stats = [
+    { label: "Saldo hoje", value: formatMoney(saldoHoje) },
+    { label: `A receber${atrasados > 0 ? ` (${atrasados} atrasado${atrasados > 1 ? "s" : ""})` : ""}`, value: formatMoney(aReceber) },
+    { label: "A pagar", value: formatMoney(aPagar) },
+    { label: "Saldo projetado do mês", value: formatMoney(saldoProjetadoMes) },
+  ];
+
+  let html = stats
+    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
+    .join("");
+
+  const contasAtivas = contasFinanceiras.filter((c) => c.ativa);
+  if (contasAtivas.length > 0) {
+    html += `<div class="stat-card contas-saldo-card">
+      <div class="stat-label">Saldo por conta</div>
+      ${contasAtivas.map((c) => `<div class="conta-saldo-linha"><span>${escapeHtml(c.nome)}</span><span>${formatMoney(saldos[c.id] || 0)}</span></div>`).join("")}
+    </div>`;
+  }
+
+  financeiroDashboardEl.innerHTML = html;
+}
+
+function renderContasAReceber() {
+  const linhas = movimentos
+    .filter((m) => m.origem === "pedido_saldo" && m.status === "previsto")
+    .map((m) => ({ movimento: m, pedido: pedidos.find((p) => p.id === m.pedido_id) }))
+    .filter((l) => l.pedido)
+    .sort((a, b) => (a.movimento.data_movimento || "9999") < (b.movimento.data_movimento || "9999") ? -1 : 1);
+
+  const totalGeral = linhas.reduce((sum, l) => sum + Number(l.movimento.valor), 0);
 
   let html = `<div class="stat-card financeiro-total"><div class="stat-value">${formatMoney(totalGeral)}</div><div class="stat-label">Total a receber</div></div>`;
 
@@ -667,28 +827,543 @@ function renderFinanceiro() {
     html += `<p class="column-empty">Nenhuma conta em aberto. 🎉</p>`;
   } else {
     html += `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
-      <th>Cliente</th><th>Total</th><th>Sinal</th><th>Saldo</th><th>Prazo</th><th>Status</th>
+      <th>Cliente</th><th>Saldo</th><th>Vencimento</th><th>Status</th>
     </tr></thead><tbody>`;
     for (const l of linhas) {
-      html += `<tr class="${isAtrasadoPedido(l.pedido) ? "late-row" : ""}" data-id="${l.pedido.id}">
+      const atrasado = isMovimentoAtrasado(l.movimento);
+      html += `<tr class="${atrasado ? "late-row" : ""}" data-mov-id="${l.movimento.id}">
         <td>${escapeHtml(l.pedido.cliente?.nome || "")}</td>
-        <td>${formatMoney(l.total)}</td>
-        <td>${formatMoney(l.sinal)}</td>
-        <td>${formatMoney(l.saldo)}</td>
-        <td>${l.pedido.prazo_entrega ? formatDate(l.pedido.prazo_entrega) : "—"}</td>
-        <td>${l.pedido.pagamento}</td>
+        <td>${formatMoney(l.movimento.valor)}</td>
+        <td>${l.movimento.data_movimento ? formatDate(l.movimento.data_movimento) : "—"}</td>
+        <td><span class="status-badge ${atrasado ? "atrasado" : "previsto"}">${atrasado ? "Atrasado" : "Previsto"}</span></td>
       </tr>`;
     }
     html += `</tbody></table></div>`;
   }
 
   financeiroEl.innerHTML = html;
-  financeiroEl.querySelectorAll("tr[data-id]").forEach((tr) =>
+  financeiroEl.querySelectorAll("tr[data-mov-id]").forEach((tr) =>
     tr.addEventListener("click", () => {
-      const pedido = pedidos.find((p) => p.id === tr.dataset.id);
-      if (pedido) openOrderDialog(pedido);
+      const movimento = movimentos.find((m) => m.id === tr.dataset.movId);
+      if (movimento) openMovimentoDialog(movimento);
     })
   );
+}
+
+function populateFiltroSelects() {
+  const contaAtual = movFiltroConta.value;
+  movFiltroConta.innerHTML =
+    '<option value="">Todas as contas</option>' +
+    contasFinanceiras.map((c) => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+  movFiltroConta.value = contaAtual;
+
+  const categoriaAtual = movFiltroCategoria.value;
+  movFiltroCategoria.innerHTML =
+    '<option value="">Todas as categorias</option>' +
+    categoriasFinanceiras.map((c) => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+  movFiltroCategoria.value = categoriaAtual;
+}
+
+function renderMovimentosList() {
+  const busca = movBuscaInput.value.trim().toLowerCase();
+  const filtroConta = movFiltroConta.value;
+  const filtroCategoria = movFiltroCategoria.value;
+  const filtroStatus = movFiltroStatus.value;
+
+  let lista = movimentos;
+  if (filtroConta) lista = lista.filter((m) => m.conta_id === filtroConta);
+  if (filtroCategoria) lista = lista.filter((m) => m.categoria_id === filtroCategoria);
+  if (filtroStatus === "atrasado") lista = lista.filter(isMovimentoAtrasado);
+  else if (filtroStatus) lista = lista.filter((m) => m.status === filtroStatus);
+  if (busca) lista = lista.filter((m) => (m.descricao || "").toLowerCase().includes(busca));
+
+  lista = [...lista].sort((a, b) => (a.data_movimento < b.data_movimento ? 1 : -1));
+
+  if (lista.length === 0) {
+    movimentosListEl.innerHTML = `<p class="column-empty">Nenhum lançamento encontrado.</p>`;
+    return;
+  }
+
+  const statusLabel = { previsto: "Previsto", realizado: "Realizado", cancelado: "Cancelado" };
+  let html = `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
+    <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th>Status</th>
+  </tr></thead><tbody>`;
+  for (const m of lista) {
+    const categoria = categoriasFinanceiras.find((c) => c.id === m.categoria_id);
+    const conta = contasFinanceiras.find((c) => c.id === m.conta_id);
+    const atrasado = isMovimentoAtrasado(m);
+    html += `<tr data-id="${m.id}" class="${atrasado ? "late-row" : ""}">
+      <td>${formatDate(m.data_movimento)}</td>
+      <td>${escapeHtml(m.descricao || "")}${m.pedido_id ? ' <span class="mov-tag-pedido">🔗 pedido</span>' : ""}</td>
+      <td>${escapeHtml(categoria?.nome || "—")}</td>
+      <td>${escapeHtml(conta?.nome || "—")}</td>
+      <td class="mov-tipo-${m.tipo}">${m.tipo === "saida" ? "− " : "+ "}${formatMoney(m.valor)}</td>
+      <td><span class="status-badge ${atrasado ? "atrasado" : m.status}">${atrasado ? "Atrasado" : statusLabel[m.status]}</span></td>
+    </tr>`;
+  }
+  html += `</tbody></table></div>`;
+  movimentosListEl.innerHTML = html;
+
+  movimentosListEl.querySelectorAll("tr[data-id]").forEach((tr) =>
+    tr.addEventListener("click", () => {
+      const m = movimentos.find((mv) => mv.id === tr.dataset.id);
+      if (m) openMovimentoDialog(m);
+    })
+  );
+}
+
+function populateContaSelect(selectEl, selecionado) {
+  const atual = selecionado !== undefined ? selecionado : selectEl.value;
+  selectEl.innerHTML =
+    '<option value="">— A definir —</option>' +
+    contasFinanceiras.filter((c) => c.ativa).map((c) => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join("");
+  selectEl.value = atual || "";
+}
+
+function populateCategoriaSelect(selectEl, selecionado) {
+  const atual = selecionado !== undefined ? selecionado : selectEl.value;
+  selectEl.innerHTML = categoriasFinanceiras
+    .filter((c) => c.ativa)
+    .map((c) => `<option value="${c.id}">${c.tipo === "entrada" ? "↓" : "↑"} ${escapeHtml(c.nome)}</option>`)
+    .join("");
+  if (atual) selectEl.value = atual;
+}
+
+function openMovimentoDialog(movimento) {
+  movimentoForm.reset();
+  movimentoError.hidden = true;
+  movimentoForm.dataset.id = movimento ? movimento.id : "";
+  delete movimentoForm.dataset.origemIa;
+  movimentoDialogTitle.textContent = movimento ? "Editar lançamento" : "Novo lançamento";
+
+  const isPedido = !!movimento?.pedido_id;
+  movimentoOrigemAviso.hidden = !isPedido;
+  movimentoValorInput.readOnly = isPedido;
+  movimentoTipoSelect.disabled = isPedido;
+  deleteMovimentoBtn.hidden = !movimento || isPedido;
+
+  populateContaSelect(movimentoContaSelect, movimento?.conta_id || "");
+  populateCategoriaSelect(movimentoCategoriaSelect, movimento?.categoria_id || "");
+
+  if (movimento) {
+    movimentoForm.elements.namedItem("tipo").value = movimento.tipo;
+    movimentoForm.elements.namedItem("valor").value = movimento.valor;
+    movimentoForm.elements.namedItem("data_movimento").value = movimento.data_movimento;
+    movimentoForm.elements.namedItem("status").value = movimento.status;
+    movimentoForm.elements.namedItem("descricao").value = movimento.descricao || "";
+  } else {
+    movimentoForm.elements.namedItem("data_movimento").value = new Date().toISOString().slice(0, 10);
+    movimentoForm.elements.namedItem("status").value = "realizado";
+  }
+
+  movimentoDialog.showModal();
+}
+
+async function handleSaveMovimento(e) {
+  e.preventDefault();
+  movimentoError.hidden = true;
+
+  const id = movimentoForm.dataset.id;
+  const existente = id ? movimentos.find((m) => m.id === id) : null;
+  const fd = new FormData(movimentoForm);
+  const valor = Number(fd.get("valor"));
+
+  if (!valor || valor <= 0) {
+    movimentoError.textContent = "Informe um valor maior que zero.";
+    movimentoError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    tipo: fd.get("tipo"),
+    valor,
+    data_movimento: fd.get("data_movimento"),
+    status: fd.get("status"),
+    categoria_id: fd.get("categoria_id") || null,
+    conta_id: fd.get("conta_id") || null,
+    descricao: fd.get("descricao").trim() || null,
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await db.from("movimentos").update(payload).eq("id", id));
+  } else {
+    const origem = movimentoForm.dataset.origemIa || "manual";
+    ({ error } = await db.from("movimentos").insert({ ...payload, origem }));
+  }
+  if (error) {
+    movimentoError.textContent = "Erro ao salvar: " + error.message;
+    movimentoError.hidden = false;
+    return;
+  }
+
+  // Baixa manual: marcar como realizado o saldo de um pedido também quita o pedido — assim dá
+  // pra dar baixa direto pela régua financeira, sem precisar reabrir o pedido pra isso.
+  if (existente?.pedido_id && existente.origem === "pedido_saldo" && payload.status === "realizado") {
+    await db.from("pedidos").update({ pagamento: "pago" }).eq("id", existente.pedido_id);
+  }
+
+  movimentoDialog.close();
+  await loadData();
+}
+
+async function handleDeleteMovimento() {
+  const id = movimentoForm.dataset.id;
+  if (!id) return;
+  if (!confirm("Excluir este lançamento?")) return;
+  const { error } = await db.from("movimentos").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+  movimentoDialog.close();
+  await loadData();
+}
+
+function openTransferenciaDialog() {
+  transferenciaForm.reset();
+  transferenciaError.hidden = true;
+  populateContaSelect(transferenciaOrigemSelect, "");
+  populateContaSelect(transferenciaDestinoSelect, "");
+  transferenciaForm.elements.namedItem("data_movimento").value = new Date().toISOString().slice(0, 10);
+  transferenciaDialog.showModal();
+}
+
+async function handleSaveTransferencia(e) {
+  e.preventDefault();
+  transferenciaError.hidden = true;
+
+  const fd = new FormData(transferenciaForm);
+  const origemId = fd.get("conta_origem_id");
+  const destinoId = fd.get("conta_destino_id");
+  const valor = Number(fd.get("valor"));
+  const dataMovimento = fd.get("data_movimento");
+  const descricao = fd.get("descricao").trim() || null;
+
+  if (!origemId || !destinoId || origemId === destinoId) {
+    transferenciaError.textContent = "Escolha duas contas diferentes.";
+    transferenciaError.hidden = false;
+    return;
+  }
+  if (!valor || valor <= 0) {
+    transferenciaError.textContent = "Informe um valor maior que zero.";
+    transferenciaError.hidden = false;
+    return;
+  }
+
+  const contaOrigem = contasFinanceiras.find((c) => c.id === origemId);
+  const contaDestino = contasFinanceiras.find((c) => c.id === destinoId);
+
+  const { data: saida, error: e1 } = await db
+    .from("movimentos")
+    .insert({
+      conta_id: origemId,
+      tipo: "saida",
+      valor,
+      data_movimento: dataMovimento,
+      status: "realizado",
+      origem: "transferencia",
+      descricao: descricao || `Transferência para ${contaDestino?.nome || ""}`,
+    })
+    .select()
+    .single();
+  if (e1) {
+    transferenciaError.textContent = "Erro: " + e1.message;
+    transferenciaError.hidden = false;
+    return;
+  }
+
+  const { data: entrada, error: e2 } = await db
+    .from("movimentos")
+    .insert({
+      conta_id: destinoId,
+      tipo: "entrada",
+      valor,
+      data_movimento: dataMovimento,
+      status: "realizado",
+      origem: "transferencia",
+      descricao: descricao || `Transferência de ${contaOrigem?.nome || ""}`,
+      transferencia_par_id: saida.id,
+    })
+    .select()
+    .single();
+  if (e2) {
+    transferenciaError.textContent = "Erro: " + e2.message;
+    transferenciaError.hidden = false;
+    return;
+  }
+
+  await db.from("movimentos").update({ transferencia_par_id: entrada.id }).eq("id", saida.id);
+
+  transferenciaDialog.close();
+  await loadData();
+}
+
+/* ---------- Entrada rápida por IA (texto/foto/áudio) ---------- */
+// Nunca salva nada sozinha: só pré-preenche o dialog de lançamento manual, que o operador
+// confere e confirma (ou edita/cancela) antes de qualquer gravação no banco.
+
+function openIaLancamentoDialog() {
+  iaTextoInput.value = "";
+  iaStatus.hidden = true;
+  iaError.hidden = true;
+  iaAudioBtn.textContent = "🎤 Gravar áudio";
+  iaLancamentoDialog.showModal();
+}
+
+async function chamarIA(endpoint, body) {
+  const {
+    data: { session },
+  } = await db.auth.getSession();
+  const resp = await fetch(`/loja3d/api/${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+    body: JSON.stringify(body),
+  });
+  const json = await resp.json();
+  if (!resp.ok) throw new Error(json.error || "Erro ao interpretar com IA.");
+  return json;
+}
+
+function aplicarResultadoIA(resultado, origem) {
+  iaLancamentoDialog.close();
+  openMovimentoDialog(null);
+  movimentoForm.dataset.origemIa = origem;
+  movimentoForm.elements.namedItem("tipo").value = resultado.tipo === "saida" ? "saida" : "entrada";
+  movimentoForm.elements.namedItem("valor").value = resultado.valor;
+  movimentoForm.elements.namedItem("descricao").value = resultado.descricao || "";
+
+  if (resultado.categoria_sugerida) {
+    const sugerida = resultado.categoria_sugerida.trim().toLowerCase();
+    const categoria = categoriasFinanceiras.find((c) => c.nome.trim().toLowerCase() === sugerida);
+    if (categoria) movimentoCategoriaSelect.value = categoria.id;
+  }
+}
+
+async function handleIaTexto() {
+  const texto = iaTextoInput.value.trim();
+  if (!texto) return;
+  iaError.hidden = true;
+  iaStatus.hidden = false;
+  iaStatus.textContent = "Pensando...";
+  try {
+    const resultado = await chamarIA("interpretar-texto", { texto });
+    aplicarResultadoIA(resultado, "ia_texto");
+  } catch (err) {
+    iaError.textContent = err.message;
+    iaError.hidden = false;
+  } finally {
+    iaStatus.hidden = true;
+  }
+}
+
+function arquivoParaBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result.split(",")[1]);
+    leitor.onerror = reject;
+    leitor.readAsDataURL(blob);
+  });
+}
+
+async function handleIaFoto(e) {
+  const file = e.target.files[0];
+  iaFotoInput.value = "";
+  if (!file) return;
+
+  iaError.hidden = true;
+  iaStatus.hidden = false;
+  iaStatus.textContent = "Analisando a foto...";
+  try {
+    const imagemBase64 = await arquivoParaBase64(file);
+    const resultado = await chamarIA("interpretar-foto", { imagemBase64, mimeType: file.type });
+    aplicarResultadoIA(resultado, "ia_foto");
+  } catch (err) {
+    iaError.textContent = err.message;
+    iaError.hidden = false;
+  } finally {
+    iaStatus.hidden = true;
+  }
+}
+
+async function handleIaAudio() {
+  if (iaGravador && iaGravador.state === "recording") {
+    iaGravador.stop();
+    return;
+  }
+
+  iaError.hidden = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    iaAudioChunks = [];
+    iaGravador = new MediaRecorder(stream);
+    iaGravador.addEventListener("dataavailable", (e) => iaAudioChunks.push(e.data));
+    iaGravador.addEventListener("stop", async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      iaAudioBtn.textContent = "🎤 Gravar áudio";
+      const blob = new Blob(iaAudioChunks, { type: iaGravador.mimeType });
+
+      iaStatus.hidden = false;
+      iaStatus.textContent = "Transcrevendo e analisando o áudio...";
+      try {
+        const audioBase64 = await arquivoParaBase64(blob);
+        const resultado = await chamarIA("interpretar-audio", { audioBase64, mimeType: blob.type });
+        aplicarResultadoIA(resultado, "ia_audio");
+      } catch (err) {
+        iaError.textContent = err.message;
+        iaError.hidden = false;
+      } finally {
+        iaStatus.hidden = true;
+      }
+    });
+
+    iaGravador.start();
+    iaAudioBtn.textContent = "⏹ Parar gravação";
+  } catch {
+    iaError.textContent = "Não foi possível acessar o microfone. Confira a permissão do navegador.";
+    iaError.hidden = false;
+  }
+}
+
+/* ---------- Pedido → financeiro: sinal e saldo viram lançamentos automaticamente ---------- */
+
+// Cria/atualiza (ou remove, se não fizer mais sentido) os dois lançamentos vinculados a um
+// pedido. Chamado toda vez que o pedido é salvo — nunca duplica graças ao índice único
+// (pedido_id, origem) e nunca rebaixa um lançamento já marcado como realizado manualmente.
+async function sincronizarMovimentosDoPedido({ pedidoId, clienteNome, total, sinal, pagamento, prazoEntrega }) {
+  const categoriaVendaId = categoriasFinanceiras.find((c) => c.slug === "venda_pedidos")?.id || null;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const saldo = total - sinal;
+
+  await upsertOuRemoverMovimentoPedido(pedidoId, "pedido_sinal", sinal > 0 ? {
+    categoria_id: categoriaVendaId,
+    tipo: "entrada",
+    valor: sinal,
+    descricao: `Sinal — ${clienteNome}`,
+    data_movimento: hoje,
+    status: "realizado",
+  } : null);
+
+  await upsertOuRemoverMovimentoPedido(pedidoId, "pedido_saldo", saldo > 0 ? {
+    categoria_id: categoriaVendaId,
+    tipo: "entrada",
+    valor: saldo,
+    descricao: `Saldo — ${clienteNome}`,
+    data_movimento: prazoEntrega || hoje,
+    status: pagamento === "pago" ? "realizado" : "previsto",
+  } : null);
+}
+
+async function upsertOuRemoverMovimentoPedido(pedidoId, origem, payload) {
+  const { data: existente } = await db
+    .from("movimentos")
+    .select("id, status")
+    .eq("pedido_id", pedidoId)
+    .eq("origem", origem)
+    .maybeSingle();
+
+  if (!payload) {
+    if (existente) await db.from("movimentos").delete().eq("id", existente.id);
+    return;
+  }
+
+  if (existente) {
+    // Nunca rebaixa um lançamento já dado como realizado (ex: baixa manual feita antes de uma
+    // edição sem relação, tipo corrigir uma observação) — só promove pra realizado, não volta.
+    const statusFinal = payload.status === "realizado" ? "realizado" : existente.status;
+    await db.from("movimentos").update({ ...payload, status: statusFinal }).eq("id", existente.id);
+  } else {
+    await db.from("movimentos").insert({ ...payload, pedido_id: pedidoId, origem });
+  }
+}
+
+/* ---------- Contas e categorias financeiras (cadastro em Configurações) ---------- */
+
+function renderContasFinanceirasList() {
+  if (contasFinanceiras.length === 0) {
+    contasFinanceirasListEl.innerHTML = `<li class="column-empty">Nenhuma conta cadastrada ainda.</li>`;
+    return;
+  }
+  const tipoLabel = { banco: "Banco", dinheiro: "Dinheiro", maquininha: "Maquininha", pix: "Pix", outro: "Outro" };
+  contasFinanceirasListEl.innerHTML = contasFinanceiras
+    .map(
+      (c) => `<li class="${c.ativa ? "" : "cadastro-inativo"}">
+        <span>${escapeHtml(c.nome)} · ${tipoLabel[c.tipo] || c.tipo} — saldo inicial ${formatMoney(c.saldo_inicial)}${c.ativa ? "" : " (inativa)"}</span>
+        <button type="button" data-id="${c.id}" class="toggle-conta-financeira-btn ghost">${c.ativa ? "Desativar" : "Reativar"}</button>
+      </li>`
+    )
+    .join("");
+
+  contasFinanceirasListEl.querySelectorAll(".toggle-conta-financeira-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const conta = contasFinanceiras.find((c) => c.id === btn.dataset.id);
+      if (!conta) return;
+      await db.from("contas_financeiras").update({ ativa: !conta.ativa }).eq("id", conta.id);
+      await loadData();
+      renderContasFinanceirasList();
+    })
+  );
+}
+
+async function handleAddContaFinanceira(e) {
+  e.preventDefault();
+  const fd = new FormData(contaFinanceiraForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    tipo: fd.get("tipo"),
+    saldo_inicial: Number(fd.get("saldo_inicial")) || 0,
+  };
+  const { error } = await db.from("contas_financeiras").insert(payload);
+  if (error) {
+    alert("Erro ao adicionar conta: " + error.message);
+    return;
+  }
+  contaFinanceiraForm.reset();
+  await loadData();
+  renderContasFinanceirasList();
+}
+
+function renderCategoriasFinanceirasList() {
+  if (categoriasFinanceiras.length === 0) {
+    categoriasFinanceirasListEl.innerHTML = `<li class="column-empty">Nenhuma categoria cadastrada ainda.</li>`;
+    return;
+  }
+  categoriasFinanceirasListEl.innerHTML = categoriasFinanceiras
+    .map(
+      (c) => `<li class="${c.ativa ? "" : "cadastro-inativo"}">
+        <span>${c.tipo === "entrada" ? "↓" : "↑"} ${escapeHtml(c.nome)}${c.protegida ? " 🔒" : ""}${c.ativa ? "" : " (inativa)"}</span>
+        <button type="button" data-id="${c.id}" class="toggle-categoria-financeira-btn ghost">${c.ativa ? "Desativar" : "Reativar"}</button>
+      </li>`
+    )
+    .join("");
+
+  categoriasFinanceirasListEl.querySelectorAll(".toggle-categoria-financeira-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const categoria = categoriasFinanceiras.find((c) => c.id === btn.dataset.id);
+      if (!categoria) return;
+      await db.from("categorias_financeiras").update({ ativa: !categoria.ativa }).eq("id", categoria.id);
+      await loadData();
+      renderCategoriasFinanceirasList();
+    })
+  );
+}
+
+async function handleAddCategoriaFinanceira(e) {
+  e.preventDefault();
+  const fd = new FormData(categoriaFinanceiraForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    tipo: fd.get("tipo"),
+    protegida: fd.get("protegida") === "on",
+  };
+  const { error } = await db.from("categorias_financeiras").insert(payload);
+  if (error) {
+    alert("Erro ao adicionar categoria: " + error.message);
+    return;
+  }
+  categoriaFinanceiraForm.reset();
+  await loadData();
+  renderCategoriasFinanceirasList();
 }
 
 /* ---------- Exportar CSV ---------- */
@@ -749,6 +1424,8 @@ function openConfigDialog() {
   renderMateriaisList();
   renderMaquinasList();
   renderCanaisVendaList();
+  renderContasFinanceirasList();
+  renderCategoriasFinanceirasList();
   configDialog.showModal();
 }
 
@@ -1572,6 +2249,7 @@ async function handleSaveOrder(e) {
     }
 
     const idsAtuais = [];
+    let totalPedido = 0;
     for (const row of itemRows) {
       const itemPayload = {
         pedido_id: novoPedidoId,
@@ -1599,6 +2277,7 @@ async function handleSaveOrder(e) {
         status: row.querySelector('[data-field="status"]').value,
         observacoes: row.querySelector('[data-field="observacoes"]').value.trim() || null,
       };
+      totalPedido += Number(itemPayload.valor) || 0;
 
       if (row.dataset.id) {
         const { error } = await db.from("itens_pedido").update(itemPayload).eq("id", row.dataset.id);
@@ -1655,6 +2334,21 @@ async function handleSaveOrder(e) {
       await db.from("anexos").insert({ pedido_id: novoPedidoId, nome_arquivo: file.name, storage_path: path });
     }
 
+    try {
+      await sincronizarMovimentosDoPedido({
+        pedidoId: novoPedidoId,
+        clienteNome,
+        total: totalPedido,
+        sinal: Number(pedidoPayload.valor_sinal) || 0,
+        pagamento: pedidoPayload.pagamento,
+        prazoEntrega: pedidoPayload.prazo_entrega,
+      });
+    } catch (errFin) {
+      // O pedido já foi salvo — não bloqueia o fluxo principal por um problema no espelhamento
+      // financeiro, só avisa (o operador pode conferir/corrigir na aba Financeiro depois).
+      console.error("Falha ao sincronizar lançamentos financeiros do pedido:", errFin);
+    }
+
     orderDialog.close();
     await loadData();
   } catch (err) {
@@ -1672,6 +2366,11 @@ async function handleDeleteOrder() {
   for (const anexo of pedido?.anexos || []) {
     await db.storage.from(ANEXOS_BUCKET).remove([anexo.storage_path]);
   }
+
+  // O saldo ainda não recebido deixa de fazer sentido (não há mais pedido pra cobrar). O sinal
+  // já recebido fica registrado — é dinheiro que já entrou de verdade — só perde o vínculo com
+  // o pedido (pedido_id vira nulo automaticamente, por causa do ON DELETE SET NULL no banco).
+  await db.from("movimentos").delete().eq("pedido_id", id).eq("origem", "pedido_saldo").eq("status", "previsto");
 
   const { error } = await db.from("pedidos").delete().eq("id", id);
   if (error) {
