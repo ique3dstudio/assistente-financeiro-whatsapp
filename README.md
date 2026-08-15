@@ -68,6 +68,8 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
      estiverem em `pedidos_3d` automaticamente, e já cria o bucket de armazenamento pros anexos)
    - `sql/003_bloco2.sql` (configurações da loja, materiais, catálogo de produtos e campos de custo — já cria a
      linha de configurações com valores padrão, revise em "⚙ Configurações" dentro do app)
+   - `sql/004_bloco3.sql` (estoque por material, máquinas, registro de falhas, etapa de pós-processamento e o
+     link público de acompanhamento do pedido)
 2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
    `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
    preenchidos).
@@ -85,9 +87,9 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   pagamento e observações gerais. Dentro dele, um ou mais **itens** — cada peça, com descrição, cor, material,
   quantidade, tempo estimado e valor. Cada item é uma "ordem de produção" independente: um pedido de 3 peças pode
   ter uma pronta, uma em produção e uma na fila, tudo ao mesmo tempo.
-- **Etapas (colunas do quadro):** Pedido recebido → Na fila de produção → Em produção → Pronto → Entregue — por
-  item. Os botões ◀ ▶ no card movem o item de etapa sem abrir o formulário; clicar no card abre o pedido completo
-  (com todos os itens daquele cliente).
+- **Etapas (colunas do quadro):** Pedido recebido → Na fila de produção → Em produção → Pós-processamento → Pronto
+  → Entregue — por item. Os botões ◀ ▶ no card movem o item de etapa sem abrir o formulário; clicar no card abre o
+  pedido completo (com todos os itens daquele cliente).
 - **Prioridade.** Pedido marcado como "Urgente" ganha uma faixa amarela no card e sobe pro topo da coluna.
 - **Atrasado** não é uma etapa manual — é calculado automaticamente pelo prazo do pedido: todo item com prazo
   vencido que ainda não está "Pronto" ou "Entregue" ganha destaque vermelho, e o filtro "⏰ Atrasados" no topo
@@ -109,6 +111,20 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   geram o resumo (itens, total, sinal, saldo, prazo) pra baixar ou mandar direto pro número do cliente.
 - **Exportar CSV.** Botão no topo baixa todos os itens (com dados do cliente e do pedido) numa planilha, pra abrir
   no Excel/Google Sheets quando quiser.
+- **Estoque de material.** Cada material cadastrado em "⚙ Configurações" tem um saldo em gramas. Quando um item
+  passa de "Em produção" para "Pós-processamento" (ou direto pra "Pronto"/"Entregue"), o app desconta sozinho o
+  peso daquele item do saldo do material usado — só funciona se o item tiver peso e material preenchidos. O botão
+  "+ rolo" soma o peso de um rolo novo ao estoque quando você compra mais, e "✏️" corrige o número na mão se
+  precisar. Materiais com saldo abaixo do mínimo configurado aparecem em destaque no Painel.
+- **Máquinas.** Cadastro simples (nome, modelo, valor, status) em "⚙ Configurações" — histórico de qual impressora
+  vocês têm e o estado dela (ativa, em manutenção, inativa).
+- **Falha e reimpressão.** Dentro de um item já salvo, o botão "⚠️ Registrar falha e reimprimir" pede o motivo,
+  registra o custo perdido (baseado no custo calculado daquele item) e cria automaticamente um novo item idêntico
+  na fila — sem precisar recriar o pedido do zero. O item que falhou some do quadro (fica só no histórico), e o
+  Painel mostra quantas falhas e quanto custo perdido houve no mês.
+- **Link público de acompanhamento.** No pedido já salvo, o botão "🔗 Link de acompanhamento" copia um link único
+  (`/loja3d/acompanhar.html?t=...`) que você manda pro cliente — ele vê o status de cada peça sem precisar de
+  login, e sem ver preço, forma de pagamento ou seus dados internos.
 - **Tempo real.** Se uma mexe em algo, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
   atualizar a página.
 
@@ -120,6 +136,10 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
   armazenamento e migração automática dos dados do schema original.
 - `sql/003_bloco2.sql` — configurações (dados da loja e premissas de custo), materiais, produtos e os campos de
   custo em itens_pedido.
+- `sql/004_bloco3.sql` — estoque em materiais, tabelas maquinas e falhas, status de pós-processamento, e a função
+  pública `acompanhar_pedido` (roda com privilégios elevados de propósito, ignorando RLS, mas só devolve dados não
+  sensíveis de um único pedido — e só pra quem já tem o token/link).
+- `public/loja3d/acompanhar.html` — página pública de acompanhamento do pedido, sem login.
 - Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
   do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
 

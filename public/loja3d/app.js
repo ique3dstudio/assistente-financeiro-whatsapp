@@ -2,9 +2,13 @@ const STATUS_DEFS = [
   { key: "recebido", label: "📥 Pedido recebido" },
   { key: "fila", label: "🗂️ Na fila de produção" },
   { key: "produzindo", label: "🖨️ Em produção" },
+  { key: "pos_processamento", label: "🎨 Pós-processamento" },
   { key: "pronto", label: "✅ Pronto" },
   { key: "entregue", label: "📦 Entregue" },
 ];
+// Status em que o material já foi "gasto" na impressora — cruzar essa fronteira pela
+// primeira vez é o gatilho da baixa automática de estoque.
+const STATUS_PRE_IMPRESSAO = ["recebido", "fila", "produzindo"];
 const STATUS_KEYS = STATUS_DEFS.map((s) => s.key);
 const ANEXOS_BUCKET = "loja3d-anexos";
 
@@ -24,6 +28,8 @@ let clientes = [];
 let pedidos = [];
 let materiais = [];
 let produtos = [];
+let maquinas = [];
+let falhas = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -53,6 +59,7 @@ const deleteOrderBtn = document.getElementById("delete-order-btn");
 const cancelOrderBtn = document.getElementById("cancel-order-btn");
 const pdfOrderBtn = document.getElementById("pdf-order-btn");
 const whatsappOrderBtn = document.getElementById("whatsapp-order-btn");
+const trackingLinkBtn = document.getElementById("tracking-link-btn");
 const itensList = document.getElementById("itens-list");
 const addItemBtn = document.getElementById("add-item-btn");
 const itemRowTemplate = document.getElementById("item-row-template");
@@ -66,6 +73,8 @@ const cancelConfigBtn = document.getElementById("cancel-config-btn");
 const configError = document.getElementById("config-error");
 const materiaisListEl = document.getElementById("materiais-list");
 const materialForm = document.getElementById("material-form");
+const maquinasListEl = document.getElementById("maquinas-list");
+const maquinaForm = document.getElementById("maquina-form");
 
 init();
 
@@ -107,6 +116,7 @@ async function init() {
   deleteOrderBtn.addEventListener("click", handleDeleteOrder);
   pdfOrderBtn.addEventListener("click", gerarOrcamentoPdf);
   whatsappOrderBtn.addEventListener("click", enviarWhatsapp);
+  trackingLinkBtn.addEventListener("click", copiarLinkAcompanhamento);
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
@@ -115,6 +125,7 @@ async function init() {
   cancelConfigBtn.addEventListener("click", () => configDialog.close());
   configForm.addEventListener("submit", handleSaveConfig);
   materialForm.addEventListener("submit", handleAddMaterial);
+  maquinaForm.addEventListener("submit", handleAddMaquina);
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -161,6 +172,8 @@ async function loadData() {
     { data: materiaisData, error: eMat },
     { data: produtosData, error: eProd },
     { data: configData, error: eCfg },
+    { data: maquinasData, error: eMaq },
+    { data: falhasData, error: eFal },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -170,15 +183,19 @@ async function loadData() {
     db.from("materiais").select("*").order("nome"),
     db.from("produtos").select("*").order("nome"),
     db.from("configuracoes").select("*").eq("id", 1).single(),
+    db.from("maquinas").select("*").order("nome"),
+    db.from("falhas").select("*").order("created_at", { ascending: false }),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg]) if (e) console.error(e);
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal]) if (e) console.error(e);
 
   clientes = clientesData || [];
   pedidos = pedidosData || [];
   materiais = materiaisData || [];
   produtos = produtosData || [];
   configuracoes = configData || null;
+  maquinas = maquinasData || [];
+  falhas = falhasData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
 
@@ -205,6 +222,8 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "materiais" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "produtos" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "configuracoes" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "maquinas" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "falhas" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -244,6 +263,7 @@ function allCards() {
   const cards = [];
   for (const pedido of pedidos) {
     for (const item of pedido.itens || []) {
+      if (item.falhou) continue; // itens marcados como falha saem do quadro; a reimpressão vira um item novo
       cards.push({ item, pedido });
     }
   }
@@ -383,7 +403,37 @@ function badge(text, extraClass = "") {
 
 async function moveStatus(item, novoStatus) {
   const { error } = await db.from("itens_pedido").update({ status: novoStatus }).eq("id", item.id);
-  if (error) console.error(error);
+  if (error) {
+    console.error(error);
+    return;
+  }
+  await baixarEstoqueSeNecessario({
+    itemId: item.id,
+    statusAnterior: item.status,
+    statusNovo: novoStatus,
+    materialId: item.material_id,
+    pesoGramas: item.peso_gramas,
+    quantidade: item.quantidade,
+    jaBaixado: item.estoque_baixado,
+  });
+}
+
+// Desconta do saldo do material assim que o item cruza, pela primeira vez, a fronteira de
+// "já foi impresso" — funciona tanto vindo dos botões ◀▶ quanto do formulário de edição.
+async function baixarEstoqueSeNecessario({ itemId, statusAnterior, statusNovo, materialId, pesoGramas, quantidade, jaBaixado }) {
+  if (jaBaixado) return;
+  if (!STATUS_PRE_IMPRESSAO.includes(statusAnterior) || STATUS_PRE_IMPRESSAO.includes(statusNovo)) return;
+  if (!materialId || !pesoGramas) return;
+
+  const material = materiais.find((m) => m.id === materialId);
+  if (!material) return;
+
+  const consumoGramas = Number(pesoGramas) * (Number(quantidade) || 1);
+  await db
+    .from("materiais")
+    .update({ saldo_gramas: (Number(material.saldo_gramas) || 0) - consumoGramas })
+    .eq("id", materialId);
+  await db.from("itens_pedido").update({ estoque_baixado: true }).eq("id", itemId);
 }
 
 /* ---------- Painel (Dashboard) ---------- */
@@ -416,6 +466,12 @@ function renderDashboard() {
     pedidos.filter((p) => (p.itens || []).some((i) => i.status !== "entregue")).map((p) => p.cliente_id)
   ).size;
 
+  const falhasMes = falhas.filter((f) => {
+    const d = new Date(f.created_at);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+  const custoFalhasMes = falhasMes.reduce((sum, f) => sum + (Number(f.custo_perdido) || 0), 0);
+
   const stats = [
     { label: "Pedidos abertos", value: pedidosAbertos },
     { label: "Itens atrasados", value: itensAtrasados },
@@ -423,11 +479,24 @@ function renderDashboard() {
     { label: "Lucro do mês (itens com custo calculado)", value: formatMoney(lucroMes) },
     { label: "Horas na fila", value: `${horasFila}h` },
     { label: "Clientes ativos", value: clientesAtivos },
+    { label: "Falhas do mês", value: falhasMes.length },
+    { label: "Custo perdido em falhas (mês)", value: formatMoney(custoFalhasMes) },
   ];
 
-  dashboard.innerHTML = stats
+  const materiaisBaixos = materiais.filter((m) => Number(m.saldo_gramas) <= Number(m.estoque_minimo_gramas));
+
+  let html = stats
     .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
     .join("");
+
+  if (materiaisBaixos.length > 0) {
+    html += `<div class="estoque-alerta">
+      <h3>⚠️ Estoque baixo</h3>
+      <ul>${materiaisBaixos.map((m) => `<li>${escapeHtml(m.nome)} — restam ${m.saldo_gramas}g</li>`).join("")}</ul>
+    </div>`;
+  }
+
+  dashboard.innerHTML = html;
 }
 
 /* ---------- Financeiro (contas a receber) ---------- */
@@ -530,6 +599,7 @@ function openConfigDialog() {
     }
   }
   renderMateriaisList();
+  renderMaquinasList();
   configDialog.showModal();
 }
 
@@ -562,12 +632,43 @@ function renderMateriaisList() {
     return;
   }
   materiaisListEl.innerHTML = materiais
-    .map(
-      (m) =>
-        `<li><span>${escapeHtml(m.nome)}${m.tipo ? " · " + escapeHtml(m.tipo) : ""} — ${formatMoney(m.preco_rolo)} / ${m.peso_rolo_gramas}g</span>
-        <button type="button" data-id="${m.id}" class="remove-material-btn">×</button></li>`
-    )
+    .map((m) => {
+      const baixo = Number(m.saldo_gramas) <= Number(m.estoque_minimo_gramas);
+      return `<li>
+        <span>${escapeHtml(m.nome)}${m.tipo ? " · " + escapeHtml(m.tipo) : ""} — ${formatMoney(m.preco_rolo)} / ${m.peso_rolo_gramas}g
+        · estoque: <strong class="${baixo ? "estoque-baixo" : ""}">${m.saldo_gramas}g</strong></span>
+        <button type="button" data-id="${m.id}" class="add-rolo-btn" title="Registrar compra de 1 rolo novo">+ rolo</button>
+        <button type="button" data-id="${m.id}" class="edit-estoque-btn" title="Corrigir estoque manualmente">✏️</button>
+        <button type="button" data-id="${m.id}" class="remove-material-btn">×</button>
+      </li>`;
+    })
     .join("");
+
+  materiaisListEl.querySelectorAll(".add-rolo-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const material = materiais.find((m) => m.id === btn.dataset.id);
+      if (!material) return;
+      await db
+        .from("materiais")
+        .update({ saldo_gramas: (Number(material.saldo_gramas) || 0) + Number(material.peso_rolo_gramas) })
+        .eq("id", material.id);
+      await loadData();
+      renderMateriaisList();
+    })
+  );
+
+  materiaisListEl.querySelectorAll(".edit-estoque-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const material = materiais.find((m) => m.id === btn.dataset.id);
+      if (!material) return;
+      const novoValor = prompt(`Estoque atual de "${material.nome}" (gramas):`, material.saldo_gramas);
+      if (novoValor === null || novoValor.trim() === "") return;
+      await db.from("materiais").update({ saldo_gramas: Number(novoValor) }).eq("id", material.id);
+      await loadData();
+      renderMateriaisList();
+    })
+  );
+
   materiaisListEl.querySelectorAll(".remove-material-btn").forEach((btn) =>
     btn.addEventListener("click", async () => {
       if (!confirm("Remover este material?")) return;
@@ -586,6 +687,8 @@ async function handleAddMaterial(e) {
     tipo: fd.get("tipo").trim() || null,
     preco_rolo: Number(fd.get("preco_rolo")),
     peso_rolo_gramas: Number(fd.get("peso_rolo_gramas")),
+    saldo_gramas: Number(fd.get("saldo_gramas")) || 0,
+    estoque_minimo_gramas: Number(fd.get("estoque_minimo_gramas")) || 0,
   };
   const { error } = await db.from("materiais").insert(payload);
   if (error) {
@@ -594,8 +697,54 @@ async function handleAddMaterial(e) {
   }
   materialForm.reset();
   materialForm.elements.namedItem("peso_rolo_gramas").value = 1000;
+  materialForm.elements.namedItem("estoque_minimo_gramas").value = 200;
   await loadData();
   renderMateriaisList();
+}
+
+/* ---------- Máquinas ---------- */
+
+function renderMaquinasList() {
+  if (maquinas.length === 0) {
+    maquinasListEl.innerHTML = `<li class="column-empty">Nenhuma máquina cadastrada ainda.</li>`;
+    return;
+  }
+  const statusLabel = { ativa: "Ativa", manutencao: "Em manutenção", inativa: "Inativa" };
+  maquinasListEl.innerHTML = maquinas
+    .map(
+      (m) => `<li>
+        <span>${escapeHtml(m.nome)}${m.modelo ? " · " + escapeHtml(m.modelo) : ""} — ${statusLabel[m.status] || m.status}</span>
+        <button type="button" data-id="${m.id}" class="remove-maquina-btn">×</button>
+      </li>`
+    )
+    .join("");
+  maquinasListEl.querySelectorAll(".remove-maquina-btn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      if (!confirm("Remover esta máquina?")) return;
+      await db.from("maquinas").delete().eq("id", btn.dataset.id);
+      await loadData();
+      renderMaquinasList();
+    })
+  );
+}
+
+async function handleAddMaquina(e) {
+  e.preventDefault();
+  const fd = new FormData(maquinaForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    modelo: fd.get("modelo").trim() || null,
+    valor: fd.get("valor") ? Number(fd.get("valor")) : null,
+    status: fd.get("status"),
+  };
+  const { error } = await db.from("maquinas").insert(payload);
+  if (error) {
+    alert("Erro ao adicionar máquina: " + error.message);
+    return;
+  }
+  maquinaForm.reset();
+  await loadData();
+  renderMaquinasList();
 }
 
 /* ---------- Calculadora de custo ---------- */
@@ -715,8 +864,63 @@ function addItemRow(item) {
     else await loadData();
   });
 
+  const falhaBtn = row.querySelector(".falha-btn");
+  if (item?.id) {
+    falhaBtn.hidden = false;
+    falhaBtn.addEventListener("click", () => registrarFalha(row, item));
+  }
+
   row.querySelector(".remove-item-btn").addEventListener("click", () => row.remove());
   itensList.appendChild(row);
+}
+
+async function registrarFalha(row, item) {
+  const motivo = prompt(
+    "O que deu errado? (ex: entupimento, warping, deslocamento de camada)"
+  );
+  if (!motivo) return;
+  if (!confirm("Isso marca este item como falha e cria uma nova ordem de reimpressão na fila. Confirma?")) return;
+
+  const custoAtual = row.querySelector('[data-field="custo_calculado"]').value
+    ? Number(row.querySelector('[data-field="custo_calculado"]').value)
+    : item.custo_calculado || 0;
+
+  const { error: e1 } = await db.from("falhas").insert({ item_id: item.id, motivo, custo_perdido: custoAtual });
+  if (e1) {
+    alert("Erro ao registrar falha: " + e1.message);
+    return;
+  }
+
+  const { error: e2 } = await db.from("itens_pedido").update({ falhou: true }).eq("id", item.id);
+  if (e2) {
+    alert("Erro ao marcar item como falha: " + e2.message);
+    return;
+  }
+
+  const reimpressao = {
+    pedido_id: item.pedido_id,
+    descricao: item.descricao,
+    modelo_link: item.modelo_link,
+    cor: item.cor,
+    material: item.material,
+    material_id: item.material_id,
+    quantidade: item.quantidade,
+    peso_gramas: item.peso_gramas,
+    tempo_estimado_horas: item.tempo_estimado_horas,
+    mao_obra_horas: item.mao_obra_horas,
+    valor: item.valor,
+    status: "fila",
+    observacoes: "Reimpressão automática após falha: " + motivo,
+  };
+  const { error: e3 } = await db.from("itens_pedido").insert(reimpressao);
+  if (e3) {
+    alert("Erro ao criar a reimpressão: " + e3.message);
+    return;
+  }
+
+  alert("Falha registrada e reimpressão adicionada à fila.");
+  orderDialog.close();
+  await loadData();
 }
 
 function openOrderDialog(pedido) {
@@ -727,6 +931,8 @@ function openOrderDialog(pedido) {
   deleteOrderBtn.hidden = !pedido;
   pdfOrderBtn.hidden = !pedido;
   whatsappOrderBtn.hidden = !pedido;
+  trackingLinkBtn.hidden = !pedido;
+  trackingLinkBtn.dataset.token = pedido?.token_publico || "";
   itensList.innerHTML = "";
   anexosListEl.innerHTML = "";
   anexoInput.value = "";
@@ -889,10 +1095,31 @@ async function handleSaveOrder(e) {
         const { error } = await db.from("itens_pedido").update(itemPayload).eq("id", row.dataset.id);
         if (error) throw error;
         idsAtuais.push(row.dataset.id);
+
+        const itemOriginal = pedidos.flatMap((p) => p.itens || []).find((i) => i.id === row.dataset.id);
+        await baixarEstoqueSeNecessario({
+          itemId: row.dataset.id,
+          statusAnterior: itemOriginal?.status,
+          statusNovo: itemPayload.status,
+          materialId: itemPayload.material_id,
+          pesoGramas: itemPayload.peso_gramas,
+          quantidade: itemPayload.quantidade,
+          jaBaixado: itemOriginal?.estoque_baixado,
+        });
       } else {
         const { data, error } = await db.from("itens_pedido").insert(itemPayload).select().single();
         if (error) throw error;
         idsAtuais.push(data.id);
+
+        await baixarEstoqueSeNecessario({
+          itemId: data.id,
+          statusAnterior: "recebido",
+          statusNovo: itemPayload.status,
+          materialId: itemPayload.material_id,
+          pesoGramas: itemPayload.peso_gramas,
+          quantidade: itemPayload.quantidade,
+          jaBaixado: false,
+        });
       }
     }
 
@@ -1061,4 +1288,16 @@ function enviarWhatsapp() {
     ? `https://wa.me/${numeroCompleto}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
+}
+
+async function copiarLinkAcompanhamento() {
+  const token = trackingLinkBtn.dataset.token;
+  if (!token) return;
+  const link = `${location.origin}/loja3d/acompanhar.html?t=${token}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    alert("Link copiado! É só colar na conversa com o cliente:\n\n" + link);
+  } catch {
+    prompt("Copie o link abaixo para mandar ao cliente:", link);
+  }
 }

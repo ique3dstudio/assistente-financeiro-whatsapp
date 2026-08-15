@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Acompanhar pedido</title>
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" href="/loja3d/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/loja3d/styles.css" />
+</head>
+<body>
+  <section class="screen tracking-screen">
+    <div class="tracking-card">
+      <h1>🖨️ Acompanhar pedido</h1>
+      <div id="tracking-content">
+        <p class="column-empty">Carregando…</p>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/loja3d/config.js"></script>
+  <script>
+    const STATUS_LABELS = {
+      recebido: "📥 Pedido recebido",
+      fila: "🗂️ Na fila de produção",
+      produzindo: "🖨️ Em produção",
+      pos_processamento: "🎨 Pós-processamento",
+      pronto: "✅ Pronto",
+      entregue: "📦 Entregue",
+    };
+
+    const content = document.getElementById("tracking-content");
+    const config = window.SUPABASE_CONFIG || {};
+
+    function showError(msg) {
+      content.innerHTML = `<p class="error">${msg}</p>`;
+    }
+
+    async function carregar() {
+      if (!config.url || !config.anonKey) {
+        showError("Configuração ausente.");
+        return;
+      }
+      const params = new URLSearchParams(location.search);
+      const token = params.get("t");
+      if (!token) {
+        showError("Link inválido — falta o código do pedido.");
+        return;
+      }
+
+      const db = window.supabase.createClient(config.url, config.anonKey);
+      const { data, error } = await db.rpc("acompanhar_pedido", { p_token: token });
+
+      if (error || !data || data.length === 0) {
+        showError("Não encontramos esse pedido. Confira o link com a loja.");
+        return;
+      }
+
+      const pedido = data[0];
+      const itens = pedido.itens || [];
+
+      let html = `<p class="subtitle">Olá, ${escapeHtml(pedido.cliente_nome)}! Aqui está o andamento do seu pedido.</p>`;
+      if (pedido.prazo_entrega) {
+        const [y, m, d] = pedido.prazo_entrega.split("-");
+        html += `<p class="tracking-prazo">📅 Prazo previsto: ${d}/${m}/${y}</p>`;
+      }
+      if (pedido.prioridade === "urgente") {
+        html += `<p class="tracking-prazo">🔥 Pedido urgente</p>`;
+      }
+
+      html += `<ul class="tracking-itens">`;
+      for (const item of itens) {
+        html += `<li>
+          <div class="tracking-item-desc">${escapeHtml(item.descricao)} ${item.quantidade > 1 ? `(x${item.quantidade})` : ""}</div>
+          <div class="badge">${STATUS_LABELS[item.status] || item.status}</div>
+        </li>`;
+      }
+      html += `</ul>`;
+
+      if (itens.length === 0) {
+        html += `<p class="column-empty">Nenhum item neste pedido ainda.</p>`;
+      }
+
+      content.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str ?? "";
+      return div.innerHTML;
+    }
+
+    carregar();
+  </script>
+</body>
+</html>

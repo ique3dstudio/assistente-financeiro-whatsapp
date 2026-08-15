@@ -141,6 +141,7 @@
         <button type="button" id="delete-order-btn" class="danger" hidden>Excluir pedido</button>
         <button type="button" id="pdf-order-btn" class="ghost" hidden>📄 Orçamento PDF</button>
         <button type="button" id="whatsapp-order-btn" class="ghost" hidden>📲 Enviar WhatsApp</button>
+        <button type="button" id="tracking-link-btn" class="ghost" hidden>🔗 Link de acompanhamento</button>
         <span class="spacer"></span>
         <button type="button" id="cancel-order-btn" class="ghost">Cancelar</button>
         <button type="submit" class="primary">Salvar</button>
@@ -207,7 +208,7 @@
     </form>
 
     <fieldset>
-      <legend>Materiais cadastrados</legend>
+      <legend>Materiais e estoque</legend>
       <ul id="materiais-list" class="materiais-list"></ul>
       <form id="material-form" class="grid grid-4">
         <label>
@@ -226,7 +227,43 @@
           Peso do rolo (g)
           <input name="peso_rolo_gramas" type="number" min="1" step="1" value="1000" required />
         </label>
+        <label>
+          Estoque atual (g)
+          <input name="saldo_gramas" type="number" min="0" step="1" value="0" required />
+        </label>
+        <label>
+          Alertar quando restar menos de (g)
+          <input name="estoque_minimo_gramas" type="number" min="0" step="1" value="200" required />
+        </label>
         <button type="submit" class="ghost">+ Adicionar material</button>
+      </form>
+    </fieldset>
+
+    <fieldset>
+      <legend>Máquinas</legend>
+      <ul id="maquinas-list" class="materiais-list"></ul>
+      <form id="maquina-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="80" placeholder="Impressora 1" />
+        </label>
+        <label>
+          Modelo
+          <input name="modelo" maxlength="80" placeholder="Ender 3 V2" />
+        </label>
+        <label>
+          Valor (R$)
+          <input name="valor" type="number" min="0" step="1" />
+        </label>
+        <label>
+          Status
+          <select name="status">
+            <option value="ativa">Ativa</option>
+            <option value="manutencao">Em manutenção</option>
+            <option value="inativa">Inativa</option>
+          </select>
+        </label>
+        <button type="submit" class="ghost">+ Adicionar máquina</button>
       </form>
     </fieldset>
   </dialog>
@@ -282,6 +319,7 @@
             <option value="recebido">Pedido recebido</option>
             <option value="fila">Na fila de produção</option>
             <option value="produzindo">Em produção</option>
+            <option value="pos_processamento">Pós-processamento</option>
             <option value="pronto">Pronto</option>
             <option value="entregue">Entregue</option>
           </select>
@@ -302,6 +340,7 @@
         <div class="calc-actions">
           <button type="button" class="calc-btn ghost">💰 Calcular preço sugerido</button>
           <button type="button" class="save-produto-btn ghost">💾 Salvar como produto</button>
+          <button type="button" class="falha-btn ghost" hidden>⚠️ Registrar falha e reimprimir</button>
         </div>
         <p class="calc-breakdown"></p>
         <input data-field="custo_calculado" type="hidden" />

@@ -488,11 +488,34 @@ legend {
 }
 
 .materiais-list button {
-  margin-left: auto;
   padding: 2px 8px;
   border-color: var(--danger);
   color: var(--danger);
   background: transparent;
+}
+
+.materiais-list li {
+  flex-wrap: wrap;
+}
+
+.materiais-list li > span {
+  flex: 1;
+  min-width: 180px;
+}
+
+.materiais-list .add-rolo-btn,
+.materiais-list .edit-estoque-btn {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.materiais-list .remove-material-btn,
+.materiais-list .remove-maquina-btn {
+  margin-left: auto;
+}
+
+.estoque-baixo {
+  color: var(--warn);
 }
 
 #material-form {
@@ -557,6 +580,81 @@ legend {
 
 #config-dialog {
   width: min(680px, 92vw);
+}
+
+/* Página pública de acompanhamento */
+.tracking-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tracking-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.tracking-card h1 {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 22px;
+}
+
+.tracking-prazo {
+  color: var(--muted);
+  margin: 4px 0;
+}
+
+.tracking-itens {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tracking-itens li {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.tracking-item-desc {
+  font-weight: 600;
+}
+
+/* Alertas de estoque baixo (Painel) */
+.estoque-alerta {
+  background: var(--panel);
+  border: 1px solid var(--warn);
+  border-radius: 12px;
+  padding: 14px 18px;
+  grid-column: 1 / -1;
+}
+
+.estoque-alerta h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--warn);
+}
+
+.estoque-alerta ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .grid {
