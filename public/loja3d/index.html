@@ -234,6 +234,10 @@
           <input name="valor_sinal" type="number" min="0" step="0.01" />
         </label>
         <label>
+          Parcelar o saldo em quantas vezes?
+          <input name="numero_parcelas" type="number" min="1" max="24" value="1" />
+        </label>
+        <label>
           Observações gerais do pedido
           <textarea name="observacoes" rows="2" maxlength="500"></textarea>
         </label>
@@ -477,6 +481,37 @@
           🔒 Pró-labore/retirada
         </label>
         <button type="submit" class="ghost">+ Adicionar categoria</button>
+      </form>
+    </fieldset>
+
+    <fieldset>
+      <legend>Despesas fixas recorrentes</legend>
+      <p class="subtitle">Cadastra uma vez e o app projeta os próximos 12 meses sozinho (energia, internet, assinaturas...).</p>
+      <ul id="despesas-fixas-list" class="materiais-list"></ul>
+      <form id="despesa-fixa-form" class="grid grid-4">
+        <label>
+          Nome
+          <input name="nome" required maxlength="80" placeholder="Ex: Internet" />
+        </label>
+        <label>
+          Valor (R$)
+          <input name="valor" type="number" min="0.01" step="0.01" required />
+        </label>
+        <label>
+          Categoria
+          <select name="categoria_id" id="despesa-fixa-categoria-select"></select>
+        </label>
+        <label>
+          Conta
+          <select name="conta_id" id="despesa-fixa-conta-select">
+            <option value="">— A definir —</option>
+          </select>
+        </label>
+        <label>
+          Dia do vencimento
+          <input name="dia_vencimento" type="number" min="1" max="28" value="5" required />
+        </label>
+        <button type="submit" class="ghost">+ Adicionar despesa fixa</button>
       </form>
     </fieldset>
     </div>

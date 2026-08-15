@@ -563,7 +563,7 @@ button.chip.active {
 /* Painel (dashboard) */
 .dashboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   padding: 16px;
 }
@@ -574,13 +574,15 @@ button.chip.active {
   border-radius: 6px;
   padding: 18px;
   text-align: center;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--accent);
   font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
 .stat-label {
@@ -1077,6 +1079,26 @@ legend {
 .estoque-alerta ul {
   margin: 0;
   padding-left: 18px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.saldo-alerta {
+  background: var(--panel);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 14px 18px;
+  grid-column: 1 / -1;
+}
+
+.saldo-alerta h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.saldo-alerta p {
+  margin: 0;
   font-size: 13px;
   color: var(--text);
 }

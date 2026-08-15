@@ -43,6 +43,7 @@ let consultasCalculadora = [];
 let contasFinanceiras = [];
 let categoriasFinanceiras = [];
 let movimentos = [];
+let despesasFixas = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -108,6 +109,10 @@ const contasFinanceirasListEl = document.getElementById("contas-financeiras-list
 const contaFinanceiraForm = document.getElementById("conta-financeira-form");
 const categoriasFinanceirasListEl = document.getElementById("categorias-financeiras-list");
 const categoriaFinanceiraForm = document.getElementById("categoria-financeira-form");
+const despesasFixasListEl = document.getElementById("despesas-fixas-list");
+const despesaFixaForm = document.getElementById("despesa-fixa-form");
+const despesaFixaCategoriaSelect = document.getElementById("despesa-fixa-categoria-select");
+const despesaFixaContaSelect = document.getElementById("despesa-fixa-conta-select");
 
 const movimentoDialog = document.getElementById("movimento-dialog");
 const movimentoForm = document.getElementById("movimento-form");
@@ -284,6 +289,7 @@ async function init() {
 
   contaFinanceiraForm.addEventListener("submit", handleAddContaFinanceira);
   categoriaFinanceiraForm.addEventListener("submit", handleAddCategoriaFinanceira);
+  despesaFixaForm.addEventListener("submit", handleAddDespesaFixa);
 
   novoMovimentoBtn.addEventListener("click", () => openMovimentoDialog(null));
   cancelMovimentoBtn.addEventListener("click", () => movimentoDialog.close());
@@ -399,6 +405,7 @@ async function loadData() {
     { data: contasFinanceirasData, error: eContas },
     { data: categoriasFinanceirasData, error: eCategorias },
     { data: movimentosData, error: eMov },
+    { data: despesasFixasData, error: eDespesas },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -415,9 +422,10 @@ async function loadData() {
     db.from("contas_financeiras").select("*").order("nome"),
     db.from("categorias_financeiras").select("*").order("ordem"),
     db.from("movimentos").select("*").order("data_movimento", { ascending: false }),
+    db.from("despesas_fixas").select("*").order("nome"),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov])
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas])
     if (e) console.error(e);
 
   clientes = clientesData || [];
@@ -432,6 +440,7 @@ async function loadData() {
   contasFinanceiras = contasFinanceirasData || [];
   categoriasFinanceiras = categoriasFinanceirasData || [];
   movimentos = movimentosData || [];
+  despesasFixas = despesasFixasData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
   atualizarBrandMarks();
@@ -481,6 +490,7 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "contas_financeiras" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "categorias_financeiras" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "movimentos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "despesas_fixas" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -778,6 +788,31 @@ function calcularSaldosContas() {
   return saldos;
 }
 
+// Saldo dia a dia dos próximos 30 dias, aplicando cada lançamento previsto na ordem em que
+// vence — pra achar não só "quanto sobra no fim" mas a primeira data em que o saldo passaria
+// pro negativo, se nada mudar até lá.
+function calcularProjecao30Dias() {
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const limite = new Date();
+  limite.setDate(limite.getDate() + 30);
+  const limiteStr = limite.toISOString().slice(0, 10);
+
+  const saldos = calcularSaldosContas();
+  let saldoCorrente = Object.values(saldos).reduce((s, v) => s + v, 0);
+
+  const eventosFuturos = movimentos
+    .filter((m) => m.status === "previsto" && m.data_movimento >= hojeStr && m.data_movimento <= limiteStr)
+    .sort((a, b) => (a.data_movimento < b.data_movimento ? -1 : 1));
+
+  let dataRuptura = null;
+  for (const m of eventosFuturos) {
+    saldoCorrente += m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor);
+    if (saldoCorrente < 0 && !dataRuptura) dataRuptura = m.data_movimento;
+  }
+
+  return { saldoProjetado30Dias: saldoCorrente, dataRuptura };
+}
+
 function renderFinanceiroDashboard() {
   const saldos = calcularSaldosContas();
   const saldoHoje = Object.values(saldos).reduce((s, v) => s + v, 0);
@@ -792,17 +827,26 @@ function renderFinanceiroDashboard() {
   const aReceberMes = previstos.filter((m) => m.tipo === "entrada" && noMes(m)).reduce((s, m) => s + Number(m.valor), 0);
   const aPagarMes = previstos.filter((m) => m.tipo === "saida" && noMes(m)).reduce((s, m) => s + Number(m.valor), 0);
   const saldoProjetadoMes = saldoHoje + aReceberMes - aPagarMes;
+  const { saldoProjetado30Dias, dataRuptura } = calcularProjecao30Dias();
 
   const stats = [
     { label: "Saldo hoje", value: formatMoney(saldoHoje) },
     { label: `A receber${atrasados > 0 ? ` (${atrasados} atrasado${atrasados > 1 ? "s" : ""})` : ""}`, value: formatMoney(aReceber) },
     { label: "A pagar", value: formatMoney(aPagar) },
     { label: "Saldo projetado do mês", value: formatMoney(saldoProjetadoMes) },
+    { label: "Saldo projetado (30 dias)", value: formatMoney(saldoProjetado30Dias) },
   ];
 
   let html = stats
     .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
     .join("");
+
+  if (dataRuptura) {
+    html += `<div class="saldo-alerta">
+      <h3>⚠️ Saldo pode ficar negativo</h3>
+      <p>Pelos lançamentos previstos, o saldo deve ficar negativo a partir de <strong>${formatDate(dataRuptura)}</strong> se nada mudar até lá.</p>
+    </div>`;
+  }
 
   const contasAtivas = contasFinanceiras.filter((c) => c.ativa);
   if (contasAtivas.length > 0) {
@@ -1018,10 +1062,19 @@ async function handleSaveMovimento(e) {
     return;
   }
 
-  // Baixa manual: marcar como realizado o saldo de um pedido também quita o pedido — assim dá
-  // pra dar baixa direto pela régua financeira, sem precisar reabrir o pedido pra isso.
+  // Baixa manual: marcar a ÚLTIMA parcela de saldo pendente como realizada também quita o
+  // pedido — assim dá pra dar baixa direto pela régua financeira. Com parcelamento, só marca
+  // como pago quando TODAS as parcelas já estiverem realizadas, não a cada uma isoladamente.
   if (existente?.pedido_id && existente.origem === "pedido_saldo" && payload.status === "realizado") {
-    await db.from("pedidos").update({ pagamento: "pago" }).eq("id", existente.pedido_id);
+    const { data: parcelas } = await db
+      .from("movimentos")
+      .select("status")
+      .eq("pedido_id", existente.pedido_id)
+      .eq("origem", "pedido_saldo");
+    const todasQuitadas = (parcelas || []).every((m) => m.status === "realizado");
+    if (todasQuitadas) {
+      await db.from("pedidos").update({ pagamento: "pago" }).eq("id", existente.pedido_id);
+    }
   }
 
   movimentoDialog.close();
@@ -1275,10 +1328,11 @@ async function handleIaAudio() {
 
 /* ---------- Pedido → financeiro: sinal e saldo viram lançamentos automaticamente ---------- */
 
-// Cria/atualiza (ou remove, se não fizer mais sentido) os dois lançamentos vinculados a um
-// pedido. Chamado toda vez que o pedido é salvo — nunca duplica graças ao índice único
-// (pedido_id, origem) e nunca rebaixa um lançamento já marcado como realizado manualmente.
-async function sincronizarMovimentosDoPedido({ pedidoId, clienteNome, total, sinal, pagamento, prazoEntrega }) {
+// Cria/atualiza (ou remove, se não fizer mais sentido) os lançamentos vinculados a um pedido —
+// sinal (sempre 1 lançamento) e saldo (1 ou várias parcelas, conforme numero_parcelas). Chamado
+// toda vez que o pedido é salvo — nunca duplica graças ao índice único (pedido_id, origem,
+// parcela) e nunca rebaixa um lançamento já marcado como realizado manualmente.
+async function sincronizarMovimentosDoPedido({ pedidoId, clienteNome, total, sinal, pagamento, prazoEntrega, numeroParcelas }) {
   const categoriaVendaId = categoriasFinanceiras.find((c) => c.slug === "venda_pedidos")?.id || null;
   const hoje = new Date().toISOString().slice(0, 10);
   const saldo = total - sinal;
@@ -1292,14 +1346,81 @@ async function sincronizarMovimentosDoPedido({ pedidoId, clienteNome, total, sin
     status: "realizado",
   } : null);
 
-  await upsertOuRemoverMovimentoPedido(pedidoId, "pedido_saldo", saldo > 0 ? {
-    categoria_id: categoriaVendaId,
-    tipo: "entrada",
-    valor: saldo,
-    descricao: `Saldo — ${clienteNome}`,
-    data_movimento: prazoEntrega || hoje,
-    status: pagamento === "pago" ? "realizado" : "previsto",
-  } : null);
+  await sincronizarSaldoParcelado(pedidoId, {
+    clienteNome,
+    categoriaVendaId,
+    saldo,
+    numeroParcelas: numeroParcelas || 1,
+    prazoEntrega,
+    pagamento,
+  });
+}
+
+// Divide o saldo em N parcelas mensais (a 1ª na data de entrega, ou hoje se não tiver prazo).
+// Parcelas já realizadas nunca são tocadas — nem status, nem valor (já é dinheiro que entrou de
+// verdade, não faz sentido reescrever o valor histórico se o número de parcelas mudar depois).
+// O saldo que falta é redistribuído só entre as parcelas ainda pendentes, com a última
+// absorvendo o arredondamento.
+async function sincronizarSaldoParcelado(pedidoId, { clienteNome, categoriaVendaId, saldo, numeroParcelas, prazoEntrega, pagamento }) {
+  const hoje = new Date();
+  const baseData = prazoEntrega ? new Date(prazoEntrega + "T00:00:00") : hoje;
+
+  const { data: existentes } = await db
+    .from("movimentos")
+    .select("id, parcela_numero, status, valor")
+    .eq("pedido_id", pedidoId)
+    .eq("origem", "pedido_saldo");
+
+  if (saldo <= 0) {
+    const idsRemover = (existentes || []).filter((m) => m.status !== "realizado").map((m) => m.id);
+    if (idsRemover.length > 0) await db.from("movimentos").delete().in("id", idsRemover);
+    return;
+  }
+
+  const jaRealizadas = (existentes || []).filter((m) => m.status === "realizado" && (m.parcela_numero || 1) <= numeroParcelas);
+  const valorJaRealizado = jaRealizadas.reduce((s, m) => s + Number(m.valor), 0);
+  const numerosRealizados = new Set(jaRealizadas.map((m) => m.parcela_numero || 1));
+
+  const numerosPendentes = [];
+  for (let n = 1; n <= numeroParcelas; n++) if (!numerosRealizados.has(n)) numerosPendentes.push(n);
+
+  const saldoRestante = Math.max(0, saldo - valorJaRealizado);
+  const valorParcelaBase = numerosPendentes.length > 0 ? Math.round((saldoRestante / numerosPendentes.length) * 100) / 100 : 0;
+
+  for (let idx = 0; idx < numerosPendentes.length; idx++) {
+    const parcelaNumero = numerosPendentes[idx];
+    const ehUltima = idx === numerosPendentes.length - 1;
+    const valor = ehUltima
+      ? Math.round((saldoRestante - valorParcelaBase * (numerosPendentes.length - 1)) * 100) / 100
+      : valorParcelaBase;
+
+    const dataParcela = new Date(baseData);
+    dataParcela.setMonth(dataParcela.getMonth() + (parcelaNumero - 1));
+
+    const existente = (existentes || []).find((m) => (m.parcela_numero || 1) === parcelaNumero);
+    const payload = {
+      categoria_id: categoriaVendaId,
+      tipo: "entrada",
+      valor,
+      descricao: numeroParcelas > 1 ? `Saldo (${parcelaNumero}/${numeroParcelas}) — ${clienteNome}` : `Saldo — ${clienteNome}`,
+      data_movimento: dataParcela.toISOString().slice(0, 10),
+      parcela_numero: parcelaNumero,
+      parcela_total: numeroParcelas,
+      status: pagamento === "pago" ? "realizado" : "previsto",
+    };
+
+    if (existente) {
+      await db.from("movimentos").update(payload).eq("id", existente.id);
+    } else {
+      await db.from("movimentos").insert({ ...payload, pedido_id: pedidoId, origem: "pedido_saldo" });
+    }
+  }
+
+  // Parcelas que não fazem mais parte do plano atual (número diminuiu) e ainda não foram pagas.
+  const idsRemover = (existentes || [])
+    .filter((m) => m.status !== "realizado" && (m.parcela_numero || 1) > numeroParcelas)
+    .map((m) => m.id);
+  if (idsRemover.length > 0) await db.from("movimentos").delete().in("id", idsRemover);
 }
 
 async function upsertOuRemoverMovimentoPedido(pedidoId, origem, payload) {
@@ -1414,6 +1535,103 @@ async function handleAddCategoriaFinanceira(e) {
   renderCategoriasFinanceirasList();
 }
 
+/* ---------- Despesas fixas recorrentes (projetadas 12 meses pra frente) ---------- */
+// Cada despesa fixa é um "molde" (nome/valor/categoria/conta/dia de vencimento). Salvar (ou
+// editar) gera/atualiza 12 lançamentos previstos, um por mês, marcados com despesa_fixa_id e
+// parcela_numero — e nunca mexe num mês que já foi marcado como realizado.
+
+function renderDespesasFixasList() {
+  if (despesasFixas.length === 0) {
+    despesasFixasListEl.innerHTML = `<li class="column-empty">Nenhuma despesa fixa cadastrada ainda.</li>`;
+    return;
+  }
+  despesasFixasListEl.innerHTML = despesasFixas
+    .map((d) => {
+      const categoria = categoriasFinanceiras.find((c) => c.id === d.categoria_id);
+      const conta = contasFinanceiras.find((c) => c.id === d.conta_id);
+      return `<li>
+        <span>${escapeHtml(d.nome)} — ${formatMoney(d.valor)}/mês · todo dia ${d.dia_vencimento}${categoria ? " · " + escapeHtml(categoria.nome) : ""}${conta ? " · " + escapeHtml(conta.nome) : ""}</span>
+        <button type="button" data-id="${d.id}" class="remove-despesa-fixa-btn">×</button>
+      </li>`;
+    })
+    .join("");
+
+  despesasFixasListEl.querySelectorAll(".remove-despesa-fixa-btn").forEach((btn) =>
+    btn.addEventListener("click", () => handleDeleteDespesaFixa(btn.dataset.id))
+  );
+}
+
+async function handleAddDespesaFixa(e) {
+  e.preventDefault();
+  const fd = new FormData(despesaFixaForm);
+  const payload = {
+    nome: fd.get("nome").trim(),
+    valor: Number(fd.get("valor")),
+    categoria_id: fd.get("categoria_id") || null,
+    conta_id: fd.get("conta_id") || null,
+    dia_vencimento: Number(fd.get("dia_vencimento")) || 5,
+  };
+  const { data, error } = await db.from("despesas_fixas").insert(payload).select().single();
+  if (error) {
+    alert("Erro ao adicionar despesa fixa: " + error.message);
+    return;
+  }
+  await sincronizarMovimentosDespesaFixa(data.id, payload);
+  despesaFixaForm.reset();
+  despesaFixaForm.elements.namedItem("dia_vencimento").value = "5";
+  await loadData();
+  renderDespesasFixasList();
+}
+
+async function handleDeleteDespesaFixa(id) {
+  if (!confirm("Excluir essa despesa fixa? Os meses futuros ainda não pagos somem da previsão — os que já foram marcados como pagos continuam no histórico.")) return;
+  await db.from("movimentos").delete().eq("despesa_fixa_id", id).eq("status", "previsto");
+  const { error } = await db.from("despesas_fixas").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+  await loadData();
+  renderDespesasFixasList();
+}
+
+async function sincronizarMovimentosDespesaFixa(despesaFixaId, { nome, valor, categoria_id, conta_id, dia_vencimento }) {
+  const hoje = new Date();
+  for (let i = 0; i < 12; i++) {
+    const anoMes = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    const ultimoDiaMes = new Date(anoMes.getFullYear(), anoMes.getMonth() + 1, 0).getDate();
+    const dia = Math.min(dia_vencimento, ultimoDiaMes);
+    const dataMovimento = new Date(anoMes.getFullYear(), anoMes.getMonth(), dia).toISOString().slice(0, 10);
+    const parcelaNumero = i + 1;
+
+    const { data: existente } = await db
+      .from("movimentos")
+      .select("id, status")
+      .eq("despesa_fixa_id", despesaFixaId)
+      .eq("parcela_numero", parcelaNumero)
+      .maybeSingle();
+
+    if (existente?.status === "realizado") continue; // não mexe no que já foi pago
+
+    const payload = {
+      categoria_id,
+      conta_id,
+      tipo: "saida",
+      valor,
+      descricao: nome,
+      data_movimento: dataMovimento,
+      parcela_numero: parcelaNumero,
+      parcela_total: 12,
+    };
+
+    if (existente) {
+      await db.from("movimentos").update(payload).eq("id", existente.id);
+    } else {
+      await db.from("movimentos").insert({ ...payload, despesa_fixa_id: despesaFixaId, origem: "despesa_fixa", status: "previsto" });
+    }
+  }
+}
+
 /* ---------- Exportar CSV ---------- */
 
 function exportCsv() {
@@ -1474,6 +1692,9 @@ function openConfigDialog() {
   renderCanaisVendaList();
   renderContasFinanceirasList();
   renderCategoriasFinanceirasList();
+  populateContaSelect(despesaFixaContaSelect, "");
+  populateCategoriaSelect(despesaFixaCategoriaSelect, "");
+  renderDespesasFixasList();
   configDialog.showModal();
 }
 
@@ -2176,7 +2397,7 @@ function openOrderDialog(pedido) {
   if (pedido) {
     orderForm.elements.namedItem("cliente_nome").value = pedido.cliente?.nome || "";
     orderForm.elements.namedItem("cliente_contato").value = pedido.cliente?.contato || "";
-    for (const key of ["prioridade", "origem", "prazo_entrega", "pagamento", "valor_sinal", "observacoes"]) {
+    for (const key of ["prioridade", "origem", "prazo_entrega", "pagamento", "valor_sinal", "numero_parcelas", "observacoes"]) {
       const field = orderForm.elements.namedItem(key);
       if (field && pedido[key] !== null && pedido[key] !== undefined) field.value = pedido[key];
     }
@@ -2280,6 +2501,7 @@ async function handleSaveOrder(e) {
       prazo_entrega: formData.get("prazo_entrega") || null,
       pagamento: formData.get("pagamento"),
       valor_sinal: formData.get("valor_sinal") ? Number(formData.get("valor_sinal")) : null,
+      numero_parcelas: Number(formData.get("numero_parcelas")) || 1,
       observacoes: formData.get("observacoes").trim() || null,
     };
 
@@ -2390,6 +2612,7 @@ async function handleSaveOrder(e) {
         sinal: Number(pedidoPayload.valor_sinal) || 0,
         pagamento: pedidoPayload.pagamento,
         prazoEntrega: pedidoPayload.prazo_entrega,
+        numeroParcelas: pedidoPayload.numero_parcelas,
       });
     } catch (errFin) {
       // O pedido já foi salvo — não bloqueia o fluxo principal por um problema no espelhamento
