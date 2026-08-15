@@ -62,8 +62,10 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 
 ### Setup (uma vez só)
 
-1. **Criar a tabela.** No painel do Supabase, abra o SQL Editor e rode o conteúdo de `sql/pedidos_3d.sql`. Isso cria a
-   tabela `pedidos_3d`, as regras de segurança (RLS) e liga o realtime nela.
+1. **Criar as tabelas.** No SQL Editor do Supabase, rode **nesta ordem**:
+   - `sql/pedidos_3d.sql` (schema original)
+   - `sql/002_bloco1.sql` (clientes, pedidos com múltiplos itens, anexos, prioridade — já migra os dados que
+     estiverem em `pedidos_3d` automaticamente, e já cria o bucket de armazenamento pros anexos)
 2. **Pegar a chave pública.** Em Project Settings > API, copie a chave **anon public** e preencha
    `SUPABASE_ANON_KEY` no seu `.env` (além do `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` que já devem estar
    preenchidos).
@@ -74,19 +76,35 @@ repositório (só cria tabelas novas — nada dos dados financeiros é misturado
 
 ### Como funciona
 
-- **Pedido.** Cada card tem cliente, contato, descrição da peça, link do modelo (STL etc.), cor, material,
-  quantidade, tempo estimado, prazo de entrega, valor, status de pagamento e observações.
-- **Etapas (colunas do quadro):** Pedido recebido → Na fila de produção → Em produção → Pronto → Entregue. Os botões
-  ◀ ▶ no card movem o pedido de etapa sem precisar abrir o formulário; clicar no card abre os detalhes completos.
-- **Atrasado** não é uma etapa manual — é calculado automaticamente: todo pedido com prazo vencido que ainda não
-  está "Pronto" ou "Entregue" ganha um destaque vermelho no card, e o filtro "⏰ Atrasados" no topo mostra só esses.
-- **Tempo real.** Se uma mexe em um pedido, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
+- **Cliente.** Ao digitar o nome no campo "Cliente" do pedido, o app sugere clientes já cadastrados (autocompletar);
+  se o nome for novo, cria o cliente na hora. Isso dá um mini-histórico: dá pra ver depois tudo que aquele cliente
+  já pediu.
+- **Pedido x item.** Um pedido pertence a um cliente e tem prazo, prioridade, origem (WhatsApp, Instagram…),
+  pagamento e observações gerais. Dentro dele, um ou mais **itens** — cada peça, com descrição, cor, material,
+  quantidade, tempo estimado e valor. Cada item é uma "ordem de produção" independente: um pedido de 3 peças pode
+  ter uma pronta, uma em produção e uma na fila, tudo ao mesmo tempo.
+- **Etapas (colunas do quadro):** Pedido recebido → Na fila de produção → Em produção → Pronto → Entregue — por
+  item. Os botões ◀ ▶ no card movem o item de etapa sem abrir o formulário; clicar no card abre o pedido completo
+  (com todos os itens daquele cliente).
+- **Prioridade.** Pedido marcado como "Urgente" ganha uma faixa amarela no card e sobe pro topo da coluna.
+- **Atrasado** não é uma etapa manual — é calculado automaticamente pelo prazo do pedido: todo item com prazo
+  vencido que ainda não está "Pronto" ou "Entregue" ganha destaque vermelho, e o filtro "⏰ Atrasados" no topo
+  mostra só esses.
+- **Anexos.** Fotos de referência, arquivo STL/3MF ou print da conversa do WhatsApp podem ser anexados a cada
+  pedido (guardados no Supabase Storage, de forma privada).
+- **Painel.** Aba com 5 números do momento: pedidos abertos, itens atrasados, faturamento do mês, horas de
+  produção na fila e clientes ativos.
+- **Exportar CSV.** Botão no topo baixa todos os itens (com dados do cliente e do pedido) numa planilha, pra abrir
+  no Excel/Google Sheets quando quiser.
+- **Tempo real.** Se uma mexe em algo, a tela da outra atualiza sozinha (via Supabase Realtime), sem precisar
   atualizar a página.
 
 ### Estrutura
 
 - `public/loja3d/` — front-end (HTML/CSS/JS puro, sem build) e o manifest/service worker do PWA.
-- `sql/pedidos_3d.sql` — schema da tabela, políticas de RLS e ativação do realtime.
+- `sql/pedidos_3d.sql` — schema original (tabela única, mantida como histórico/backup).
+- `sql/002_bloco1.sql` — clientes, pedidos, itens_pedido, anexos, políticas de RLS, realtime, bucket de
+  armazenamento e migração automática dos dados do schema original.
 - Rota `/loja3d/config.js`, em `src/server.js` — entrega a URL e a chave pública do Supabase para o front-end, lidas
   do `.env` do servidor (assim a chave não fica hardcoded no código versionado).
 

@@ -162,6 +162,27 @@ button.chip.active {
   min-width: 160px;
 }
 
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tab-btn {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.tab-btn.active {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
 .board {
   display: flex;
   gap: 14px;
@@ -234,6 +255,10 @@ button.chip.active {
   box-shadow: 0 0 0 1px var(--danger) inset;
 }
 
+.card.urgente {
+  border-left: 4px solid var(--warn);
+}
+
 .card-title {
   font-weight: 700;
   font-size: 14px;
@@ -285,6 +310,34 @@ button.chip.active {
   font-size: 12px;
 }
 
+/* Painel (dashboard) */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  padding: 16px;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
 /* Dialog */
 dialog {
   background: var(--panel);
@@ -292,7 +345,9 @@ dialog {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px;
-  width: min(560px, 92vw);
+  width: min(640px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 dialog::backdrop {
@@ -302,7 +357,79 @@ dialog::backdrop {
 #order-form {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.item-row {
+  position: relative;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.remove-item-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
+.anexos-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.anexos-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.anexos-list a {
+  color: var(--accent);
+}
+
+.anexos-list button {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
 }
 
 .grid {
