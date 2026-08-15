@@ -1166,6 +1166,33 @@ function arquivoParaBase64(blob) {
   });
 }
 
+// Fotos de celular direto da câmera costumam vir enormes (vários MB) — redimensiona antes de
+// mandar pra IA, tanto pra não estourar limite de payload quanto pra deixar mais rápido. 1280px
+// no maior lado já é mais que suficiente pra ler texto de recibo/nota.
+function redimensionarImagem(file, maxDimensao = 1280, qualidade = 0.75) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, maxDimensao / Math.max(img.naturalWidth, img.naturalHeight));
+        const largura = Math.round(img.naturalWidth * escala);
+        const altura = Math.round(img.naturalHeight * escala);
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+        const dataUrl = canvas.toDataURL("image/jpeg", qualidade);
+        resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg" });
+      };
+      img.onerror = () => reject(new Error("Não foi possível ler essa foto."));
+      img.src = leitor.result;
+    };
+    leitor.onerror = () => reject(new Error("Não foi possível ler essa foto."));
+    leitor.readAsDataURL(file);
+  });
+}
+
 async function handleIaFoto(e) {
   const file = e.target.files[0];
   iaFotoInput.value = "";
@@ -1175,8 +1202,8 @@ async function handleIaFoto(e) {
   iaStatus.hidden = false;
   iaStatus.textContent = "Analisando a foto...";
   try {
-    const imagemBase64 = await arquivoParaBase64(file);
-    const resultado = await chamarIA("interpretar-foto", { imagemBase64, mimeType: file.type });
+    const { base64, mimeType } = await redimensionarImagem(file);
+    const resultado = await chamarIA("interpretar-foto", { imagemBase64: base64, mimeType });
     aplicarResultadoIA(resultado, "ia_foto");
   } catch (err) {
     iaError.textContent = err.message;
