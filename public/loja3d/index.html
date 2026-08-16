@@ -266,6 +266,7 @@
         <button type="button" id="pdf-order-btn" class="ghost" hidden>📄 Orçamento PDF</button>
         <button type="button" id="whatsapp-order-btn" class="ghost" hidden>📲 Enviar WhatsApp</button>
         <button type="button" id="tracking-link-btn" class="ghost" hidden>🔗 Link de acompanhamento</button>
+        <button type="button" id="pix-order-btn" class="ghost" hidden>🔲 Cobrar via Pix</button>
         <span class="spacer"></span>
         <button type="button" id="cancel-order-btn" class="ghost">Cancelar</button>
         <button type="submit" class="primary">Salvar</button>
@@ -314,6 +315,16 @@
           Nome da loja (aparece no orçamento em PDF)
           <input name="nome_loja" maxlength="120" required />
         </label>
+        <div class="grid">
+          <label>
+            Chave Pix (pra gerar QR Code de cobrança)
+            <input name="chave_pix" maxlength="140" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+          </label>
+          <label>
+            Cidade (exigida pelo padrão do Pix)
+            <input name="cidade" maxlength="60" placeholder="Ex: São Paulo" />
+          </label>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -656,6 +667,29 @@
     </div>
   </dialog>
 
+  <!-- Modal de cobrança via Pix (QR Code estático "copia e cola") -->
+  <dialog id="pix-dialog">
+    <button type="button" id="close-pix-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <div>
+      <h2>🔲 Cobrar via Pix</h2>
+      <p class="subtitle" id="pix-valor-label"></p>
+      <div class="pix-qrcode-wrap">
+        <canvas id="pix-qrcode-canvas"></canvas>
+      </div>
+      <label>
+        Pix Copia e Cola
+        <textarea id="pix-payload-text" rows="4" readonly></textarea>
+      </label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="pix-copiar-btn" class="primary">📋 Copiar código</button>
+      </div>
+      <p id="pix-error" class="error" hidden></p>
+    </div>
+    </div>
+  </dialog>
+
   <!-- Template de uma linha de item (clonado via JS) -->
   <template id="item-row-template">
     <div class="item-row">
@@ -753,6 +787,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="/loja3d/config.js"></script>
   <script src="/loja3d/app.js"></script>
 </body>

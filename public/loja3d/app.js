@@ -91,6 +91,14 @@ const closeOrderBtn = document.getElementById("close-order-btn");
 const pdfOrderBtn = document.getElementById("pdf-order-btn");
 const whatsappOrderBtn = document.getElementById("whatsapp-order-btn");
 const trackingLinkBtn = document.getElementById("tracking-link-btn");
+const pixOrderBtn = document.getElementById("pix-order-btn");
+const pixDialog = document.getElementById("pix-dialog");
+const closePixBtn = document.getElementById("close-pix-btn");
+const pixValorLabel = document.getElementById("pix-valor-label");
+const pixQrcodeCanvas = document.getElementById("pix-qrcode-canvas");
+const pixPayloadText = document.getElementById("pix-payload-text");
+const pixCopiarBtn = document.getElementById("pix-copiar-btn");
+const pixError = document.getElementById("pix-error");
 const itensList = document.getElementById("itens-list");
 const addItemBtn = document.getElementById("add-item-btn");
 const itemRowTemplate = document.getElementById("item-row-template");
@@ -254,6 +262,9 @@ async function init() {
   pdfOrderBtn.addEventListener("click", gerarOrcamentoPdf);
   whatsappOrderBtn.addEventListener("click", enviarWhatsapp);
   trackingLinkBtn.addEventListener("click", copiarLinkAcompanhamento);
+  pixOrderBtn.addEventListener("click", openPixDialog);
+  closePixBtn.addEventListener("click", () => pixDialog.close());
+  pixCopiarBtn.addEventListener("click", copiarPayloadPix);
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
@@ -1825,6 +1836,8 @@ async function handleSaveConfig(e) {
     valor_hora_mao_obra: Number(fd.get("valor_hora_mao_obra")),
     taxa_risco_percentual: Number(fd.get("taxa_risco_percentual")),
     margem_padrao_percentual: Number(fd.get("margem_padrao_percentual")),
+    chave_pix: fd.get("chave_pix").trim() || null,
+    cidade: fd.get("cidade").trim() || null,
   };
   const { error } = await db.from("configuracoes").update(payload).eq("id", 1);
   if (error) {
@@ -2621,6 +2634,12 @@ function openOrderDialog(pedido) {
   whatsappOrderBtn.hidden = !pedido;
   trackingLinkBtn.hidden = !pedido;
   trackingLinkBtn.dataset.token = pedido?.token_publico || "";
+
+  const totalPedido = (pedido?.itens || []).reduce((s, i) => s + (Number(i.valor) || 0), 0);
+  const saldoDevido = totalPedido - (Number(pedido?.valor_sinal) || 0);
+  pixOrderBtn.hidden = !pedido || saldoDevido <= 0;
+  pixOrderBtn.dataset.saldo = saldoDevido > 0 ? saldoDevido.toFixed(2) : "";
+  pixOrderBtn.dataset.clienteNome = pedido?.cliente?.nome || "";
   itensList.innerHTML = "";
   anexosListEl.innerHTML = "";
   anexoInput.value = "";
@@ -3011,5 +3030,107 @@ async function copiarLinkAcompanhamento() {
     alert("Link copiado! É só colar na conversa com o cliente:\n\n" + link);
   } catch {
     prompt("Copie o link abaixo para mandar ao cliente:", link);
+  }
+}
+
+/* ---------- Pix: QR Code estático "copia e cola" por pedido ---------- */
+// Payload gerado 100% no navegador, seguindo o padrão BR Code do Banco Central (o mesmo
+// formato que qualquer banco/carteira lê) — não chama nenhuma API externa nem depende de
+// nenhum provedor de pagamento. É estático (valor fixo, sem confirmação automática): a baixa
+// de quando o cliente paga continua manual, marcando o lançamento como realizado.
+
+function sanitizarTextoPix(texto, maxLen) {
+  const semAcento = (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const limpo = semAcento
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .trim()
+    .toUpperCase();
+  return (limpo.slice(0, maxLen) || "NA").trim() || "NA";
+}
+
+function campoPix(id, valor) {
+  const tamanho = String(valor.length).padStart(2, "0");
+  return `${id}${tamanho}${valor}`;
+}
+
+// CRC-16/CCITT-FALSE (poli 0x1021, início 0xFFFF) — o mesmo algoritmo exigido pelo padrão
+// BR Code. Testado contra o vetor de verificação padrão da família CRC-16/CCITT-FALSE:
+// crc16Pix("123456789") deve dar "29B1".
+function crc16Pix(texto) {
+  let crc = 0xffff;
+  for (let i = 0; i < texto.length; i++) {
+    crc ^= texto.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+
+function gerarPayloadPix({ chave, nomeLoja, cidade, valor, txid }) {
+  const merchantAccountInfo = campoPix("00", "br.gov.bcb.pix") + campoPix("01", chave.trim());
+  const nome = sanitizarTextoPix(nomeLoja, 25);
+  const cidadeSanitizada = sanitizarTextoPix(cidade, 15);
+  const txidSanitizado = sanitizarTextoPix(txid, 25).replace(/\s/g, "");
+
+  let payload =
+    campoPix("00", "01") +
+    campoPix("01", "11") +
+    campoPix("26", merchantAccountInfo) +
+    campoPix("52", "0000") +
+    campoPix("53", "986") +
+    campoPix("54", Number(valor).toFixed(2)) +
+    campoPix("58", "BR") +
+    campoPix("59", nome) +
+    campoPix("60", cidadeSanitizada) +
+    campoPix("62", campoPix("05", txidSanitizado));
+
+  payload += "6304";
+  return payload + crc16Pix(payload);
+}
+
+async function openPixDialog() {
+  pixError.hidden = true;
+  pixPayloadText.value = "";
+  const ctx = pixQrcodeCanvas.getContext("2d");
+  ctx.clearRect(0, 0, pixQrcodeCanvas.width, pixQrcodeCanvas.height);
+
+  if (!configuracoes?.chave_pix) {
+    pixError.textContent = "Cadastre sua chave Pix em ⚙ Configurações antes de gerar a cobrança.";
+    pixError.hidden = false;
+    pixDialog.showModal();
+    return;
+  }
+
+  const saldo = Number(pixOrderBtn.dataset.saldo) || 0;
+  const clienteNome = pixOrderBtn.dataset.clienteNome || "";
+  pixValorLabel.textContent = `${clienteNome} — ${formatMoney(saldo)}`;
+
+  const payload = gerarPayloadPix({
+    chave: configuracoes.chave_pix,
+    nomeLoja: configuracoes.nome_loja || "IQUE 3D",
+    cidade: configuracoes.cidade || "",
+    valor: saldo,
+    txid: orderForm.dataset.id || "PEDIDO",
+  });
+  pixPayloadText.value = payload;
+
+  pixDialog.showModal();
+
+  try {
+    await QRCode.toCanvas(pixQrcodeCanvas, payload, { width: 240, margin: 1 });
+  } catch (err) {
+    pixError.textContent = "Não foi possível gerar o QR Code visual, mas o código abaixo funciona igual — copia e cola no app do seu cliente pedir pra ele colar. (" + err.message + ")";
+    pixError.hidden = false;
+  }
+}
+
+async function copiarPayloadPix() {
+  if (!pixPayloadText.value) return;
+  try {
+    await navigator.clipboard.writeText(pixPayloadText.value);
+    alert("Código Pix copiado! Cole na conversa com o cliente ou peça pra ele colar no \"Pix Copia e Cola\" do banco dele.");
+  } catch {
+    pixPayloadText.select();
   }
 }

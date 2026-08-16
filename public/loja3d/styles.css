@@ -1272,3 +1272,25 @@ legend {
 .spacer {
   flex: 1;
 }
+
+.pix-qrcode-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+
+.pix-qrcode-wrap canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+#pix-payload-text {
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+  resize: none;
+}
