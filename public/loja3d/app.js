@@ -613,6 +613,9 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "categorias_financeiras" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "movimentos" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "despesas_fixas" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "insumos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "rolos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "movimentos_estoque" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -798,30 +801,58 @@ async function moveStatus(item, novoStatus) {
   }
   await baixarEstoqueSeNecessario({
     itemId: item.id,
+    pedidoId: item.pedido_id,
     statusAnterior: item.status,
     statusNovo: novoStatus,
     materialId: item.material_id,
+    roloId: item.rolo_id,
     pesoGramas: item.peso_gramas,
     quantidade: item.quantidade,
     jaBaixado: item.estoque_baixado,
   });
 }
 
-// Desconta do saldo do material assim que o item cruza, pela primeira vez, a fronteira de
-// "já foi impresso" — funciona tanto vindo dos botões ◀▶ quanto do formulário de edição.
-async function baixarEstoqueSeNecessario({ itemId, statusAnterior, statusNovo, materialId, pesoGramas, quantidade, jaBaixado }) {
+// Desconta do estoque assim que o item cruza, pela primeira vez, a fronteira de "já foi
+// impresso" — funciona tanto vindo dos botões ◀▶ quanto do formulário de edição. Dois sistemas
+// convivem aqui: o "materiais" antigo (saldo agregado, por material_id) e o rolo individual novo
+// (peso próprio, por rolo_id) — cada um só roda se o item tiver o respectivo campo preenchido,
+// então um pedido sem rolo escolhido continua se comportando exatamente como antes.
+async function baixarEstoqueSeNecessario({ itemId, pedidoId, statusAnterior, statusNovo, materialId, roloId, pesoGramas, quantidade, jaBaixado }) {
   if (jaBaixado) return;
   if (!STATUS_PRE_IMPRESSAO.includes(statusAnterior) || STATUS_PRE_IMPRESSAO.includes(statusNovo)) return;
-  if (!materialId || !pesoGramas) return;
-
-  const material = materiais.find((m) => m.id === materialId);
-  if (!material) return;
+  if (!pesoGramas || (!materialId && !roloId)) return;
 
   const consumoGramas = Number(pesoGramas) * (Number(quantidade) || 1);
-  await db
-    .from("materiais")
-    .update({ saldo_gramas: (Number(material.saldo_gramas) || 0) - consumoGramas })
-    .eq("id", materialId);
+
+  if (materialId) {
+    const material = materiais.find((m) => m.id === materialId);
+    if (material) {
+      await db
+        .from("materiais")
+        .update({ saldo_gramas: (Number(material.saldo_gramas) || 0) - consumoGramas })
+        .eq("id", materialId);
+    }
+  }
+
+  if (roloId) {
+    const rolo = rolos.find((r) => r.id === roloId);
+    if (rolo) {
+      const novoPeso = Number(rolo.peso_atual_g) - consumoGramas;
+      await db
+        .from("rolos")
+        .update({ peso_atual_g: novoPeso, status: statusRoloPorPeso(novoPeso, rolo.peso_inicial_g, rolo.status) })
+        .eq("id", rolo.id);
+      await db.from("movimentos_estoque").insert({
+        insumo_id: rolo.insumo_id,
+        rolo_id: rolo.id,
+        tipo: "saida_job",
+        quantidade: -consumoGramas,
+        pedido_id: pedidoId || null,
+        data_movimento: new Date().toISOString().slice(0, 10),
+      });
+    }
+  }
+
   await db.from("itens_pedido").update({ estoque_baixado: true }).eq("id", itemId);
 }
 
@@ -2791,6 +2822,21 @@ function populateProdutoSelect(select) {
     produtos.map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
 }
 
+// Só rolos com peso útil (ativo/quase_vazio) aparecem — vazio/descartado não fazem sentido
+// escolher pra um job novo.
+function populateRoloSelectItem(select, selectedId) {
+  const disponiveis = rolos.filter((r) => r.status === "ativo" || r.status === "quase_vazio");
+  select.innerHTML =
+    '<option value="">— Nenhum —</option>' +
+    disponiveis
+      .map((r) => {
+        const insumo = insumos.find((i) => i.id === r.insumo_id);
+        return `<option value="${r.id}">${escapeHtml(insumo?.nome || "insumo")} — ${escapeHtml(r.id_curto)} (${Number(r.peso_atual_g).toLocaleString("pt-BR")}g)</option>`;
+      })
+      .join("");
+  if (selectedId) select.value = selectedId;
+}
+
 function addItemRow(item) {
   const fragment = itemRowTemplate.content.cloneNode(true);
   const row = fragment.querySelector(".item-row");
@@ -2809,6 +2855,9 @@ function addItemRow(item) {
     const mat = materiais.find((m) => m.id === materialSelect.value);
     if (mat) setField(row, "material", mat.nome);
   });
+
+  const roloSelect = row.querySelector(".rolo-select");
+  populateRoloSelectItem(roloSelect, item?.rolo_id);
 
   const produtoSelect = row.querySelector(".produto-select");
   populateProdutoSelect(produtoSelect);
@@ -3096,6 +3145,7 @@ async function handleSaveOrder(e) {
         cor: row.querySelector('[data-field="cor"]').value.trim() || null,
         material: row.querySelector('[data-field="material"]').value.trim() || null,
         material_id: row.querySelector('[data-field="material_id"]').value || null,
+        rolo_id: row.querySelector('[data-field="rolo_id"]').value || null,
         quantidade: Number(row.querySelector('[data-field="quantidade"]').value) || 1,
         peso_gramas: row.querySelector('[data-field="peso_gramas"]').value
           ? Number(row.querySelector('[data-field="peso_gramas"]').value)
@@ -3125,9 +3175,11 @@ async function handleSaveOrder(e) {
         const itemOriginal = pedidos.flatMap((p) => p.itens || []).find((i) => i.id === row.dataset.id);
         await baixarEstoqueSeNecessario({
           itemId: row.dataset.id,
+          pedidoId: itemPayload.pedido_id,
           statusAnterior: itemOriginal?.status,
           statusNovo: itemPayload.status,
           materialId: itemPayload.material_id,
+          roloId: itemPayload.rolo_id,
           pesoGramas: itemPayload.peso_gramas,
           quantidade: itemPayload.quantidade,
           jaBaixado: itemOriginal?.estoque_baixado,
@@ -3139,9 +3191,11 @@ async function handleSaveOrder(e) {
 
         await baixarEstoqueSeNecessario({
           itemId: data.id,
+          pedidoId: itemPayload.pedido_id,
           statusAnterior: "recebido",
           statusNovo: itemPayload.status,
           materialId: itemPayload.material_id,
+          roloId: itemPayload.rolo_id,
           pesoGramas: itemPayload.peso_gramas,
           quantidade: itemPayload.quantidade,
           jaBaixado: false,
