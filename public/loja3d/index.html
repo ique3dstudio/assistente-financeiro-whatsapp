@@ -194,6 +194,16 @@
     </main>
 
     <main id="tab-estoque" class="tab-panel" hidden>
+      <nav class="estoque-modo-tabs">
+        <button type="button" class="estoque-modo-btn active" data-modo-estoque="materia-prima">
+          🧵 Matéria-prima <span class="subtitle-inline">filamento, resina, consumíveis…</span>
+        </button>
+        <button type="button" class="estoque-modo-btn" data-modo-estoque="produto-acabado">
+          📦 Produto acabado <span class="subtitle-inline">peças prontas pra vender</span>
+        </button>
+      </nav>
+
+      <div id="estoque-modo-materia-prima" class="estoque-modo-painel">
       <nav class="subtabs">
         <button type="button" class="estoque-subtab-btn active" data-subtab-estoque="insumos">Insumos</button>
         <button type="button" class="estoque-subtab-btn" data-subtab-estoque="rolos">Rolos</button>
@@ -247,6 +257,39 @@
           <button type="button" id="novo-movimento-estoque-btn" class="primary">+ Movimento</button>
         </div>
         <div id="movimentos-estoque-list"></div>
+      </div>
+      </div>
+
+      <div id="estoque-modo-produto-acabado" class="estoque-modo-painel" hidden>
+      <nav class="subtabs">
+        <button type="button" class="produto-subtab-btn active" data-subtab-produto="catalogo">Produtos</button>
+        <button type="button" class="produto-subtab-btn" data-subtab-produto="movimentacoes">Movimentações</button>
+      </nav>
+
+      <div id="subtab-produto-catalogo" class="produto-subpanel">
+        <div class="financeiro-toolbar">
+          <input id="produto-estoque-busca" type="search" placeholder="Buscar produto…" />
+          <span class="spacer"></span>
+          <button type="button" id="novo-produto-estoque-btn" class="primary">+ Novo produto</button>
+        </div>
+        <ul id="produtos-estoque-list" class="materiais-list"></ul>
+      </div>
+
+      <div id="subtab-produto-movimentacoes" class="produto-subpanel" hidden>
+        <div class="financeiro-toolbar">
+          <select id="mov-produto-filtro-produto"><option value="">Todos os produtos</option></select>
+          <select id="mov-produto-filtro-tipo">
+            <option value="">Todos os tipos</option>
+            <option value="producao">Produção</option>
+            <option value="venda">Venda avulsa</option>
+            <option value="ajuste">Ajuste</option>
+            <option value="perda">Perda</option>
+          </select>
+          <span class="spacer"></span>
+          <button type="button" id="novo-movimento-produto-btn" class="primary">+ Movimento</button>
+        </div>
+        <div id="movimentos-produto-list"></div>
+      </div>
       </div>
     </main>
   </section>
@@ -942,6 +985,106 @@
         <button type="submit" class="primary">Salvar</button>
       </div>
       <p id="movimento-estoque-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de produto acabado (catálogo + estoque de peça pronta) -->
+  <dialog id="produto-estoque-dialog">
+    <button type="button" id="close-produto-estoque-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="produto-estoque-form">
+      <h2 id="produto-estoque-dialog-title">Novo produto</h2>
+      <div class="grid">
+        <label>
+          Nome *
+          <input name="nome" required maxlength="120" placeholder="Ex: Vaso geométrico 15cm" />
+        </label>
+        <label>
+          Cor
+          <input name="cor" maxlength="60" />
+        </label>
+      </div>
+      <div class="grid grid-4">
+        <label>
+          Material p/ calcular custo
+          <select name="material_id" id="produto-estoque-material-select"></select>
+        </label>
+        <label>
+          Peso (g)
+          <input name="peso_gramas" type="number" min="0" step="1" />
+        </label>
+        <label>
+          Tempo de impressão (h)
+          <input name="tempo_estimado_horas" type="number" min="0" step="0.5" />
+        </label>
+        <label>
+          Mão de obra (h)
+          <input name="mao_obra_horas" type="number" min="0" step="0.5" />
+        </label>
+      </div>
+      <div class="grid">
+        <label>
+          Preço de venda (R$)
+          <input name="preco_venda" type="number" min="0" step="0.01" />
+        </label>
+        <label>
+          Estoque mínimo <span class="subtitle-inline">(alerta abaixo disso)</span>
+          <input name="estoque_minimo" type="number" min="0" step="1" />
+        </label>
+      </div>
+      <label>
+        Descrição
+        <textarea name="descricao" rows="2" maxlength="300"></textarea>
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" id="delete-produto-estoque-btn" class="danger" hidden>Excluir produto</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-produto-estoque-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="produto-estoque-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de movimento de estoque de produto acabado -->
+  <dialog id="movimento-produto-dialog">
+    <button type="button" id="close-movimento-produto-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="movimento-produto-form">
+      <h2>Movimento de produto</h2>
+      <div class="grid">
+        <label>
+          Tipo *
+          <select name="tipo" id="movimento-produto-tipo-select" required>
+            <option value="producao">Produção (peça pronta pro estoque)</option>
+            <option value="venda">Venda avulsa (pronta-entrega/marketplace)</option>
+            <option value="ajuste">Ajuste de inventário</option>
+            <option value="perda">Perda (quebrou, estragou…)</option>
+          </select>
+        </label>
+        <label>
+          Produto *
+          <select name="produto_id" id="movimento-produto-produto-select" required></select>
+        </label>
+      </div>
+      <label>
+        Quantidade * <span class="subtitle-inline" id="movimento-produto-quantidade-ajuda">unidades</span>
+        <input name="quantidade" id="movimento-produto-quantidade-input" type="number" min="0" step="1" />
+      </label>
+      <label>
+        Motivo <span class="subtitle-inline">(obrigatório em ajuste/perda)</span>
+        <input name="motivo" maxlength="200" placeholder="Ex: contagem física, peça quebrou na embalagem" />
+      </label>
+
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="cancel-movimento-produto-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="movimento-produto-error" class="error" hidden></p>
     </form>
     </div>
   </dialog>

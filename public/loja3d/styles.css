@@ -863,7 +863,8 @@ legend {
 
 .materiais-list .add-rolo-btn,
 .materiais-list .edit-estoque-btn,
-.materiais-list .edit-insumo-btn {
+.materiais-list .edit-insumo-btn,
+.materiais-list .edit-produto-estoque-btn {
   border-color: var(--border);
   color: var(--text);
 }
@@ -925,6 +926,58 @@ legend {
 
 .financeiro-subpanel[hidden] {
   display: none;
+}
+
+.estoque-modo-painel[hidden],
+.produto-subpanel[hidden] {
+  display: none;
+}
+
+/* Estoque: separação bem visível entre matéria-prima (o que entra) e produto acabado (o que
+   sai) — visual mais "pesado" que as sub-abas comuns, de propósito, pra não confundir os dois. */
+.estoque-modo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 16px 0;
+}
+
+.estoque-modo-btn {
+  flex: 1;
+  min-width: 220px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.estoque-modo-btn .subtitle-inline {
+  font-weight: 400;
+  display: block;
+}
+
+.estoque-modo-btn.active {
+  background: var(--panel);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.badge-alerta {
+  background: var(--badge-bg);
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--warn);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .financeiro-toolbar {

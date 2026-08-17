@@ -47,6 +47,7 @@ let despesasFixas = [];
 let insumos = [];
 let rolos = [];
 let movimentosEstoque = [];
+let movimentosProduto = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -178,6 +179,33 @@ const ajusteValorLabel = document.getElementById("ajuste-valor-label");
 const ajustePreview = document.getElementById("ajuste-preview");
 const closeMovimentoEstoqueBtn = document.getElementById("close-movimento-estoque-btn");
 const cancelMovimentoEstoqueBtn = document.getElementById("cancel-movimento-estoque-btn");
+
+const estoqueModoButtons = document.querySelectorAll(".estoque-modo-btn");
+const produtoSubtabButtons = document.querySelectorAll(".produto-subtab-btn");
+const produtosEstoqueListEl = document.getElementById("produtos-estoque-list");
+const produtoEstoqueBuscaInput = document.getElementById("produto-estoque-busca");
+const novoProdutoEstoqueBtn = document.getElementById("novo-produto-estoque-btn");
+const produtoEstoqueDialog = document.getElementById("produto-estoque-dialog");
+const produtoEstoqueForm = document.getElementById("produto-estoque-form");
+const produtoEstoqueDialogTitle = document.getElementById("produto-estoque-dialog-title");
+const produtoEstoqueError = document.getElementById("produto-estoque-error");
+const produtoEstoqueMaterialSelect = document.getElementById("produto-estoque-material-select");
+const closeProdutoEstoqueBtn = document.getElementById("close-produto-estoque-btn");
+const cancelProdutoEstoqueBtn = document.getElementById("cancel-produto-estoque-btn");
+const deleteProdutoEstoqueBtn = document.getElementById("delete-produto-estoque-btn");
+
+const movimentosProdutoListEl = document.getElementById("movimentos-produto-list");
+const movProdutoFiltroProduto = document.getElementById("mov-produto-filtro-produto");
+const movProdutoFiltroTipo = document.getElementById("mov-produto-filtro-tipo");
+const novoMovimentoProdutoBtn = document.getElementById("novo-movimento-produto-btn");
+const movimentoProdutoDialog = document.getElementById("movimento-produto-dialog");
+const movimentoProdutoForm = document.getElementById("movimento-produto-form");
+const movimentoProdutoError = document.getElementById("movimento-produto-error");
+const movimentoProdutoTipoSelect = document.getElementById("movimento-produto-tipo-select");
+const movimentoProdutoProdutoSelect = document.getElementById("movimento-produto-produto-select");
+const movimentoProdutoQuantidadeAjuda = document.getElementById("movimento-produto-quantidade-ajuda");
+const closeMovimentoProdutoBtn = document.getElementById("close-movimento-produto-btn");
+const cancelMovimentoProdutoBtn = document.getElementById("cancel-movimento-produto-btn");
 
 const movimentoDialog = document.getElementById("movimento-dialog");
 const movimentoForm = document.getElementById("movimento-form");
@@ -349,6 +377,22 @@ async function init() {
   ajusteValorInput.addEventListener("input", atualizarPreviewAjuste);
   movEstoqueFiltroInsumo.addEventListener("change", renderMovimentosEstoqueList);
   movEstoqueFiltroTipo.addEventListener("change", renderMovimentosEstoqueList);
+
+  novoProdutoEstoqueBtn.addEventListener("click", () => openProdutoEstoqueDialog(null));
+  cancelProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
+  closeProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
+  produtoEstoqueForm.addEventListener("submit", handleSaveProdutoEstoque);
+  deleteProdutoEstoqueBtn.addEventListener("click", handleDeleteProdutoEstoque);
+  produtoEstoqueBuscaInput.addEventListener("input", renderProdutosEstoqueList);
+
+  novoMovimentoProdutoBtn.addEventListener("click", () => openMovimentoProdutoDialog());
+  cancelMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
+  closeMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
+  movimentoProdutoForm.addEventListener("submit", handleSaveMovimentoProduto);
+  movimentoProdutoTipoSelect.addEventListener("change", atualizarFormularioMovimentoProduto);
+  movProdutoFiltroProduto.addEventListener("change", renderMovimentosProdutoList);
+  movProdutoFiltroTipo.addEventListener("change", renderMovimentosProdutoList);
+
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
@@ -451,6 +495,28 @@ async function init() {
       renderEstoqueAtivo();
     })
   );
+
+  estoqueModoButtons.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      estoqueModoButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".estoque-modo-painel").forEach((painel) => {
+        painel.hidden = painel.id !== `estoque-modo-${btn.dataset.modoEstoque}`;
+      });
+      renderEstoqueAtivo();
+    })
+  );
+
+  produtoSubtabButtons.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      produtoSubtabButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".produto-subpanel").forEach((panel) => {
+        panel.hidden = panel.id !== `subtab-produto-${btn.dataset.subtabProduto}`;
+      });
+      renderEstoqueAtivo();
+    })
+  );
 }
 
 // Redesenha o que estiver visível dentro da aba Financeiro no momento (visão geral, contas a
@@ -520,6 +586,7 @@ async function loadData() {
     { data: insumosData, error: eIns },
     { data: rolosData, error: eRolos },
     { data: movimentosEstoqueData, error: eMovEstoque },
+    { data: movimentosProdutoData, error: eMovProduto },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -540,9 +607,10 @@ async function loadData() {
     db.from("insumos").select("*").order("nome"),
     db.from("rolos").select("*").order("created_at", { ascending: false }),
     db.from("movimentos_estoque").select("*").order("data_movimento", { ascending: false }),
+    db.from("movimentos_produto").select("*").order("data_movimento", { ascending: false }),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas, eIns, eRolos, eMovEstoque])
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas, eIns, eRolos, eMovEstoque, eMovProduto])
     if (e) console.error(e);
 
   clientes = clientesData || [];
@@ -561,6 +629,7 @@ async function loadData() {
   insumos = insumosData || [];
   rolos = rolosData || [];
   movimentosEstoque = movimentosEstoqueData || [];
+  movimentosProduto = movimentosProdutoData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
   atualizarBrandMarks();
@@ -616,6 +685,7 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "insumos" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "rolos" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "movimentos_estoque" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "movimentos_produto" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -895,8 +965,8 @@ function renderDashboard() {
   const stats = [
     { label: "Pedidos abertos", value: pedidosAbertos },
     { label: "Itens atrasados", value: itensAtrasados },
-    { label: "Faturamento do mês", value: formatMoney(faturamentoMes) },
-    { label: "Lucro do mês (itens com custo calculado)", value: formatMoney(lucroMes) },
+    { label: "Faturamento entregue no mês", value: formatMoney(faturamentoMes) },
+    { label: "Lucro entregue no mês (itens com custo calculado)", value: formatMoney(lucroMes) },
     { label: "Horas na fila", value: `${horasFila}h` },
     { label: "Clientes ativos", value: clientesAtivos },
     { label: "Falhas do mês", value: falhasMes.length },
@@ -970,7 +1040,7 @@ function renderInicio() {
 
   const stats = [
     { label: "Caixa total", value: formatMoney(caixaTotal) },
-    { label: "Faturamento do mês", value: formatMoney(faturamentoMes) },
+    { label: "Faturamento recebido no mês", value: formatMoney(faturamentoMes) },
     { label: "Vendas do mês", value: vendasMes },
     { label: "Ticket médio do mês", value: formatMoney(ticketMedio) },
     { label: "A receber", value: formatMoney(aReceber) },
@@ -3522,13 +3592,27 @@ const CATEGORIA_INSUMO_LABEL = {
 
 const STATUS_ROLO_LABEL = { ativo: "Ativo", quase_vazio: "Quase vazio", vazio: "Vazio", descartado: "Descartado" };
 
+// Estoque tem dois modos bem separados na tela — matéria-prima (insumo/rolo, o que ENTRA na
+// impressora) e produto acabado (peça pronta, o que SAI pra venda) — pra nunca misturar "quanto
+// filamento tenho" com "quantas peças prontas tenho".
 function renderEstoqueAtivo() {
-  const subtabAtiva = document.querySelector(".estoque-subtab-btn.active")?.dataset.subtabEstoque || "insumos";
-  if (subtabAtiva === "insumos") renderInsumosList();
-  if (subtabAtiva === "rolos") renderRolosList();
-  if (subtabAtiva === "movimentacoes") {
-    populateMovEstoqueFiltroInsumo();
-    renderMovimentosEstoqueList();
+  const modoAtivo = document.querySelector(".estoque-modo-btn.active")?.dataset.modoEstoque || "materia-prima";
+
+  if (modoAtivo === "materia-prima") {
+    const subtabAtiva = document.querySelector(".estoque-subtab-btn.active")?.dataset.subtabEstoque || "insumos";
+    if (subtabAtiva === "insumos") renderInsumosList();
+    if (subtabAtiva === "rolos") renderRolosList();
+    if (subtabAtiva === "movimentacoes") {
+      populateMovEstoqueFiltroInsumo();
+      renderMovimentosEstoqueList();
+    }
+  } else {
+    const subtabAtiva = document.querySelector(".produto-subtab-btn.active")?.dataset.subtabProduto || "catalogo";
+    if (subtabAtiva === "catalogo") renderProdutosEstoqueList();
+    if (subtabAtiva === "movimentacoes") {
+      populateMovProdutoFiltroProduto();
+      renderMovimentosProdutoList();
+    }
   }
 }
 
@@ -4086,5 +4170,239 @@ async function handleSaveMovimentoEstoque(e) {
   }
 
   movimentoEstoqueDialog.close();
+  await loadData();
+}
+
+/* ---------- Estoque: produto acabado (peça pronta, diferente de insumo/matéria-prima) ---------- */
+// Mesmo princípio do estoque de insumo — ledger, nunca sobrescreve saldo, bloqueio de saldo
+// negativo — só que aqui o saldo é a quantidade de PEÇAS PRONTAS esperando venda (pronta-entrega
+// ou marketplace), não gramas de filamento. Fica separado na tela de propósito: "quanto
+// filamento tenho" e "quantas peças prontas tenho" são perguntas diferentes.
+
+const TIPO_MOVIMENTO_PRODUTO_LABEL = { producao: "Produção", venda: "Venda avulsa", ajuste: "Ajuste", perda: "Perda" };
+
+function renderProdutosEstoqueList() {
+  const busca = produtoEstoqueBuscaInput.value.trim().toLowerCase();
+  const filtrados = produtos.filter((p) => !busca || p.nome.toLowerCase().includes(busca));
+
+  if (filtrados.length === 0) {
+    produtosEstoqueListEl.innerHTML = `<li class="column-empty">Nenhum produto cadastrado ainda.</li>`;
+    return;
+  }
+
+  produtosEstoqueListEl.innerHTML = filtrados
+    .map((p) => {
+      const saldo = Number(p.quantidade_estoque) || 0;
+      const abaixoDoMinimo = Number(p.estoque_minimo) > 0 && saldo <= Number(p.estoque_minimo);
+      return `<li>
+        <span>
+          ${escapeHtml(p.nome)}${p.cor ? " · " + escapeHtml(p.cor) : ""}
+          — estoque: <strong class="${abaixoDoMinimo ? "estoque-baixo" : ""}">${saldo} un</strong>
+          ${p.preco_venda ? ` · ${formatMoney(p.preco_venda)}` : ""}
+          ${abaixoDoMinimo ? '<span class="badge-alerta">⚠️ abaixo do mínimo</span>' : ""}
+        </span>
+        <button type="button" data-id="${p.id}" class="edit-produto-estoque-btn">✏️</button>
+      </li>`;
+    })
+    .join("");
+
+  produtosEstoqueListEl.querySelectorAll(".edit-produto-estoque-btn").forEach((btn) =>
+    btn.addEventListener("click", () => openProdutoEstoqueDialog(produtos.find((p) => p.id === btn.dataset.id)))
+  );
+}
+
+function openProdutoEstoqueDialog(produto) {
+  produtoEstoqueForm.reset();
+  produtoEstoqueError.hidden = true;
+  produtoEstoqueForm.dataset.id = produto ? produto.id : "";
+  produtoEstoqueDialogTitle.textContent = produto ? "Editar produto" : "Novo produto";
+  deleteProdutoEstoqueBtn.hidden = !produto;
+
+  populateMaterialSelect(produtoEstoqueMaterialSelect, produto?.material_id);
+
+  if (produto) {
+    for (const [key, value] of Object.entries(produto)) {
+      const field = produtoEstoqueForm.elements.namedItem(key);
+      if (field && value !== null && value !== undefined) field.value = value;
+    }
+  }
+  produtoEstoqueDialog.showModal();
+}
+
+async function handleSaveProdutoEstoque(e) {
+  e.preventDefault();
+  produtoEstoqueError.hidden = true;
+
+  const id = produtoEstoqueForm.dataset.id;
+  const fd = new FormData(produtoEstoqueForm);
+  const nome = fd.get("nome").trim();
+  if (!nome) {
+    produtoEstoqueError.textContent = "Informe o nome do produto.";
+    produtoEstoqueError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    nome,
+    cor: fd.get("cor").trim() || null,
+    material_id: fd.get("material_id") || null,
+    peso_gramas: fd.get("peso_gramas") ? Number(fd.get("peso_gramas")) : null,
+    tempo_estimado_horas: fd.get("tempo_estimado_horas") ? Number(fd.get("tempo_estimado_horas")) : null,
+    mao_obra_horas: fd.get("mao_obra_horas") ? Number(fd.get("mao_obra_horas")) : null,
+    preco_venda: fd.get("preco_venda") ? Number(fd.get("preco_venda")) : null,
+    estoque_minimo: Number(fd.get("estoque_minimo")) || 0,
+    descricao: fd.get("descricao").trim() || null,
+  };
+
+  let error;
+  if (id) ({ error } = await db.from("produtos").update(payload).eq("id", id));
+  else ({ error } = await db.from("produtos").insert(payload));
+  if (error) {
+    produtoEstoqueError.textContent = "Erro ao salvar: " + error.message;
+    produtoEstoqueError.hidden = false;
+    return;
+  }
+
+  produtoEstoqueDialog.close();
+  await loadData();
+}
+
+async function handleDeleteProdutoEstoque() {
+  const id = produtoEstoqueForm.dataset.id;
+  if (!id) return;
+  const temHistorico = movimentosProduto.some((m) => m.produto_id === id);
+  if (temHistorico) {
+    alert("Esse produto já tem movimentações de estoque registradas — não dá pra excluir.");
+    return;
+  }
+  if (!confirm("Excluir este produto?")) return;
+  const { error } = await db.from("produtos").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+  produtoEstoqueDialog.close();
+  await loadData();
+}
+
+function populateMovProdutoFiltroProduto() {
+  const selecionado = movProdutoFiltroProduto.value;
+  movProdutoFiltroProduto.innerHTML =
+    '<option value="">Todos os produtos</option>' + produtos.map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
+  movProdutoFiltroProduto.value = selecionado;
+}
+
+function renderMovimentosProdutoList() {
+  const filtroProduto = movProdutoFiltroProduto.value;
+  const filtroTipo = movProdutoFiltroTipo.value;
+
+  let lista = movimentosProduto;
+  if (filtroProduto) lista = lista.filter((m) => m.produto_id === filtroProduto);
+  if (filtroTipo) lista = lista.filter((m) => m.tipo === filtroTipo);
+
+  if (lista.length === 0) {
+    movimentosProdutoListEl.innerHTML = `<p class="column-empty">Nenhuma movimentação encontrada.</p>`;
+    return;
+  }
+
+  let html = `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
+    <th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Motivo</th>
+  </tr></thead><tbody>`;
+  for (const m of lista) {
+    const produto = produtos.find((p) => p.id === m.produto_id);
+    const sinal = Number(m.quantidade) >= 0 ? "+ " : "";
+    html += `<tr>
+      <td>${formatDate(m.data_movimento)}</td>
+      <td>${escapeHtml(produto?.nome || "—")}</td>
+      <td>${TIPO_MOVIMENTO_PRODUTO_LABEL[m.tipo] || m.tipo}</td>
+      <td>${sinal}${m.quantidade} un</td>
+      <td>${escapeHtml(m.motivo || "—")}</td>
+    </tr>`;
+  }
+  html += `</tbody></table></div>`;
+  movimentosProdutoListEl.innerHTML = html;
+}
+
+function openMovimentoProdutoDialog(produtoIdPreSelecionado) {
+  movimentoProdutoForm.reset();
+  movimentoProdutoError.hidden = true;
+  movimentoProdutoProdutoSelect.innerHTML = produtos.map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
+  if (produtoIdPreSelecionado) movimentoProdutoProdutoSelect.value = produtoIdPreSelecionado;
+  atualizarFormularioMovimentoProduto();
+  movimentoProdutoDialog.showModal();
+}
+
+function atualizarFormularioMovimentoProduto() {
+  const tipo = movimentoProdutoTipoSelect.value;
+  const rotulos = {
+    producao: "unidades produzidas",
+    venda: "unidades vendidas",
+    perda: "unidades perdidas",
+    ajuste: "— contagem física: quantidade REAL que tem no estoque agora, não a diferença",
+  };
+  movimentoProdutoQuantidadeAjuda.textContent = rotulos[tipo] || "unidades";
+}
+
+async function handleSaveMovimentoProduto(e) {
+  e.preventDefault();
+  movimentoProdutoError.hidden = true;
+
+  const fd = new FormData(movimentoProdutoForm);
+  const tipo = fd.get("tipo");
+  const produtoId = fd.get("produto_id");
+  const motivo = fd.get("motivo").trim() || null;
+  const qtd = Number(fd.get("quantidade"));
+  const produto = produtos.find((p) => p.id === produtoId);
+
+  if (!produto) {
+    movimentoProdutoError.textContent = "Escolha um produto.";
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+  if (fd.get("quantidade") === "" || isNaN(qtd) || qtd < 0) {
+    movimentoProdutoError.textContent = "Informe a quantidade.";
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+  if (tipo !== "ajuste" && qtd === 0) {
+    movimentoProdutoError.textContent = "Informe uma quantidade maior que zero.";
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+  if ((tipo === "ajuste" || tipo === "perda") && !motivo) {
+    movimentoProdutoError.textContent = "Informe o motivo.";
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+
+  const saldoAtual = Number(produto.quantidade_estoque) || 0;
+  // Ajuste é sempre a contagem física REAL (absoluta), não uma diferença — igual ao "peso
+  // restante" do rolo de filamento, é mais natural digitar "quanto tem" do que calcular "quanto
+  // mudou" de cabeça.
+  const quantidadeEfeito = tipo === "producao" ? qtd : tipo === "ajuste" ? qtd - saldoAtual : -qtd;
+  const novoSaldo = saldoAtual + quantidadeEfeito;
+
+  if (novoSaldo < 0) {
+    movimentoProdutoError.textContent = `Saldo insuficiente — disponível: ${saldoAtual} un.`;
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+
+  const { error } = await db.from("movimentos_produto").insert({
+    produto_id: produtoId,
+    tipo,
+    quantidade: quantidadeEfeito,
+    motivo,
+    data_movimento: new Date().toISOString().slice(0, 10),
+  });
+  if (error) {
+    movimentoProdutoError.textContent = "Erro ao salvar: " + error.message;
+    movimentoProdutoError.hidden = false;
+    return;
+  }
+
+  await db.from("produtos").update({ quantidade_estoque: novoSaldo }).eq("id", produtoId);
+
+  movimentoProdutoDialog.close();
   await loadData();
 }
