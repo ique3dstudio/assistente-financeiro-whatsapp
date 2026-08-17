@@ -42,8 +42,9 @@
     <header class="topbar">
       <h1><img src="/loja3d/icon.svg" class="brand-mark" alt="" /> IQUE 3D Studio</h1>
       <nav class="tabs">
+        <button type="button" class="tab-btn active" data-tab="inicio">Início</button>
         <button type="button" class="tab-btn" data-tab="calculadora">Calculadora</button>
-        <button type="button" class="tab-btn active" data-tab="quadro">Quadro</button>
+        <button type="button" class="tab-btn" data-tab="quadro">Quadro</button>
         <button type="button" class="tab-btn" data-tab="painel">Painel</button>
         <button type="button" class="tab-btn" data-tab="financeiro">Financeiro</button>
       </nav>
@@ -58,6 +59,20 @@
         <button id="logout-btn" class="ghost" type="button">Sair</button>
       </div>
     </header>
+
+    <main id="tab-inicio" class="tab-panel">
+      <div id="inicio-dashboard" class="dashboard"></div>
+      <div class="inicio-charts">
+        <div class="chart-card">
+          <h3>Faturamento mensal <span class="subtitle">últimos 6 meses</span></h3>
+          <div class="chart-card-body"><canvas id="chart-faturamento-mensal"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Despesas por categoria <span class="subtitle">mês atual</span></h3>
+          <div class="chart-card-body"><canvas id="chart-despesas-categoria"></canvas></div>
+        </div>
+      </div>
+    </main>
 
     <main id="tab-calculadora" class="tab-panel" hidden>
       <div class="calculadora-livre">
@@ -122,7 +137,7 @@
       </div>
     </main>
 
-    <main id="tab-quadro" class="tab-panel">
+    <main id="tab-quadro" class="tab-panel" hidden>
       <div id="board" class="board" aria-live="polite"></div>
     </main>
 
@@ -803,6 +818,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="/loja3d/config.js"></script>
   <script src="/loja3d/app.js"></script>
 </body>

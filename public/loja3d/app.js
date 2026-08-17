@@ -58,6 +58,9 @@ const loginRememberCheckbox = document.getElementById("login-remember");
 const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
+const inicioDashboardEl = document.getElementById("inicio-dashboard");
+const chartFaturamentoCanvas = document.getElementById("chart-faturamento-mensal");
+const chartDespesasCanvas = document.getElementById("chart-despesas-categoria");
 const financeiroEl = document.getElementById("financeiro");
 const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
 const indicadoresDashboardEl = document.getElementById("indicadores-dashboard");
@@ -209,6 +212,7 @@ function alternarTema() {
   document.documentElement.dataset.theme = novo;
   localStorage.setItem("loja3d-theme", novo);
   atualizarTextoTema();
+  if (!document.getElementById("tab-inicio").hidden) renderInicio();
 }
 
 init();
@@ -344,6 +348,7 @@ async function init() {
       document.querySelectorAll(".tab-panel").forEach((panel) => {
         panel.hidden = panel.id !== `tab-${btn.dataset.tab}`;
       });
+      if (btn.dataset.tab === "inicio") renderInicio();
       if (btn.dataset.tab === "painel") renderDashboard();
       if (btn.dataset.tab === "financeiro") renderFinanceiroAtivo();
       if (btn.dataset.tab === "calculadora") {
@@ -460,6 +465,7 @@ async function loadData() {
   atualizarBrandMarks();
 
   renderBoard();
+  if (!document.getElementById("tab-inicio").hidden) renderInicio();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
   if (!document.getElementById("tab-financeiro").hidden) renderFinanceiroAtivo();
   if (!document.getElementById("tab-calculadora").hidden) {
@@ -778,6 +784,160 @@ function renderDashboard() {
   }
 
   dashboard.innerHTML = html;
+}
+
+/* ---------- Início (home) ---------- */
+// Painel de abertura do app: números que respondem "como estamos" numa olhada — caixa, venda do
+// mês, a receber — mais dois gráficos (entra x sai) pra dar contexto histórico sem precisar
+// entrar no Financeiro. Os dados vêm dos mesmos `movimentos`/`pedidos` já carregados por
+// loadData(), sem nenhuma consulta extra.
+
+let chartFaturamentoInstance = null;
+let chartDespesasInstance = null;
+
+function corTema(nomeVar) {
+  return getComputedStyle(document.documentElement).getPropertyValue(nomeVar).trim();
+}
+
+function ultimosNMeses(n) {
+  const meses = [];
+  const hoje = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const rotulo = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    meses.push({ chave: d.toISOString().slice(0, 7), rotulo: rotulo.charAt(0).toUpperCase() + rotulo.slice(1) });
+  }
+  return meses;
+}
+
+// "Receita de verdade": entrada já realizada, nunca conta transferência entre contas próprias
+// como se fosse venda — mesma regra usada no cálculo do teto MEI.
+function ehMovimentoDeReceita(m) {
+  return m.tipo === "entrada" && m.status === "realizado" && m.origem !== "transferencia";
+}
+function ehMovimentoDeDespesa(m) {
+  return m.tipo === "saida" && m.status === "realizado" && m.origem !== "transferencia";
+}
+
+function renderInicio() {
+  const saldos = calcularSaldosContas();
+  const caixaTotal = Object.values(saldos).reduce((s, v) => s + v, 0);
+
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const faturamentoMes = movimentos
+    .filter((m) => ehMovimentoDeReceita(m) && (m.data_movimento || "").startsWith(mesAtual))
+    .reduce((s, m) => s + Number(m.valor), 0);
+
+  const vendasMes = pedidos.filter((p) => (p.created_at || "").startsWith(mesAtual)).length;
+  const ticketMedio = vendasMes > 0 ? faturamentoMes / vendasMes : 0;
+
+  const aReceber = movimentos
+    .filter((m) => m.status === "previsto" && m.tipo === "entrada")
+    .reduce((s, m) => s + Number(m.valor), 0);
+
+  const stats = [
+    { label: "Caixa total", value: formatMoney(caixaTotal) },
+    { label: "Faturamento do mês", value: formatMoney(faturamentoMes) },
+    { label: "Vendas do mês", value: vendasMes },
+    { label: "Ticket médio do mês", value: formatMoney(ticketMedio) },
+    { label: "A receber", value: formatMoney(aReceber) },
+  ];
+
+  inicioDashboardEl.innerHTML = stats
+    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
+    .join("");
+
+  renderChartFaturamentoMensal();
+  renderChartDespesasCategoria(mesAtual);
+}
+
+function renderChartFaturamentoMensal() {
+  if (typeof Chart === "undefined" || !chartFaturamentoCanvas) return;
+
+  const meses = ultimosNMeses(6);
+  const valores = meses.map((m) =>
+    movimentos
+      .filter((mv) => ehMovimentoDeReceita(mv) && (mv.data_movimento || "").startsWith(m.chave))
+      .reduce((s, mv) => s + Number(mv.valor), 0)
+  );
+
+  const corTexto = corTema("--muted");
+  const corGrade = corTema("--border");
+
+  chartFaturamentoInstance?.destroy();
+  chartFaturamentoInstance = new Chart(chartFaturamentoCanvas, {
+    type: "bar",
+    data: {
+      labels: meses.map((m) => m.rotulo),
+      datasets: [{ label: "Faturamento", data: valores, backgroundColor: corTema("--chart-receita"), borderRadius: 4, maxBarThickness: 28 }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.parsed.y) } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: corTexto } },
+        y: { beginAtZero: true, grid: { color: corGrade }, ticks: { color: corTexto, callback: (v) => formatMoney(v) } },
+      },
+    },
+  });
+}
+
+function renderChartDespesasCategoria(mesAtual) {
+  if (typeof Chart === "undefined" || !chartDespesasCanvas) return;
+
+  const porCategoria = new Map();
+  for (const m of movimentos) {
+    if (!ehMovimentoDeDespesa(m) || !(m.data_movimento || "").startsWith(mesAtual)) continue;
+    const nome = categoriasFinanceiras.find((c) => c.id === m.categoria_id)?.nome || "Sem categoria";
+    porCategoria.set(nome, (porCategoria.get(nome) || 0) + Number(m.valor));
+  }
+
+  const TOP = 5;
+  const ranking = [...porCategoria.entries()].sort((a, b) => b[1] - a[1]);
+  const principais = ranking.slice(0, TOP);
+  const restante = ranking.slice(TOP).reduce((s, [, v]) => s + v, 0);
+  if (restante > 0) principais.push(["Outras", restante]);
+
+  chartDespesasInstance?.destroy();
+  chartDespesasCanvas.parentElement.querySelector(".chart-empty")?.remove();
+
+  if (principais.length === 0) {
+    chartDespesasCanvas.style.display = "none";
+    const vazio = document.createElement("p");
+    vazio.className = "chart-empty";
+    vazio.textContent = "Nenhuma despesa registrada este mês ainda.";
+    chartDespesasCanvas.after(vazio);
+    return;
+  }
+  chartDespesasCanvas.style.display = "";
+
+  const corTexto = corTema("--muted");
+  const corGrade = corTema("--border");
+
+  chartDespesasInstance = new Chart(chartDespesasCanvas, {
+    type: "bar",
+    data: {
+      labels: principais.map(([nome]) => nome),
+      datasets: [{ label: "Despesas", data: principais.map(([, v]) => v), backgroundColor: corTema("--chart-despesa"), borderRadius: 4, maxBarThickness: 22 }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.parsed.x) } },
+      },
+      scales: {
+        x: { beginAtZero: true, grid: { color: corGrade }, ticks: { color: corTexto, callback: (v) => formatMoney(v) } },
+        y: { grid: { display: false }, ticks: { color: corTexto } },
+      },
+    },
+  });
 }
 
 /* ---------- Financeiro: ledger central (movimentos), contas e categorias ---------- */
