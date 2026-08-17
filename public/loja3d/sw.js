@@ -1,4 +1,4 @@
-const CACHE = "pedidos3d-shell-v3";
+const CACHE = "pedidos3d-shell-v4";
 const SHELL_FILES = [
   "/loja3d/",
   "/loja3d/index.html",

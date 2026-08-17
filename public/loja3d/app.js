@@ -320,6 +320,16 @@ async function init() {
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/loja3d/sw.js").catch(() => {});
+    // Quando uma versão nova assume o controle da página (deploy novo chegou), recarrega uma
+    // vez — sem isso, a aba já aberta podia ficar com um HTML antigo servido junto de um app.js
+    // novo (ou vice-versa), e qualquer coisa que dependesse de um elemento que só existe na
+    // versão nova (um dialog, um botão) quebrava silenciosamente sem erro visível pro usuário.
+    let jaRecarregouPorAtualizacao = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (jaRecarregouPorAtualizacao) return;
+      jaRecarregouPorAtualizacao = true;
+      window.location.reload();
+    });
   }
 
   atualizarTextoTema();
@@ -350,48 +360,60 @@ async function init() {
   closePixBtn.addEventListener("click", () => pixDialog.close());
   pixCopiarBtn.addEventListener("click", copiarPayloadPix);
 
-  novoInsumoBtn.addEventListener("click", () => openInsumoDialog(null));
-  cancelInsumoBtn.addEventListener("click", () => insumoDialog.close());
-  closeInsumoBtn.addEventListener("click", () => insumoDialog.close());
-  insumoForm.addEventListener("submit", handleSaveInsumo);
-  deleteInsumoBtn.addEventListener("click", handleDeleteInsumo);
-  insumoCategoriaSelect.addEventListener("change", atualizarCamposFilamentoInsumo);
-  insumoBuscaInput.addEventListener("input", renderInsumosList);
-  insumoFiltroCategoria.addEventListener("change", renderInsumosList);
+  // Isolado em try/catch: se algum elemento novo do Estoque não existir por algum motivo (ex:
+  // HTML e JS temporariamente fora de sincronia num recarregamento no meio de um deploy), o erro
+  // fica só aqui — não pode derrubar a montagem dos botões de Configurações e Pedido logo abaixo,
+  // que são muito mais antigos e não têm nada a ver com Estoque.
+  try {
+    novoInsumoBtn.addEventListener("click", () => openInsumoDialog(null));
+    cancelInsumoBtn.addEventListener("click", () => insumoDialog.close());
+    closeInsumoBtn.addEventListener("click", () => insumoDialog.close());
+    insumoForm.addEventListener("submit", handleSaveInsumo);
+    deleteInsumoBtn.addEventListener("click", handleDeleteInsumo);
+    insumoCategoriaSelect.addEventListener("change", atualizarCamposFilamentoInsumo);
+    insumoBuscaInput.addEventListener("input", renderInsumosList);
+    insumoFiltroCategoria.addEventListener("change", renderInsumosList);
 
-  novoRoloBtn.addEventListener("click", openRoloDialog);
-  cancelRoloBtn.addEventListener("click", () => roloDialog.close());
-  closeRoloBtn.addEventListener("click", () => roloDialog.close());
-  roloForm.addEventListener("submit", handleSaveRolo);
-  roloBuscaInput.addEventListener("input", renderRolosList);
-  roloFiltroStatus.addEventListener("change", renderRolosList);
+    novoRoloBtn.addEventListener("click", openRoloDialog);
+    cancelRoloBtn.addEventListener("click", () => roloDialog.close());
+    closeRoloBtn.addEventListener("click", () => roloDialog.close());
+    roloForm.addEventListener("submit", handleSaveRolo);
+    roloBuscaInput.addEventListener("input", renderRolosList);
+    roloFiltroStatus.addEventListener("change", renderRolosList);
 
-  novoMovimentoEstoqueBtn.addEventListener("click", () => openMovimentoEstoqueDialog());
-  cancelMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
-  closeMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
-  movimentoEstoqueForm.addEventListener("submit", handleSaveMovimentoEstoque);
-  movimentoEstoqueTipoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
-  movimentoEstoqueInsumoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
-  movimentoEstoqueRoloSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
-  ajusteModoSelect.addEventListener("change", atualizarPreviewAjuste);
-  ajusteValorInput.addEventListener("input", atualizarPreviewAjuste);
-  movEstoqueFiltroInsumo.addEventListener("change", renderMovimentosEstoqueList);
-  movEstoqueFiltroTipo.addEventListener("change", renderMovimentosEstoqueList);
+    novoMovimentoEstoqueBtn.addEventListener("click", () => openMovimentoEstoqueDialog());
+    cancelMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
+    closeMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
+    movimentoEstoqueForm.addEventListener("submit", handleSaveMovimentoEstoque);
+    movimentoEstoqueTipoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+    movimentoEstoqueInsumoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+    movimentoEstoqueRoloSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+    ajusteModoSelect.addEventListener("change", atualizarPreviewAjuste);
+    ajusteValorInput.addEventListener("input", atualizarPreviewAjuste);
+    movEstoqueFiltroInsumo.addEventListener("change", renderMovimentosEstoqueList);
+    movEstoqueFiltroTipo.addEventListener("change", renderMovimentosEstoqueList);
+  } catch (err) {
+    console.error("Falha ao montar os botões de Estoque (matéria-prima):", err);
+  }
 
-  novoProdutoEstoqueBtn.addEventListener("click", () => openProdutoEstoqueDialog(null));
-  cancelProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
-  closeProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
-  produtoEstoqueForm.addEventListener("submit", handleSaveProdutoEstoque);
-  deleteProdutoEstoqueBtn.addEventListener("click", handleDeleteProdutoEstoque);
-  produtoEstoqueBuscaInput.addEventListener("input", renderProdutosEstoqueList);
+  try {
+    novoProdutoEstoqueBtn.addEventListener("click", () => openProdutoEstoqueDialog(null));
+    cancelProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
+    closeProdutoEstoqueBtn.addEventListener("click", () => produtoEstoqueDialog.close());
+    produtoEstoqueForm.addEventListener("submit", handleSaveProdutoEstoque);
+    deleteProdutoEstoqueBtn.addEventListener("click", handleDeleteProdutoEstoque);
+    produtoEstoqueBuscaInput.addEventListener("input", renderProdutosEstoqueList);
 
-  novoMovimentoProdutoBtn.addEventListener("click", () => openMovimentoProdutoDialog());
-  cancelMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
-  closeMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
-  movimentoProdutoForm.addEventListener("submit", handleSaveMovimentoProduto);
-  movimentoProdutoTipoSelect.addEventListener("change", atualizarFormularioMovimentoProduto);
-  movProdutoFiltroProduto.addEventListener("change", renderMovimentosProdutoList);
-  movProdutoFiltroTipo.addEventListener("change", renderMovimentosProdutoList);
+    novoMovimentoProdutoBtn.addEventListener("click", () => openMovimentoProdutoDialog());
+    cancelMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
+    closeMovimentoProdutoBtn.addEventListener("click", () => movimentoProdutoDialog.close());
+    movimentoProdutoForm.addEventListener("submit", handleSaveMovimentoProduto);
+    movimentoProdutoTipoSelect.addEventListener("change", atualizarFormularioMovimentoProduto);
+    movProdutoFiltroProduto.addEventListener("change", renderMovimentosProdutoList);
+    movProdutoFiltroTipo.addEventListener("change", renderMovimentosProdutoList);
+  } catch (err) {
+    console.error("Falha ao montar os botões de Estoque (produto acabado):", err);
+  }
 
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
@@ -1022,9 +1044,17 @@ function ehMovimentoDeDespesa(m) {
   return m.tipo === "saida" && m.status === "realizado" && m.origem !== "transferencia";
 }
 
+// Quanto entrou menos quanto saiu, desde sempre — diferente do saldo em conta (que depende do
+// saldo inicial cadastrado), isso é o resultado líquido puro do negócio. Naturalmente fica
+// negativo no começo (equipamento e insumos custam mais do que as primeiras vendas trazem).
+function calcularFluxoDeCaixa() {
+  const entradas = movimentos.filter(ehMovimentoDeReceita).reduce((s, m) => s + Number(m.valor), 0);
+  const saidas = movimentos.filter(ehMovimentoDeDespesa).reduce((s, m) => s + Number(m.valor), 0);
+  return entradas - saidas;
+}
+
 function renderInicio() {
-  const saldos = calcularSaldosContas();
-  const caixaTotal = Object.values(saldos).reduce((s, v) => s + v, 0);
+  const fluxoDeCaixa = calcularFluxoDeCaixa();
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const faturamentoMes = movimentos
@@ -1039,7 +1069,7 @@ function renderInicio() {
     .reduce((s, m) => s + Number(m.valor), 0);
 
   const stats = [
-    { label: "Caixa total", value: formatMoney(caixaTotal) },
+    { label: "Fluxo de caixa", value: formatMoney(fluxoDeCaixa) },
     { label: "Faturamento recebido no mês", value: formatMoney(faturamentoMes) },
     { label: "Vendas do mês", value: vendasMes },
     { label: "Ticket médio do mês", value: formatMoney(ticketMedio) },
