@@ -643,16 +643,20 @@ button.chip.active {
    Importante: tudo isso só pode valer para dialog[open] — um <dialog> fechado precisa
    continuar com o "display: none" padrão do navegador, senão ele passa a ocupar espaço
    normal na página (aparecendo lá embaixo, fora do fluxo) mesmo "fechado". */
+/* Sem position/inset/margin explícitos: todo <dialog> aqui abre com showModal(), que já entra
+   no "top layer" do navegador com centralização nativa (position: fixed + margin: auto do
+   próprio UA stylesheet) — declarar de novo por cima é redundante e, em alguns motores (Safari
+   iOS incluído), podia colidir com o max-height/max-width padrão do navegador e encolher o
+   dialog pra uma fresta minúscula em vez de ocupar a tela. Só o que realmente é customização
+   (cor, borda, tamanho, layout interno) fica declarado aqui. */
 dialog[open] {
-  position: fixed;
-  inset: 0;
-  margin: auto;
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0;
   width: min(640px, 92vw);
+  max-width: min(640px, 92vw);
   max-height: 88vh;
   overflow: hidden;
   display: flex;
