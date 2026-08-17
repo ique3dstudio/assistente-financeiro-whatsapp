@@ -47,6 +47,7 @@
         <button type="button" class="tab-btn" data-tab="quadro">Quadro</button>
         <button type="button" class="tab-btn" data-tab="painel">Painel</button>
         <button type="button" class="tab-btn" data-tab="financeiro">Financeiro</button>
+        <button type="button" class="tab-btn" data-tab="estoque">Estoque</button>
       </nav>
       <div class="topbar-actions">
         <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
@@ -189,6 +190,63 @@
       <div id="subtab-indicadores" class="financeiro-subpanel" hidden>
         <div id="indicadores-dashboard" class="dashboard"></div>
         <div id="indicadores-tabelas" class="indicadores-tabelas"></div>
+      </div>
+    </main>
+
+    <main id="tab-estoque" class="tab-panel" hidden>
+      <nav class="subtabs">
+        <button type="button" class="estoque-subtab-btn active" data-subtab-estoque="insumos">Insumos</button>
+        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="rolos">Rolos</button>
+        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="movimentacoes">Movimentações</button>
+      </nav>
+
+      <div id="subtab-estoque-insumos" class="estoque-subpanel">
+        <div class="financeiro-toolbar">
+          <input id="insumo-busca" type="search" placeholder="Buscar insumo…" />
+          <select id="insumo-filtro-categoria">
+            <option value="">Todas as categorias</option>
+            <option value="filamento">Filamento</option>
+            <option value="resina">Resina</option>
+            <option value="consumivel_pos_processo">Consumível de pós-processo</option>
+            <option value="embalagem">Embalagem</option>
+            <option value="peca_reposicao">Peça de reposição</option>
+          </select>
+          <span class="spacer"></span>
+          <button type="button" id="novo-insumo-btn" class="primary">+ Novo insumo</button>
+        </div>
+        <ul id="insumos-list" class="materiais-list"></ul>
+      </div>
+
+      <div id="subtab-estoque-rolos" class="estoque-subpanel" hidden>
+        <div class="financeiro-toolbar">
+          <input id="rolo-busca" type="search" placeholder="Buscar por ID do rolo, marca, cor…" />
+          <select id="rolo-filtro-status">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativo</option>
+            <option value="quase_vazio">Quase vazio</option>
+            <option value="vazio">Vazio</option>
+            <option value="descartado">Descartado</option>
+          </select>
+          <span class="spacer"></span>
+          <button type="button" id="novo-rolo-btn" class="primary">+ Novo rolo (compra)</button>
+        </div>
+        <ul id="rolos-list" class="materiais-list"></ul>
+      </div>
+
+      <div id="subtab-estoque-movimentacoes" class="estoque-subpanel" hidden>
+        <div class="financeiro-toolbar">
+          <select id="mov-estoque-filtro-insumo"><option value="">Todos os insumos</option></select>
+          <select id="mov-estoque-filtro-tipo">
+            <option value="">Todos os tipos</option>
+            <option value="entrada_compra">Entrada (compra)</option>
+            <option value="saida_job">Saída (job)</option>
+            <option value="saida_manual">Saída manual</option>
+            <option value="ajuste">Ajuste</option>
+          </select>
+          <span class="spacer"></span>
+          <button type="button" id="novo-movimento-estoque-btn" class="primary">+ Movimento</button>
+        </div>
+        <div id="movimentos-estoque-list"></div>
       </div>
     </main>
   </section>
@@ -717,6 +775,174 @@
       </div>
       <p id="pix-error" class="error" hidden></p>
     </div>
+    </div>
+  </dialog>
+
+  <!-- Modal de insumo (cadastro do catálogo de estoque) -->
+  <dialog id="insumo-dialog">
+    <button type="button" id="close-insumo-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="insumo-form">
+      <h2 id="insumo-dialog-title">Novo insumo</h2>
+      <div class="grid">
+        <label>
+          Nome *
+          <input name="nome" required maxlength="120" placeholder="Ex: PLA Preto Voolt 1kg" />
+        </label>
+        <label>
+          Categoria *
+          <select name="categoria" id="insumo-categoria-select" required>
+            <option value="filamento">Filamento</option>
+            <option value="resina">Resina</option>
+            <option value="consumivel_pos_processo">Consumível de pós-processo</option>
+            <option value="embalagem">Embalagem</option>
+            <option value="peca_reposicao">Peça de reposição</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid">
+        <label>
+          Unidade de medida *
+          <select name="unidade_medida" id="insumo-unidade-select" required>
+            <option value="g">Gramas (g)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="l">Litros (L)</option>
+            <option value="unidade">Unidade</option>
+          </select>
+        </label>
+        <label>
+          SKU <span class="subtitle-inline">(gerado automático se deixar em branco)</span>
+          <input name="sku" maxlength="40" placeholder="Ex: FIL-PLA-PRETO-001" />
+        </label>
+      </div>
+
+      <fieldset id="insumo-filamento-fields">
+        <legend>Atributos do filamento</legend>
+        <div class="grid grid-4">
+          <label>Marca <input name="marca" maxlength="60" /></label>
+          <label>Linha <input name="linha" maxlength="60" /></label>
+          <label>Material <input name="material" maxlength="40" placeholder="PLA, PETG, ABS…" /></label>
+          <label>Cor <input name="cor" maxlength="40" /></label>
+        </div>
+        <div class="grid grid-4">
+          <label>Diâmetro (mm) <input name="diametro_mm" type="number" min="0" step="0.01" placeholder="1.75" /></label>
+          <label>Densidade (g/cm³) <input name="densidade" type="number" min="0" step="0.01" placeholder="1.24" /></label>
+          <label>Peso do rolo vazio (g) <input name="peso_rolo_vazio_g" type="number" min="0" step="1" placeholder="Ex: 140" /></label>
+        </div>
+      </fieldset>
+
+      <label>
+        Estoque mínimo <span class="subtitle-inline">(na unidade de medida escolhida)</span>
+        <input name="estoque_minimo" type="number" min="0" step="0.01" />
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" id="delete-insumo-btn" class="danger" hidden>Excluir insumo</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-insumo-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="insumo-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de rolo (= entrada de compra de filamento, cada rolo é um registro próprio) -->
+  <dialog id="rolo-dialog">
+    <button type="button" id="close-rolo-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="rolo-form">
+      <h2>Novo rolo (entrada de compra)</h2>
+      <p class="subtitle">Cada rolo comprado vira um registro próprio — não soma num saldo genérico do material.</p>
+      <div class="grid">
+        <label>
+          Insumo (filamento) *
+          <select name="insumo_id" id="rolo-insumo-select" required></select>
+        </label>
+        <label>
+          ID curto do rolo <span class="subtitle-inline">(4 caracteres — escreva no carretel)</span>
+          <input name="id_curto" id="rolo-id-curto-input" maxlength="4" placeholder="Gerado automaticamente" />
+        </label>
+      </div>
+      <div class="grid grid-4">
+        <label>Peso comprado (g) * <input name="peso_inicial_g" type="number" min="1" step="1" required /></label>
+        <label>Custo total da compra (R$) * <input name="custo_total" type="number" min="0" step="0.01" required /></label>
+        <label>Local de armazenagem <input name="local_armazenagem" maxlength="60" placeholder="Prateleira, dry box…" /></label>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="cancel-rolo-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="rolo-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
+  <!-- Modal de movimento de estoque (entrada sem rolo / saída manual / ajuste) -->
+  <dialog id="movimento-estoque-dialog">
+    <button type="button" id="close-movimento-estoque-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="movimento-estoque-form">
+      <h2>Movimento de estoque</h2>
+      <div class="grid">
+        <label>
+          Tipo *
+          <select name="tipo" id="movimento-estoque-tipo-select" required>
+            <option value="entrada_compra">Entrada (compra)</option>
+            <option value="saida_manual">Saída manual (uso interno, teste, amostra)</option>
+            <option value="ajuste">Ajuste de inventário</option>
+          </select>
+        </label>
+        <label>
+          Insumo *
+          <select name="insumo_id" id="movimento-estoque-insumo-select" required></select>
+        </label>
+      </div>
+      <label id="movimento-estoque-rolo-label">
+        Rolo <span class="subtitle-inline">(só se este insumo tiver rolos cadastrados)</span>
+        <select name="rolo_id" id="movimento-estoque-rolo-select"><option value="">— Sem rolo específico —</option></select>
+      </label>
+
+      <div id="movimento-estoque-quantidade-simples" class="grid">
+        <label>
+          Quantidade *
+          <input name="quantidade" id="movimento-estoque-quantidade-input" type="number" step="0.001" />
+        </label>
+        <label id="movimento-estoque-custo-label">
+          Custo unitário (R$)
+          <input name="custo_unitario" type="number" min="0" step="0.0001" />
+        </label>
+      </div>
+
+      <div id="movimento-estoque-ajuste-rolo" class="grid" hidden>
+        <label>
+          Como você mediu o peso restante?
+          <select id="ajuste-modo-select">
+            <option value="gramas">Digitar gramas restantes</option>
+            <option value="peso_bruto">Pesar rolo + filamento (desconta a tara automático)</option>
+            <option value="comprimento">Informar comprimento restante (metros)</option>
+          </select>
+        </label>
+        <label id="ajuste-valor-label">
+          Peso restante (g)
+          <input type="number" min="0" step="0.1" id="ajuste-valor-input" />
+        </label>
+      </div>
+      <p id="ajuste-preview" class="subtitle" hidden></p>
+
+      <label>
+        Motivo <span class="subtitle-inline">(obrigatório em ajuste)</span>
+        <input name="motivo" maxlength="200" placeholder="Ex: contagem física, uso em teste, amostra pro cliente" />
+      </label>
+
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="cancel-movimento-estoque-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="movimento-estoque-error" class="error" hidden></p>
+    </form>
     </div>
   </dialog>
 

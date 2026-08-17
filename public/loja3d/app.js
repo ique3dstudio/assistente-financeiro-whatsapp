@@ -44,6 +44,9 @@ let contasFinanceiras = [];
 let categoriasFinanceiras = [];
 let movimentos = [];
 let despesasFixas = [];
+let insumos = [];
+let rolos = [];
+let movimentosEstoque = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -126,6 +129,55 @@ const despesasFixasListEl = document.getElementById("despesas-fixas-list");
 const despesaFixaForm = document.getElementById("despesa-fixa-form");
 const despesaFixaCategoriaSelect = document.getElementById("despesa-fixa-categoria-select");
 const despesaFixaContaSelect = document.getElementById("despesa-fixa-conta-select");
+
+const estoqueSubtabButtons = document.querySelectorAll(".estoque-subtab-btn");
+const insumosListEl = document.getElementById("insumos-list");
+const insumoBuscaInput = document.getElementById("insumo-busca");
+const insumoFiltroCategoria = document.getElementById("insumo-filtro-categoria");
+const novoInsumoBtn = document.getElementById("novo-insumo-btn");
+const insumoDialog = document.getElementById("insumo-dialog");
+const insumoForm = document.getElementById("insumo-form");
+const insumoDialogTitle = document.getElementById("insumo-dialog-title");
+const insumoError = document.getElementById("insumo-error");
+const insumoCategoriaSelect = document.getElementById("insumo-categoria-select");
+const insumoFilamentoFields = document.getElementById("insumo-filamento-fields");
+const closeInsumoBtn = document.getElementById("close-insumo-btn");
+const cancelInsumoBtn = document.getElementById("cancel-insumo-btn");
+const deleteInsumoBtn = document.getElementById("delete-insumo-btn");
+
+const rolosListEl = document.getElementById("rolos-list");
+const roloBuscaInput = document.getElementById("rolo-busca");
+const roloFiltroStatus = document.getElementById("rolo-filtro-status");
+const novoRoloBtn = document.getElementById("novo-rolo-btn");
+const roloDialog = document.getElementById("rolo-dialog");
+const roloForm = document.getElementById("rolo-form");
+const roloError = document.getElementById("rolo-error");
+const roloInsumoSelect = document.getElementById("rolo-insumo-select");
+const roloIdCurtoInput = document.getElementById("rolo-id-curto-input");
+const closeRoloBtn = document.getElementById("close-rolo-btn");
+const cancelRoloBtn = document.getElementById("cancel-rolo-btn");
+
+const movimentosEstoqueListEl = document.getElementById("movimentos-estoque-list");
+const movEstoqueFiltroInsumo = document.getElementById("mov-estoque-filtro-insumo");
+const movEstoqueFiltroTipo = document.getElementById("mov-estoque-filtro-tipo");
+const novoMovimentoEstoqueBtn = document.getElementById("novo-movimento-estoque-btn");
+const movimentoEstoqueDialog = document.getElementById("movimento-estoque-dialog");
+const movimentoEstoqueForm = document.getElementById("movimento-estoque-form");
+const movimentoEstoqueError = document.getElementById("movimento-estoque-error");
+const movimentoEstoqueTipoSelect = document.getElementById("movimento-estoque-tipo-select");
+const movimentoEstoqueInsumoSelect = document.getElementById("movimento-estoque-insumo-select");
+const movimentoEstoqueRoloSelect = document.getElementById("movimento-estoque-rolo-select");
+const movimentoEstoqueRoloLabel = document.getElementById("movimento-estoque-rolo-label");
+const movimentoEstoqueQuantidadeSimples = document.getElementById("movimento-estoque-quantidade-simples");
+const movimentoEstoqueQuantidadeInput = document.getElementById("movimento-estoque-quantidade-input");
+const movimentoEstoqueCustoLabel = document.getElementById("movimento-estoque-custo-label");
+const movimentoEstoqueAjusteRolo = document.getElementById("movimento-estoque-ajuste-rolo");
+const ajusteModoSelect = document.getElementById("ajuste-modo-select");
+const ajusteValorInput = document.getElementById("ajuste-valor-input");
+const ajusteValorLabel = document.getElementById("ajuste-valor-label");
+const ajustePreview = document.getElementById("ajuste-preview");
+const closeMovimentoEstoqueBtn = document.getElementById("close-movimento-estoque-btn");
+const cancelMovimentoEstoqueBtn = document.getElementById("cancel-movimento-estoque-btn");
 
 const movimentoDialog = document.getElementById("movimento-dialog");
 const movimentoForm = document.getElementById("movimento-form");
@@ -269,6 +321,34 @@ async function init() {
   pixOrderBtn.addEventListener("click", openPixDialog);
   closePixBtn.addEventListener("click", () => pixDialog.close());
   pixCopiarBtn.addEventListener("click", copiarPayloadPix);
+
+  novoInsumoBtn.addEventListener("click", () => openInsumoDialog(null));
+  cancelInsumoBtn.addEventListener("click", () => insumoDialog.close());
+  closeInsumoBtn.addEventListener("click", () => insumoDialog.close());
+  insumoForm.addEventListener("submit", handleSaveInsumo);
+  deleteInsumoBtn.addEventListener("click", handleDeleteInsumo);
+  insumoCategoriaSelect.addEventListener("change", atualizarCamposFilamentoInsumo);
+  insumoBuscaInput.addEventListener("input", renderInsumosList);
+  insumoFiltroCategoria.addEventListener("change", renderInsumosList);
+
+  novoRoloBtn.addEventListener("click", openRoloDialog);
+  cancelRoloBtn.addEventListener("click", () => roloDialog.close());
+  closeRoloBtn.addEventListener("click", () => roloDialog.close());
+  roloForm.addEventListener("submit", handleSaveRolo);
+  roloBuscaInput.addEventListener("input", renderRolosList);
+  roloFiltroStatus.addEventListener("change", renderRolosList);
+
+  novoMovimentoEstoqueBtn.addEventListener("click", () => openMovimentoEstoqueDialog());
+  cancelMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
+  closeMovimentoEstoqueBtn.addEventListener("click", () => movimentoEstoqueDialog.close());
+  movimentoEstoqueForm.addEventListener("submit", handleSaveMovimentoEstoque);
+  movimentoEstoqueTipoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+  movimentoEstoqueInsumoSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+  movimentoEstoqueRoloSelect.addEventListener("change", atualizarFormularioMovimentoEstoque);
+  ajusteModoSelect.addEventListener("change", atualizarPreviewAjuste);
+  ajusteValorInput.addEventListener("input", atualizarPreviewAjuste);
+  movEstoqueFiltroInsumo.addEventListener("change", renderMovimentosEstoqueList);
+  movEstoqueFiltroTipo.addEventListener("change", renderMovimentosEstoqueList);
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
@@ -351,12 +431,24 @@ async function init() {
       if (btn.dataset.tab === "inicio") renderInicio();
       if (btn.dataset.tab === "painel") renderDashboard();
       if (btn.dataset.tab === "financeiro") renderFinanceiroAtivo();
+      if (btn.dataset.tab === "estoque") renderEstoqueAtivo();
       if (btn.dataset.tab === "calculadora") {
         populateMaterialSelect(calcMaterial);
         populateCanalSelect();
         renderCalculadoraLivre();
         renderHistoricoConsultas();
       }
+    })
+  );
+
+  estoqueSubtabButtons.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      estoqueSubtabButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".estoque-subpanel").forEach((panel) => {
+        panel.hidden = panel.id !== `subtab-estoque-${btn.dataset.subtabEstoque}`;
+      });
+      renderEstoqueAtivo();
     })
   );
 }
@@ -425,6 +517,9 @@ async function loadData() {
     { data: categoriasFinanceirasData, error: eCategorias },
     { data: movimentosData, error: eMov },
     { data: despesasFixasData, error: eDespesas },
+    { data: insumosData, error: eIns },
+    { data: rolosData, error: eRolos },
+    { data: movimentosEstoqueData, error: eMovEstoque },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -442,9 +537,12 @@ async function loadData() {
     db.from("categorias_financeiras").select("*").order("ordem"),
     db.from("movimentos").select("*").order("data_movimento", { ascending: false }),
     db.from("despesas_fixas").select("*").order("nome"),
+    db.from("insumos").select("*").order("nome"),
+    db.from("rolos").select("*").order("created_at", { ascending: false }),
+    db.from("movimentos_estoque").select("*").order("data_movimento", { ascending: false }),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas])
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas, eIns, eRolos, eMovEstoque])
     if (e) console.error(e);
 
   clientes = clientesData || [];
@@ -460,6 +558,9 @@ async function loadData() {
   categoriasFinanceiras = categoriasFinanceirasData || [];
   movimentos = movimentosData || [];
   despesasFixas = despesasFixasData || [];
+  insumos = insumosData || [];
+  rolos = rolosData || [];
+  movimentosEstoque = movimentosEstoqueData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
   atualizarBrandMarks();
@@ -468,6 +569,7 @@ async function loadData() {
   if (!document.getElementById("tab-inicio").hidden) renderInicio();
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
   if (!document.getElementById("tab-financeiro").hidden) renderFinanceiroAtivo();
+  if (!document.getElementById("tab-estoque").hidden) renderEstoqueAtivo();
   if (!document.getElementById("tab-calculadora").hidden) {
     const materialSelecionado = calcMaterial.value;
     populateMaterialSelect(calcMaterial, materialSelecionado);
@@ -3347,4 +3449,588 @@ async function copiarPayloadPix() {
   } catch {
     pixPayloadText.select();
   }
+}
+
+/* ---------- Estoque: insumos, rolos rastreáveis e ledger de movimentação ---------- */
+// Arquitetura: "insumos" é o catálogo (o que é), "rolos" são as instâncias físicas rastreáveis
+// de um insumo — hoje sobretudo filamento, cada rolo comprado vira uma linha com peso próprio —
+// e "movimentos_estoque" é o ledger: todo entra/sai é uma linha nova, nunca um saldo sobrescrito.
+// O saldo de um insumo nunca é um campo salvo — é sempre calculado na hora, somando os rolos
+// (quando existem) ou o ledger direto (pra insumos sem rastreio por rolo, tipo resina/embalagem).
+
+const CATEGORIA_INSUMO_LABEL = {
+  filamento: "Filamento",
+  resina: "Resina",
+  consumivel_pos_processo: "Consumível de pós-processo",
+  embalagem: "Embalagem",
+  peca_reposicao: "Peça de reposição",
+};
+
+const STATUS_ROLO_LABEL = { ativo: "Ativo", quase_vazio: "Quase vazio", vazio: "Vazio", descartado: "Descartado" };
+
+function renderEstoqueAtivo() {
+  const subtabAtiva = document.querySelector(".estoque-subtab-btn.active")?.dataset.subtabEstoque || "insumos";
+  if (subtabAtiva === "insumos") renderInsumosList();
+  if (subtabAtiva === "rolos") renderRolosList();
+  if (subtabAtiva === "movimentacoes") {
+    populateMovEstoqueFiltroInsumo();
+    renderMovimentosEstoqueList();
+  }
+}
+
+// Custo por grama/ml costuma ficar bem abaixo de 1 centavo de diferença perceptível —
+// formatMoney (2 casas) arredondaria demais aqui, então usa 4 casas pro custo unitário do insumo.
+function formatMoneyPreciso(v) {
+  if (v === null || v === undefined) return "R$ 0,0000";
+  return "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+
+function formatQuantidade(valor, unidade) {
+  const numero = Number(valor) || 0;
+  const rotulos = { g: "g", ml: "ml", l: "L", unidade: "un" };
+  return `${numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${rotulos[unidade] || unidade}`;
+}
+
+// Converte comprimento restante de filamento (metros) em gramas, usando o diâmetro e a
+// densidade do insumo — a mesma matemática do leitor de G-code (volume do cilindro × densidade).
+function pesoFilamentoPorComprimento(metros, diametroMm, densidade) {
+  const raioCm = diametroMm / 10 / 2;
+  const volumeCm3 = Math.PI * raioCm * raioCm * (metros * 100);
+  return volumeCm3 * densidade;
+}
+
+// Saldo nunca é um campo salvo: soma os rolos ativos/quase-vazios do insumo (quando ele tem
+// rastreio por rolo) ou soma direto o ledger (insumos sem rolo, ex: resina, embalagem).
+function calcularSaldoInsumo(insumoId) {
+  const rolosDoInsumo = rolos.filter((r) => r.insumo_id === insumoId && r.status !== "descartado");
+  if (rolosDoInsumo.length > 0) return rolosDoInsumo.reduce((s, r) => s + Number(r.peso_atual_g), 0);
+  return movimentosEstoque
+    .filter((m) => m.insumo_id === insumoId && !m.rolo_id)
+    .reduce((s, m) => s + Number(m.quantidade), 0);
+}
+
+// Custo médio ponderado: recalculado a cada compra, entre o saldo (e custo médio) que já
+// existia e a quantidade nova entrando a um custo unitário próprio.
+async function recalcularCustoMedioPonderado(insumo, quantidadeNova, custoUnitarioNovo) {
+  const saldoAtual = calcularSaldoInsumo(insumo.id);
+  const custoMedioAtual = Number(insumo.custo_medio_ponderado) || 0;
+  const novoSaldo = saldoAtual + quantidadeNova;
+  const novoCustoMedio = novoSaldo > 0 ? (saldoAtual * custoMedioAtual + quantidadeNova * custoUnitarioNovo) / novoSaldo : custoUnitarioNovo;
+  await db.from("insumos").update({ custo_medio_ponderado: novoCustoMedio }).eq("id", insumo.id);
+}
+
+// "Quase vazio" é sinalizado separado do estoque útil — abaixo de 10% do peso com que o rolo
+// começou. "Descartado" nunca é sobrescrito automaticamente, só por ação manual do usuário.
+function statusRoloPorPeso(pesoAtual, pesoInicial, statusAtual) {
+  if (statusAtual === "descartado") return "descartado";
+  if (pesoAtual <= 0.5) return "vazio";
+  if (pesoAtual <= Number(pesoInicial) * 0.1) return "quase_vazio";
+  return "ativo";
+}
+
+function gerarSkuInsumo(nome, categoria) {
+  const prefixos = { filamento: "FIL", resina: "RES", consumivel_pos_processo: "CPP", embalagem: "EMB", peca_reposicao: "PEC" };
+  const prefixo = prefixos[categoria] || "INS";
+  const slug = (nome || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .split("-")
+    .slice(0, 3)
+    .join("-");
+  const base = `${prefixo}-${slug || "ITEM"}`;
+  let sku = base;
+  let n = 1;
+  while (insumos.some((i) => i.sku === sku)) {
+    n++;
+    sku = `${base}-${n}`;
+  }
+  return sku;
+}
+
+// 4 caracteres pra escrever no carretel com caneta — sem O/0/I/1 pra não confundir na hora de ler.
+function gerarIdCurtoRolo() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let tentativa;
+  do {
+    tentativa = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  } while (rolos.some((r) => r.id_curto === tentativa));
+  return tentativa;
+}
+
+function renderInsumosList() {
+  const busca = insumoBuscaInput.value.trim().toLowerCase();
+  const categoriaFiltro = insumoFiltroCategoria.value;
+
+  const filtrados = insumos.filter((i) => {
+    if (categoriaFiltro && i.categoria !== categoriaFiltro) return false;
+    if (!busca) return true;
+    return [i.nome, i.sku, i.marca, i.material, i.cor].filter(Boolean).some((v) => v.toLowerCase().includes(busca));
+  });
+
+  if (filtrados.length === 0) {
+    insumosListEl.innerHTML = `<li class="column-empty">Nenhum insumo encontrado.</li>`;
+    return;
+  }
+
+  insumosListEl.innerHTML = filtrados
+    .map((i) => {
+      const saldo = calcularSaldoInsumo(i.id);
+      const abaixoDoMinimo = Number(i.estoque_minimo) > 0 && saldo <= Number(i.estoque_minimo);
+      const numRolos = rolos.filter((r) => r.insumo_id === i.id && r.status !== "descartado").length;
+      return `<li>
+        <span>
+          ${escapeHtml(i.nome)} · ${CATEGORIA_INSUMO_LABEL[i.categoria] || i.categoria}
+          — saldo: <strong class="${abaixoDoMinimo ? "estoque-baixo" : ""}">${formatQuantidade(saldo, i.unidade_medida)}</strong>${numRolos > 0 ? ` (${numRolos} rolo${numRolos > 1 ? "s" : ""})` : ""}
+          · custo médio: ${formatMoneyPreciso(i.custo_medio_ponderado)}/${i.unidade_medida}
+        </span>
+        <button type="button" data-id="${i.id}" class="edit-insumo-btn">✏️</button>
+      </li>`;
+    })
+    .join("");
+
+  insumosListEl.querySelectorAll(".edit-insumo-btn").forEach((btn) =>
+    btn.addEventListener("click", () => openInsumoDialog(insumos.find((i) => i.id === btn.dataset.id)))
+  );
+}
+
+function atualizarCamposFilamentoInsumo() {
+  insumoFilamentoFields.hidden = insumoCategoriaSelect.value !== "filamento";
+}
+
+function openInsumoDialog(insumo) {
+  insumoForm.reset();
+  insumoError.hidden = true;
+  insumoForm.dataset.id = insumo ? insumo.id : "";
+  insumoDialogTitle.textContent = insumo ? "Editar insumo" : "Novo insumo";
+  deleteInsumoBtn.hidden = !insumo;
+
+  if (insumo) {
+    for (const [key, value] of Object.entries(insumo)) {
+      const field = insumoForm.elements.namedItem(key);
+      if (field && value !== null && value !== undefined) field.value = value;
+    }
+  } else {
+    insumoCategoriaSelect.value = "filamento";
+  }
+  atualizarCamposFilamentoInsumo();
+  insumoDialog.showModal();
+}
+
+async function handleSaveInsumo(e) {
+  e.preventDefault();
+  insumoError.hidden = true;
+
+  const id = insumoForm.dataset.id;
+  const fd = new FormData(insumoForm);
+  const categoria = fd.get("categoria");
+  const nome = fd.get("nome").trim();
+  if (!nome) {
+    insumoError.textContent = "Informe o nome do insumo.";
+    insumoError.hidden = false;
+    return;
+  }
+
+  let sku = fd.get("sku").trim();
+  if (!sku) sku = gerarSkuInsumo(nome, categoria);
+  else if (insumos.some((i) => i.sku === sku && i.id !== id)) {
+    insumoError.textContent = "Já existe um insumo com esse SKU.";
+    insumoError.hidden = false;
+    return;
+  }
+
+  const payload = {
+    nome,
+    categoria,
+    unidade_medida: fd.get("unidade_medida"),
+    sku,
+    marca: fd.get("marca").trim() || null,
+    linha: fd.get("linha").trim() || null,
+    material: fd.get("material").trim() || null,
+    cor: fd.get("cor").trim() || null,
+    diametro_mm: fd.get("diametro_mm") ? Number(fd.get("diametro_mm")) : null,
+    densidade: fd.get("densidade") ? Number(fd.get("densidade")) : null,
+    peso_rolo_vazio_g: fd.get("peso_rolo_vazio_g") ? Number(fd.get("peso_rolo_vazio_g")) : null,
+    estoque_minimo: Number(fd.get("estoque_minimo")) || 0,
+  };
+
+  let error;
+  if (id) ({ error } = await db.from("insumos").update(payload).eq("id", id));
+  else ({ error } = await db.from("insumos").insert(payload));
+  if (error) {
+    insumoError.textContent = "Erro ao salvar: " + error.message;
+    insumoError.hidden = false;
+    return;
+  }
+
+  insumoDialog.close();
+  await loadData();
+}
+
+async function handleDeleteInsumo() {
+  const id = insumoForm.dataset.id;
+  if (!id) return;
+  const temHistorico = rolos.some((r) => r.insumo_id === id) || movimentosEstoque.some((m) => m.insumo_id === id);
+  if (temHistorico) {
+    alert("Esse insumo já tem rolos ou movimentações registradas — não dá pra excluir.");
+    return;
+  }
+  if (!confirm("Excluir este insumo?")) return;
+  const { error } = await db.from("insumos").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+  insumoDialog.close();
+  await loadData();
+}
+
+function renderRolosList() {
+  const busca = roloBuscaInput.value.trim().toLowerCase();
+  const statusFiltro = roloFiltroStatus.value;
+
+  const filtrados = rolos.filter((r) => {
+    if (statusFiltro && r.status !== statusFiltro) return false;
+    if (!busca) return true;
+    const insumo = insumos.find((i) => i.id === r.insumo_id);
+    return [r.id_curto, insumo?.marca, insumo?.material, insumo?.cor, insumo?.nome].filter(Boolean).some((v) => v.toLowerCase().includes(busca));
+  });
+
+  if (filtrados.length === 0) {
+    rolosListEl.innerHTML = `<li class="column-empty">Nenhum rolo encontrado.</li>`;
+    return;
+  }
+
+  rolosListEl.innerHTML = filtrados
+    .map((r) => {
+      const insumo = insumos.find((i) => i.id === r.insumo_id);
+      return `<li>
+        <span>
+          <strong>${escapeHtml(r.id_curto)}</strong> — ${escapeHtml(insumo?.nome || "insumo removido")}
+          · ${Number(r.peso_atual_g).toLocaleString("pt-BR")}g / ${Number(r.peso_inicial_g).toLocaleString("pt-BR")}g
+          · <span class="status-badge ${r.status}">${STATUS_ROLO_LABEL[r.status] || r.status}</span>
+          ${r.local_armazenagem ? ` · 📍 ${escapeHtml(r.local_armazenagem)}` : ""}
+        </span>
+      </li>`;
+    })
+    .join("");
+}
+
+// Popula o <select> de insumo do modal de rolo — só insumos de categoria filamento, já que é
+// a única categoria com rastreio por rolo hoje.
+function populateInsumoSelectFilamento(select, selecionado) {
+  const filamentos = insumos.filter((i) => i.categoria === "filamento");
+  select.innerHTML =
+    '<option value="">Selecione…</option>' + filamentos.map((i) => `<option value="${i.id}">${escapeHtml(i.nome)}</option>`).join("");
+  if (selecionado) select.value = selecionado;
+}
+
+function openRoloDialog() {
+  roloForm.reset();
+  roloError.hidden = true;
+  populateInsumoSelectFilamento(roloInsumoSelect, "");
+  roloIdCurtoInput.value = "";
+  roloDialog.showModal();
+}
+
+async function handleSaveRolo(e) {
+  e.preventDefault();
+  roloError.hidden = true;
+
+  const fd = new FormData(roloForm);
+  const insumoId = fd.get("insumo_id");
+  const pesoInicial = Number(fd.get("peso_inicial_g"));
+  const custoTotal = Number(fd.get("custo_total"));
+  const insumo = insumos.find((i) => i.id === insumoId);
+
+  if (!insumo) {
+    roloError.textContent = "Escolha um insumo.";
+    roloError.hidden = false;
+    return;
+  }
+  if (!pesoInicial || pesoInicial <= 0) {
+    roloError.textContent = "Informe o peso comprado.";
+    roloError.hidden = false;
+    return;
+  }
+
+  let idCurto = (fd.get("id_curto") || "").trim().toUpperCase();
+  if (!idCurto) idCurto = gerarIdCurtoRolo();
+  else if (rolos.some((r) => r.id_curto === idCurto)) {
+    roloError.textContent = "Já existe um rolo com esse ID curto.";
+    roloError.hidden = false;
+    return;
+  }
+
+  const custoUnitario = custoTotal / pesoInicial;
+  await recalcularCustoMedioPonderado(insumo, pesoInicial, custoUnitario);
+
+  const { data: novoRolo, error } = await db
+    .from("rolos")
+    .insert({
+      insumo_id: insumoId,
+      id_curto: idCurto,
+      peso_inicial_g: pesoInicial,
+      peso_atual_g: pesoInicial,
+      custo_total: custoTotal,
+      local_armazenagem: fd.get("local_armazenagem").trim() || null,
+      status: "ativo",
+    })
+    .select()
+    .single();
+  if (error) {
+    roloError.textContent = "Erro ao salvar: " + error.message;
+    roloError.hidden = false;
+    return;
+  }
+
+  await db.from("movimentos_estoque").insert({
+    insumo_id: insumoId,
+    rolo_id: novoRolo.id,
+    tipo: "entrada_compra",
+    quantidade: pesoInicial,
+    custo_unitario: custoUnitario,
+    data_movimento: new Date().toISOString().slice(0, 10),
+  });
+
+  roloDialog.close();
+  await loadData();
+}
+
+function populateMovEstoqueFiltroInsumo() {
+  const selecionado = movEstoqueFiltroInsumo.value;
+  movEstoqueFiltroInsumo.innerHTML =
+    '<option value="">Todos os insumos</option>' + insumos.map((i) => `<option value="${i.id}">${escapeHtml(i.nome)}</option>`).join("");
+  movEstoqueFiltroInsumo.value = selecionado;
+}
+
+const TIPO_MOVIMENTO_ESTOQUE_LABEL = {
+  entrada_compra: "Entrada (compra)",
+  saida_job: "Saída (job)",
+  saida_manual: "Saída manual",
+  ajuste: "Ajuste",
+};
+
+function renderMovimentosEstoqueList() {
+  const filtroInsumo = movEstoqueFiltroInsumo.value;
+  const filtroTipo = movEstoqueFiltroTipo.value;
+
+  let lista = movimentosEstoque;
+  if (filtroInsumo) lista = lista.filter((m) => m.insumo_id === filtroInsumo);
+  if (filtroTipo) lista = lista.filter((m) => m.tipo === filtroTipo);
+
+  if (lista.length === 0) {
+    movimentosEstoqueListEl.innerHTML = `<p class="column-empty">Nenhuma movimentação encontrada.</p>`;
+    return;
+  }
+
+  let html = `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
+    <th>Data</th><th>Insumo</th><th>Rolo</th><th>Tipo</th><th>Quantidade</th><th>Motivo</th>
+  </tr></thead><tbody>`;
+  for (const m of lista) {
+    const insumo = insumos.find((i) => i.id === m.insumo_id);
+    const rolo = m.rolo_id ? rolos.find((r) => r.id === m.rolo_id) : null;
+    const sinal = Number(m.quantidade) >= 0 ? "+ " : "− ";
+    html += `<tr>
+      <td>${formatDate(m.data_movimento)}</td>
+      <td>${escapeHtml(insumo?.nome || "—")}</td>
+      <td>${rolo ? escapeHtml(rolo.id_curto) : "—"}</td>
+      <td>${TIPO_MOVIMENTO_ESTOQUE_LABEL[m.tipo] || m.tipo}</td>
+      <td>${sinal}${formatQuantidade(Math.abs(Number(m.quantidade)), insumo?.unidade_medida)}</td>
+      <td>${escapeHtml(m.motivo || "—")}</td>
+    </tr>`;
+  }
+  html += `</tbody></table></div>`;
+  movimentosEstoqueListEl.innerHTML = html;
+}
+
+function populateRoloSelectParaMovimento(insumoId, selecionado) {
+  const rolosDoInsumo = rolos.filter((r) => r.insumo_id === insumoId && r.status !== "descartado");
+  movimentoEstoqueRoloSelect.innerHTML =
+    '<option value="">— Sem rolo específico —</option>' +
+    rolosDoInsumo.map((r) => `<option value="${r.id}">${escapeHtml(r.id_curto)} (${Number(r.peso_atual_g).toLocaleString("pt-BR")}g)</option>`).join("");
+  if (selecionado) movimentoEstoqueRoloSelect.value = selecionado;
+  movimentoEstoqueRoloLabel.hidden = rolosDoInsumo.length === 0;
+}
+
+function openMovimentoEstoqueDialog(insumoIdPreSelecionado) {
+  movimentoEstoqueForm.reset();
+  movimentoEstoqueError.hidden = true;
+  movimentoEstoqueInsumoSelect.innerHTML = insumos.map((i) => `<option value="${i.id}">${escapeHtml(i.nome)}</option>`).join("");
+  if (insumoIdPreSelecionado) movimentoEstoqueInsumoSelect.value = insumoIdPreSelecionado;
+  atualizarFormularioMovimentoEstoque();
+  movimentoEstoqueDialog.showModal();
+}
+
+// Ajusta o formulário conforme tipo/insumo/rolo escolhidos: entrada de compra não vale pra
+// filamento aqui (isso é "Novo rolo" — cada compra de filamento é um rolo próprio); ajuste com
+// rolo selecionado troca pro bloco de "peso restante" com os 3 caminhos de medição; ajuste sem
+// rolo mantém o campo de quantidade simples, mas como delta (pode ser negativo).
+function atualizarFormularioMovimentoEstoque() {
+  const tipo = movimentoEstoqueTipoSelect.value;
+  const insumoId = movimentoEstoqueInsumoSelect.value;
+  const insumo = insumos.find((i) => i.id === insumoId);
+
+  populateRoloSelectParaMovimento(insumoId, movimentoEstoqueRoloSelect.value);
+  const roloSelecionado = movimentoEstoqueRoloSelect.value
+    ? rolos.find((r) => r.id === movimentoEstoqueRoloSelect.value)
+    : null;
+
+  const mostrarAjusteRolo = tipo === "ajuste" && !!roloSelecionado;
+  movimentoEstoqueAjusteRolo.hidden = !mostrarAjusteRolo;
+  movimentoEstoqueQuantidadeSimples.hidden = mostrarAjusteRolo;
+  movimentoEstoqueQuantidadeInput.required = !mostrarAjusteRolo;
+  movimentoEstoqueQuantidadeInput.placeholder = tipo === "ajuste" ? "Pode ser negativo (correção pra baixo)" : "";
+  movimentoEstoqueCustoLabel.hidden = tipo !== "entrada_compra";
+  ajustePreview.hidden = !mostrarAjusteRolo;
+
+  if (mostrarAjusteRolo) atualizarPreviewAjuste();
+
+  if (tipo === "entrada_compra" && insumo?.categoria === "filamento") {
+    movimentoEstoqueError.textContent = 'Filamento entra como "Novo rolo" — cada compra é um rolo próprio, não um lançamento aqui.';
+    movimentoEstoqueError.hidden = false;
+  } else {
+    movimentoEstoqueError.textContent = "";
+    movimentoEstoqueError.hidden = true;
+  }
+}
+
+function atualizarPreviewAjuste() {
+  const roloSelecionado = movimentoEstoqueRoloSelect.value ? rolos.find((r) => r.id === movimentoEstoqueRoloSelect.value) : null;
+  const insumo = roloSelecionado ? insumos.find((i) => i.id === roloSelecionado.insumo_id) : null;
+  if (!roloSelecionado || !insumo) {
+    ajustePreview.hidden = true;
+    return;
+  }
+  const pesoNovo = calcularPesoNovoAjuste(roloSelecionado, insumo);
+  if (pesoNovo === null) {
+    ajustePreview.hidden = true;
+    return;
+  }
+  const delta = pesoNovo - Number(roloSelecionado.peso_atual_g);
+  ajustePreview.hidden = false;
+  ajustePreview.textContent = `Peso restante calculado: ${pesoNovo.toFixed(1)}g (${delta >= 0 ? "+" : ""}${delta.toFixed(1)}g em relação ao atual)`;
+}
+
+// Aplica o modo de medição escolhido (gramas direto / peso bruto com tara / comprimento restante)
+// e devolve o peso restante calculado, ou null se o valor ainda não foi preenchido.
+function calcularPesoNovoAjuste(rolo, insumo) {
+  const modo = ajusteModoSelect.value;
+  const valor = Number(ajusteValorInput.value);
+  if (!ajusteValorInput.value || isNaN(valor) || valor < 0) return null;
+
+  if (modo === "gramas") return valor;
+  if (modo === "peso_bruto") return Math.max(0, valor - (Number(insumo.peso_rolo_vazio_g) || 0));
+  return Math.max(0, pesoFilamentoPorComprimento(valor, Number(insumo.diametro_mm) || 1.75, Number(insumo.densidade) || 1.24));
+}
+
+async function handleSaveMovimentoEstoque(e) {
+  e.preventDefault();
+  movimentoEstoqueError.hidden = true;
+
+  const fd = new FormData(movimentoEstoqueForm);
+  const tipo = fd.get("tipo");
+  const insumoId = fd.get("insumo_id");
+  const roloId = fd.get("rolo_id") || null;
+  const motivo = fd.get("motivo").trim() || null;
+  const insumo = insumos.find((i) => i.id === insumoId);
+  const rolo = roloId ? rolos.find((r) => r.id === roloId) : null;
+
+  if (!insumo) {
+    movimentoEstoqueError.textContent = "Escolha um insumo.";
+    movimentoEstoqueError.hidden = false;
+    return;
+  }
+  if (tipo === "ajuste" && !motivo) {
+    movimentoEstoqueError.textContent = "Informe o motivo do ajuste.";
+    movimentoEstoqueError.hidden = false;
+    return;
+  }
+  if (tipo === "entrada_compra" && insumo.categoria === "filamento") {
+    movimentoEstoqueError.textContent = 'Filamento entra como "Novo rolo", não por aqui.';
+    movimentoEstoqueError.hidden = false;
+    return;
+  }
+
+  let quantidadeEfeito;
+  let custoUnitario = null;
+  let novoPesoRolo = null;
+
+  if (tipo === "entrada_compra") {
+    const qtd = Number(fd.get("quantidade"));
+    if (!qtd || qtd <= 0) {
+      movimentoEstoqueError.textContent = "Informe uma quantidade maior que zero.";
+      movimentoEstoqueError.hidden = false;
+      return;
+    }
+    custoUnitario = Number(fd.get("custo_unitario")) || 0;
+    quantidadeEfeito = qtd;
+    await recalcularCustoMedioPonderado(insumo, qtd, custoUnitario);
+  } else if (tipo === "saida_manual") {
+    const qtd = Number(fd.get("quantidade"));
+    if (!qtd || qtd <= 0) {
+      movimentoEstoqueError.textContent = "Informe uma quantidade maior que zero.";
+      movimentoEstoqueError.hidden = false;
+      return;
+    }
+    const saldoDisponivel = rolo ? Number(rolo.peso_atual_g) : calcularSaldoInsumo(insumoId);
+    if (qtd > saldoDisponivel) {
+      movimentoEstoqueError.textContent = `Saldo insuficiente — disponível: ${formatQuantidade(saldoDisponivel, insumo.unidade_medida)}.`;
+      movimentoEstoqueError.hidden = false;
+      return;
+    }
+    quantidadeEfeito = -qtd;
+    if (rolo) novoPesoRolo = Number(rolo.peso_atual_g) - qtd;
+  } else {
+    // ajuste
+    if (rolo) {
+      const pesoNovo = calcularPesoNovoAjuste(rolo, insumo);
+      if (pesoNovo === null) {
+        movimentoEstoqueError.textContent = "Informe o peso restante.";
+        movimentoEstoqueError.hidden = false;
+        return;
+      }
+      quantidadeEfeito = pesoNovo - Number(rolo.peso_atual_g);
+      novoPesoRolo = pesoNovo;
+    } else {
+      const delta = Number(fd.get("quantidade"));
+      if (!delta) {
+        movimentoEstoqueError.textContent = "Informe a quantidade do ajuste (pode ser negativa).";
+        movimentoEstoqueError.hidden = false;
+        return;
+      }
+      const saldoAtual = calcularSaldoInsumo(insumoId);
+      if (saldoAtual + delta < 0) {
+        movimentoEstoqueError.textContent = "Esse ajuste deixaria o saldo negativo.";
+        movimentoEstoqueError.hidden = false;
+        return;
+      }
+      quantidadeEfeito = delta;
+    }
+  }
+
+  const { error } = await db.from("movimentos_estoque").insert({
+    insumo_id: insumoId,
+    rolo_id: roloId,
+    tipo,
+    quantidade: quantidadeEfeito,
+    custo_unitario: custoUnitario,
+    motivo,
+    data_movimento: new Date().toISOString().slice(0, 10),
+  });
+  if (error) {
+    movimentoEstoqueError.textContent = "Erro ao salvar: " + error.message;
+    movimentoEstoqueError.hidden = false;
+    return;
+  }
+
+  if (rolo && novoPesoRolo !== null) {
+    const statusNovo = statusRoloPorPeso(novoPesoRolo, rolo.peso_inicial_g, rolo.status);
+    await db.from("rolos").update({ peso_atual_g: novoPesoRolo, status: statusNovo }).eq("id", rolo.id);
+  }
+
+  movimentoEstoqueDialog.close();
+  await loadData();
 }

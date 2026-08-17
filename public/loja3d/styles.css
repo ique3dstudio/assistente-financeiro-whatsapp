@@ -720,6 +720,10 @@ fieldset {
   gap: 12px;
 }
 
+fieldset[hidden] {
+  display: none;
+}
+
 legend {
   padding: 0 6px;
   color: var(--muted);
@@ -858,7 +862,8 @@ legend {
 }
 
 .materiais-list .add-rolo-btn,
-.materiais-list .edit-estoque-btn {
+.materiais-list .edit-estoque-btn,
+.materiais-list .edit-insumo-btn {
   border-color: var(--border);
   color: var(--text);
 }
@@ -870,6 +875,21 @@ legend {
 
 .estoque-baixo {
   color: var(--warn);
+}
+
+/* Estoque: as listas de insumos/rolos reaproveitam .materiais-list, mas são o conteúdo
+   principal da aba (não uma lista pequena dentro de um modal), então precisam de mais espaço. */
+#insumos-list,
+#rolos-list {
+  max-height: none;
+  padding: 16px;
+  margin: 0;
+  gap: 8px;
+}
+
+#insumos-list li,
+#rolos-list li {
+  font-size: 14px;
 }
 
 #material-form {
@@ -960,6 +980,31 @@ legend {
 
 .status-badge.cancelado {
   color: var(--muted);
+}
+
+.status-badge.ativo {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.status-badge.quase_vazio {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.status-badge.vazio {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.status-badge.descartado {
+  color: var(--muted);
+}
+
+.subtitle-inline {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.75;
 }
 
 .mov-tipo-entrada {
@@ -1295,6 +1340,10 @@ legend {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.grid[hidden] {
+  display: none;
 }
 
 .grid-4 {
