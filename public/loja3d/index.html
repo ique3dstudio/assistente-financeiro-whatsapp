@@ -328,6 +328,21 @@
       </fieldset>
 
       <fieldset>
+        <legend>Fiscal (MEI)</legend>
+        <div class="grid">
+          <label>
+            Teto MEI anual (R$)
+            <input name="teto_mei_anual" type="number" min="0" step="0.01" placeholder="81000" />
+          </label>
+          <label>
+            % da receita pra provisionar (impostos/reserva)
+            <input name="percentual_provisao_fiscal" type="number" min="0" max="100" step="0.1" placeholder="6" />
+          </label>
+        </div>
+        <p class="subtitle">Acompanha o quanto já faturou no ano perto do limite do MEI e sugere quanto guardar por mês — não gera nenhum lançamento sozinho.</p>
+      </fieldset>
+
+      <fieldset>
         <legend>Premissas para calcular custo e preço sugerido</legend>
         <div class="grid grid-4">
           <label>

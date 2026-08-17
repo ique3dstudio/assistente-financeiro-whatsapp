@@ -883,7 +883,59 @@ function renderFinanceiroDashboard() {
     ${gastoPorPessoa.map((g) => `<div class="conta-saldo-linha"><span>${escapeHtml(g.nome)}</span><span>${formatMoney(g.total)}</span></div>`).join("")}
   </div>`;
 
+  html += renderMeiHtml();
+
   financeiroDashboardEl.innerHTML = html;
+}
+
+// Receita bruta anual pra comparar com o teto do MEI: só entradas já realizadas, e nunca conta
+// transferência entre contas próprias como se fosse faturamento.
+function calcularReceitaAnualMei() {
+  const anoAtual = new Date().toISOString().slice(0, 4);
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const ehReceita = (m) => m.tipo === "entrada" && m.status === "realizado" && m.origem !== "transferencia";
+
+  const receitaAno = movimentos
+    .filter((m) => ehReceita(m) && (m.data_movimento || "").startsWith(anoAtual))
+    .reduce((s, m) => s + Number(m.valor), 0);
+  const receitaMes = movimentos
+    .filter((m) => ehReceita(m) && (m.data_movimento || "").startsWith(mesAtual))
+    .reduce((s, m) => s + Number(m.valor), 0);
+
+  return { receitaAno, receitaMes };
+}
+
+function renderMeiHtml() {
+  const teto = Number(configuracoes?.teto_mei_anual) || 81000;
+  const percentualProvisao = Number(configuracoes?.percentual_provisao_fiscal) || 0;
+  const { receitaAno, receitaMes } = calcularReceitaAnualMei();
+  const percentualTeto = teto > 0 ? (receitaAno / teto) * 100 : 0;
+
+  let html = `<div class="stat-card">
+    <div class="stat-value">${percentualTeto.toFixed(1)}%</div>
+    <div class="stat-label">Do teto MEI no ano (${formatMoney(receitaAno)} de ${formatMoney(teto)})</div>
+  </div>`;
+
+  if (percentualProvisao > 0) {
+    html += `<div class="stat-card">
+      <div class="stat-value">${formatMoney((receitaMes * percentualProvisao) / 100)}</div>
+      <div class="stat-label">Provisão fiscal sugerida do mês (${percentualProvisao}% da receita)</div>
+    </div>`;
+  }
+
+  if (percentualTeto >= 100) {
+    html += `<div class="saldo-alerta">
+      <h3>🚨 Teto do MEI ultrapassado</h3>
+      <p>A receita realizada em ${new Date().getFullYear()} já passou de ${formatMoney(teto)}. Vale conversar com um contador sobre desenquadramento do MEI.</p>
+    </div>`;
+  } else if (percentualTeto >= 80) {
+    html += `<div class="estoque-alerta">
+      <h3>⚠️ Perto do teto do MEI</h3>
+      <p>Já foi faturado ${percentualTeto.toFixed(1)}% do limite anual de ${formatMoney(teto)}. Fique de olho pro resto do ano.</p>
+    </div>`;
+  }
+
+  return html;
 }
 
 function renderContasAReceber() {
@@ -1838,6 +1890,8 @@ async function handleSaveConfig(e) {
     margem_padrao_percentual: Number(fd.get("margem_padrao_percentual")),
     chave_pix: fd.get("chave_pix").trim() || null,
     cidade: fd.get("cidade").trim() || null,
+    teto_mei_anual: Number(fd.get("teto_mei_anual")) || 81000,
+    percentual_provisao_fiscal: Number(fd.get("percentual_provisao_fiscal")) || 0,
   };
   const { error } = await db.from("configuracoes").update(payload).eq("id", 1);
   if (error) {
