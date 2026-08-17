@@ -643,13 +643,10 @@ button.chip.active {
    Importante: tudo isso só pode valer para dialog[open] — um <dialog> fechado precisa
    continuar com o "display: none" padrão do navegador, senão ele passa a ocupar espaço
    normal na página (aparecendo lá embaixo, fora do fluxo) mesmo "fechado". */
-/* Sem position/inset/margin explícitos: todo <dialog> aqui abre com showModal(), que já entra
-   no "top layer" do navegador com centralização nativa (position: fixed + margin: auto do
-   próprio UA stylesheet) — declarar de novo por cima é redundante e, em alguns motores (Safari
-   iOS incluído), podia colidir com o max-height/max-width padrão do navegador e encolher o
-   dialog pra uma fresta minúscula em vez de ocupar a tela. Só o que realmente é customização
-   (cor, borda, tamanho, layout interno) fica declarado aqui. */
 dialog[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
@@ -657,10 +654,14 @@ dialog[open] {
   padding: 0;
   width: min(640px, 92vw);
   max-width: min(640px, 92vw);
+  /* 88vh no Safari do iPhone é calculado em cima da tela "com a barra de endereço recolhida" —
+     dependendo do momento em que o navegador mede isso, o dialog podia ficar espremido numa
+     fresta minúscula em vez de ocupar a tela. 88dvh ("dynamic viewport height") foi feito
+     exatamente pra esse problema: acompanha o tamanho real visível, barra de endereço aberta ou
+     fechada. Mantém 88vh como fallback pra navegador mais antigo que não entenda dvh. */
   max-height: 88vh;
+  max-height: 88dvh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 dialog::backdrop {
@@ -695,8 +696,14 @@ dialog::backdrop {
    config-dialog tem 3 fieldsets com formulários próprios (materiais/máquinas/canais)
    fora do <form> principal — não dá pra aninhar <form> dentro de <form> em HTML. */
 .dialog-body {
-  flex: 1;
-  min-height: 0;
+  /* Altura própria, não herdada de flex:1 do pai — o dialog[open] não é mais display:flex, de
+     propósito: depender do pai (um <dialog> no "top layer" do navegador) espremer a altura pra
+     baixo via flexbox é exatamente o tipo de cálculo que trava em alguns motores. Aqui a altura
+     é um teto direto (mesmo valor do dialog, já que o dialog não tem padding), então funciona
+     mesmo se o navegador não propagar altura por flex corretamente pro conteúdo de um dialog. */
+  box-sizing: border-box;
+  max-height: 88vh;
+  max-height: 88dvh;
   overflow-y: auto;
   padding: 20px;
   display: flex;
