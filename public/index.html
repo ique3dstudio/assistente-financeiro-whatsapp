@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1115" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vida OS" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icone.svg" />
+    <link rel="icon" href="/icone.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Vida OS</title>
+  </head>
+  <body>
+    <!-- Tela de login -->
+    <section id="tela-login" class="tela" hidden>
+      <form id="form-login" class="login">
+        <div class="login-marca">Vida OS</div>
+        <input id="campo-senha" type="password" placeholder="senha" autocomplete="current-password" required />
+        <button type="submit">Entrar</button>
+        <p id="erro-login" class="erro" hidden></p>
+      </form>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="tela-inicio" class="tela" hidden>
+      <header class="topo">
+        <div>
+          <h1>Hoje</h1>
+          <p id="data-hoje" class="sub"></p>
+        </div>
+        <button id="btn-sair" class="link">sair</button>
+      </header>
+      <div id="cards" class="cards"></div>
+    </section>
+
+    <!-- Módulo Água -->
+    <section id="tela-agua" class="tela" hidden>
+      <header class="topo">
+        <button class="link" data-voltar>‹ voltar</button>
+        <button id="btn-meta" class="link">meta</button>
+      </header>
+
+      <div class="anel-area">
+        <svg class="anel" viewBox="0 0 200 200">
+          <circle class="anel-fundo" cx="100" cy="100" r="86" />
+          <circle id="anel-progresso" class="anel-frente" cx="100" cy="100" r="86" />
+        </svg>
+        <div class="anel-texto">
+          <strong id="agua-total">0,0 L</strong>
+          <span id="agua-meta" class="sub">de 2,5 L</span>
+          <span id="agua-sequencia" class="selo" hidden></span>
+        </div>
+      </div>
+
+      <div class="botoes">
+        <button class="copo" data-ml="200">+200<small>ml</small></button>
+        <button class="copo" data-ml="300">+300<small>ml</small></button>
+        <button class="copo" data-ml="500">+500<small>ml</small></button>
+        <button class="copo" data-ml="750">+750<small>ml</small></button>
+      </div>
+
+      <button id="btn-desfazer" class="link centro">desfazer último</button>
+
+      <h2 class="titulo-secao">Últimos 14 dias</h2>
+      <div id="agua-historico" class="historico"></div>
+    </section>
+
+    <p id="aviso" class="aviso" hidden></p>
+    <script src="/app.js"></script>
+  </body>
+</html>

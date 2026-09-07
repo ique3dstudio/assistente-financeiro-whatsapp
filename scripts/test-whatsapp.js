@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { enviarMensagem } from "../src/services/whatsapp.js";
+import { enviarMensagem } from "../src/core/whatsapp.js";
 
 const numero = process.argv[2];
 const texto = process.argv.slice(3).join(" ") || "Mensagem de teste do assistente financeiro!";

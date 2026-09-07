@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { interpretarMensagem } from "../src/services/ai.js";
+import { interpretarMensagem } from "../src/core/ai.js";
 
 const texto = process.argv.slice(2).join(" ");
 
