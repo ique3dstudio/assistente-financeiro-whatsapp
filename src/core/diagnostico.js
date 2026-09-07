@@ -1,6 +1,6 @@
 // Checagem rápida de conexão com o banco: diz, tabela por tabela, se o servidor
 // consegue ler. Serve para separar "tabela não criada" de "chave/URL errada".
-import { getSupabase } from "./supabase.js";
+import { getSupabase, normalizarUrl } from "./supabase.js";
 
 const TABELAS = ["configuracoes", "agua_registros", "transacoes"];
 
@@ -10,7 +10,14 @@ export async function diagnosticar() {
     SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? "preenchida" : "FALTANDO",
     APP_SENHA: process.env.APP_SENHA ? "preenchida" : "FALTANDO",
     APP_SECRET: process.env.APP_SECRET ? "preenchida" : "FALTANDO",
-    projeto: (process.env.SUPABASE_URL || "").replace(/^https?:\/\//, "").split(".")[0] || null,
+    url_recebida: process.env.SUPABASE_URL || null,
+    url_usada: (() => {
+      try {
+        return normalizarUrl(process.env.SUPABASE_URL);
+      } catch (erro) {
+        return `INVÁLIDA: ${erro.message}`;
+      }
+    })(),
   };
 
   const tabelas = {};
