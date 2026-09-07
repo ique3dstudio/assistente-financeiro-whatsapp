@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { entrar, exigirLogin, sair, autenticado } from "./core/auth.js";
 import { MODULOS, dashboard } from "./core/modulos.js";
+import { diagnosticar } from "./core/diagnostico.js";
 import { hoje } from "./core/datas.js";
 import webhookRouter from "./core/webhook.js";
 
@@ -23,6 +24,16 @@ app.get("/saude", (req, res) => {
 app.post("/api/login", entrar);
 app.post("/api/sair", sair);
 app.get("/api/sessao", (req, res) => res.json({ autenticado: autenticado(req) }));
+
+// Checagem de conexão com o Supabase — fica atrás do login porque mostra
+// mensagens de erro do banco.
+app.get("/api/diagnostico", exigirLogin, async (req, res, next) => {
+  try {
+    res.json(await diagnosticar());
+  } catch (erro) {
+    next(erro);
+  }
+});
 
 app.get("/api/dashboard", exigirLogin, async (req, res, next) => {
   try {

@@ -81,7 +81,7 @@ function montarCard(card) {
   elemento.dataset.modulo = card.id;
 
   const corpo = card.indisponivel
-    ? `<div class="card-erro">tabela ainda não criada no Supabase</div>`
+    ? `<div class="card-erro">sem dados — toque para ver o motivo</div>`
     : `<div class="card-valor">${card.principal ?? "—"}</div>
        <div class="card-apoio">${card.apoio ?? ""}</div>
        ${card.sequencia ? `<div class="selo">🔥 ${card.sequencia} dias</div>` : ""}
@@ -92,7 +92,7 @@ function montarCard(card) {
        }`;
 
   elemento.innerHTML = `<div class="card-topo">${card.emoji} ${card.nome}</div>${corpo}`;
-  elemento.addEventListener("click", () => abrirModulo(card.id));
+  elemento.addEventListener("click", () => (card.indisponivel ? avisar(card.erro) : abrirModulo(card.id)));
   return elemento;
 }
 
