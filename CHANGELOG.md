@@ -43,6 +43,48 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
 - Cada módulo pode fornecer `itensDoDia()` — é assim que remédio, treino e conta a pagar vão entrar no mesmo
   checklist nas próximas fases, sem código novo aqui.
 
+## E1.5 — Água v2
+- Meta diária calculada pelo peso do perfil (35 ml/kg, arredondado em 100 ml), com opção de definir à mão.
+- Recipientes próprios (os quatro padrão são criados na primeira abertura).
+- Outras bebidas com fator de hidratação: café conta 60%, álcool desconta metade — a barra mostra hidratação
+  real, não volume.
+- Ritmo do dia: o app sabe quanto você já deveria ter bebido a esta hora e mostra o atraso.
+
+## E1.6 e E1.7 — Metas nos 3 horizontes, com vínculo automático
+- Meta com horizonte (curto/médio/longo), área da vida, métrica, valor inicial/atual/alvo, prazo, motivo e
+  hierarquia (meta longa contendo metas médias).
+- Marcos por meta, com marcar/desmarcar e reflexão.
+- **Vínculo automático**: a meta pode ler uma métrica publicada por qualquer módulo (sequência de hábito,
+  litros de água, sobra do mês) e se atualizar sozinha — nada de digitar o mesmo número duas vezes.
+- Ritmo necessário: transforma "juntar 10 mil até dezembro" em "R$ 89 por dia".
+- Alerta de meta órfã: sem hábito ligado e sem movimento há 14 dias.
+- `metricas()` entrou no contrato dos módulos; água, hábitos, finanças e humor já publicam as suas.
+
+## E1.8 — Agenda e tarefas
+- Compromissos com tipo (reunião, consulta, treino, pessoal, viagem, vencimento), local, pauta, duração,
+  lembretes e recorrência flexível (diária, dias da semana, mensal no dia X, a cada N dias, com data limite).
+- Guardamos data e hora separadas, não timestamp: "quinta 15h" continua 15h mesmo com o servidor em UTC.
+- Tarefas com prazo, prioridade, período e vínculo a meta ou compromisso; as de hoje e as atrasadas entram no
+  checklist da tela Hoje junto com os hábitos.
+- Próximos 3 compromissos com contagem regressiva na tela Hoje, e aviso de conflito de horário.
+
+## E1.9 — Fechamento do dia
+- Depois das 20h a tela Hoje mostra o fechamento: humor de 1 a 5 em um toque, emoções, o que mais pesou,
+  gratidão e o que travou.
+- Histórico de humor de 30 dias com média e gráfico na aba Eu.
+
+## E1.4 — Botão + universal
+- Botão flutuante com os 8 registros mais usados: água (1 toque), gasto, tarefa, compromisso, humor, nota,
+  hábito e treino (em breve). O gasto já abre com a última categoria usada.
+
+## Qualidade
+- Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
+- `npm test` roda 34 testes de regra (hábitos, água, metas, agenda) **e valida o SQL num Postgres real**
+  (PGlite): confere que aplica limpo, que aplica duas vezes sem quebrar e que as tabelas aceitam exatamente
+  os inserts do app, barrando os inválidos.
+- `npm run sql` regenera `db/RODAR-TUDO.sql` a partir dos schemas dos módulos.
+- Perfil guarda os módulos DESLIGADOS (não os ligados), então módulo novo já nasce ativo.
+
 ## Documentação
 - `ESPEC.md`: especificação funcional completa do Life OS (v1.0).
 - `ROADMAP.md`: a especificação quebrada em etapas testáveis, com banco, código, aceite e passos manuais.

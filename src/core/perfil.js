@@ -1,14 +1,14 @@
 // Seus dados pessoais. O peso alimenta a meta de água e, mais tarde, as calorias;
-// `modulos_ativos` decide quais abas aparecem no app.
+// `modulos_inativos` lista o que você desligou — o resto aparece.
 import { getSupabase } from "./supabase.js";
 
-const CAMPOS = ["nome", "peso_kg", "altura_cm", "nascimento", "modulos_ativos"];
+const CAMPOS = ["nome", "peso_kg", "altura_cm", "nascimento", "modulos_inativos"];
 
 export async function lerPerfil(usuario) {
   const { data, error } = await getSupabase().from("perfil").select("*").eq("user_id", usuario).maybeSingle();
 
   if (error) throw new Error(`Falha ao ler perfil: ${error.message}`);
-  return data || { user_id: usuario, nome: null, peso_kg: null, altura_cm: null, nascimento: null, modulos_ativos: ["agua", "habitos", "financas"] };
+  return data || { user_id: usuario, nome: null, peso_kg: null, altura_cm: null, nascimento: null, modulos_inativos: [] };
 }
 
 export async function salvarPerfil(usuario, dados) {

@@ -29,7 +29,7 @@ button { cursor: pointer; }
 
 main {
   padding: max(16px, env(safe-area-inset-top)) 16px
-           calc(var(--altura-abas) + 24px + env(safe-area-inset-bottom));
+           calc(var(--altura-abas) + 86px + env(safe-area-inset-bottom));
   max-width: 640px;
   margin: 0 auto;
 }
@@ -187,8 +187,19 @@ h3 { font-size: 17px; margin: 0; }
 .painel button:active { background: var(--cartao-alto); }
 .painel .titulo { color: var(--apagado); font-size: 13px; padding: 12px 14px 6px; }
 
+/* Botão + universal */
+.mais-botao {
+  position: fixed; z-index: 25; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--altura-abas) + 14px + env(safe-area-inset-bottom));
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--marca); color: #06121c; border: 3px solid var(--fundo);
+  font-size: 30px; line-height: 1; display: grid; place-items: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+}
+.mais-botao:active { transform: translateX(-50%) scale(.94); }
+
 .aviso {
-  position: fixed; left: 50%; bottom: calc(var(--altura-abas) + 16px + env(safe-area-inset-bottom));
+  position: fixed; left: 50%; bottom: calc(var(--altura-abas) + 84px + env(safe-area-inset-bottom));
   transform: translateX(-50%); z-index: 40;
   background: var(--cartao-alto); border: 1px solid var(--borda); border-radius: 12px;
   padding: 10px 16px; font-size: 14px; margin: 0; max-width: 90vw; text-align: center;

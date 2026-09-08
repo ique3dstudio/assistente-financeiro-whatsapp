@@ -50,11 +50,19 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E0.4 Perfil e preferências | ✅ feito |
 | E1.1 Hábitos e rituais | ✅ feito |
 | E1.2 Checklist do dia e streaks | ✅ feito |
-| E1.3 Tela Hoje | ✅ feito (montagem e anéis; agenda e foco entram com E1.8 e E1.10) |
-| E0.5, E0.6 e E1.4 em diante | ⬜ a fazer |
+| E1.3 Tela Hoje | ✅ feito (falta o card "foco agora", que vem com E1.10) |
+| E1.4 Botão + universal | ✅ feito |
+| E1.5 Água v2 | ✅ feito |
+| E1.6 Metas nos 3 horizontes | ✅ feito |
+| E1.7 Vínculo automático das metas | ✅ feito |
+| E1.8 Agenda e tarefas | ✅ feito |
+| E1.9 Fechamento do dia | ✅ feito |
+| E0.5 Offline-first · E0.6 Bloqueio · E1.10 Rotina guiada · E1.11 Notificações | ⬜ a fazer |
+| E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
-novo quantas vezes quiser — nada é apagado nem duplicado.
+novo quantas vezes quiser — nada é apagado nem duplicado. O arquivo é gerado por `npm run sql` e validado
+por `npm test`, que aplica o SQL num Postgres real antes de você colar no Supabase.
 
 ---
 

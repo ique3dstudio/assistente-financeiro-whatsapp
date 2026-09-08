@@ -19,7 +19,10 @@ create table if not exists perfil (
   peso_kg numeric(5,2),
   altura_cm integer,
   nascimento date,
-  modulos_ativos text[] not null default array['agua','habitos','financas'],
+  -- Guardamos os DESLIGADOS, não os ligados: assim um módulo novo já nasce ativo
+  -- sem precisar mexer no seu perfil.
+  modulos_inativos text[] not null default '{}',
   atualizado_em timestamptz not null default now()
 );
+alter table perfil add column if not exists modulos_inativos text[] not null default '{}';
 alter table perfil enable row level security;

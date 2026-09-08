@@ -7,7 +7,9 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node scripts/test-habitos.js && node scripts/test-agua.js && node scripts/test-metas.js && node scripts/test-agenda.js && node scripts/test-sql.js",
+    "sql": "node scripts/gerar-sql.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -15,5 +17,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

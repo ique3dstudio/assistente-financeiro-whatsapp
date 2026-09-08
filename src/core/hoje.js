@@ -28,7 +28,8 @@ export async function montarHoje(usuario) {
 
   const perfilRes = await comSeguranca("perfil", () => lerPerfil(usuario));
   const perfil = perfilRes.valor || {};
-  const ativos = MODULOS.filter((m) => !perfil.modulos_ativos || perfil.modulos_ativos.includes(m.id));
+  const desligados = perfil.modulos_inativos || [];
+  const ativos = MODULOS.filter((m) => !desligados.includes(m.id));
 
   const resultados = await Promise.all(
     ativos.map(async (modulo) => ({
@@ -37,14 +38,18 @@ export async function montarHoje(usuario) {
       itens: modulo.itensDoDia
         ? await comSeguranca(modulo.nome, () => modulo.itensDoDia(usuario, data))
         : { valor: [] },
+      compromissos: modulo.compromissosDoDia
+        ? await comSeguranca(modulo.nome, () => modulo.compromissosDoDia(usuario, data))
+        : { valor: [] },
     }))
   );
 
   const aneis = [];
   const itens = [];
+  const compromissos = [];
   const erros = [];
 
-  for (const { modulo, resumo, itens: lista } of resultados) {
+  for (const { modulo, resumo, itens: lista, compromissos: agenda } of resultados) {
     const base = { id: modulo.id, nome: modulo.nome, emoji: modulo.emoji };
     if (resumo.erro) {
       aneis.push({ ...base, indisponivel: true, erro: resumo.erro });
@@ -55,6 +60,9 @@ export async function montarHoje(usuario) {
 
     if (lista.erro) erros.push(lista.erro);
     else itens.push(...(lista.valor || []));
+
+    if (agenda.erro) erros.push(agenda.erro);
+    else compromissos.push(...(agenda.valor || []));
   }
 
   const periodos = PERIODOS.map((periodo) => ({
@@ -72,6 +80,7 @@ export async function montarHoje(usuario) {
     nome: perfil.nome || null,
     sequencia_geral: habitos?.sequencia || 0,
     aneis,
+    compromissos,
     periodos,
     total: itens.length,
     feitos,

@@ -18,6 +18,19 @@ export default {
     };
   },
 
+  // Números que uma meta pode acompanhar sem você atualizar à mão.
+  async metricas(usuario) {
+    const { itens, sequencia_geral } = await checklist(usuario);
+    return [
+      { id: "habitos.sequencia_geral", nome: "Sequência geral (dias)", valor: sequencia_geral },
+      ...itens.map((item) => ({
+        id: `habitos.streak.${item.id}`,
+        nome: `Sequência: ${item.nome}`,
+        valor: item.streak,
+      })),
+    ];
+  },
+
   // O que este módulo coloca no checklist da tela Hoje.
   async itensDoDia(usuario, data) {
     const { itens } = await checklist(usuario, data);
