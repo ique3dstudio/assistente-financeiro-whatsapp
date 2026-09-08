@@ -15,6 +15,8 @@ const PARTES = [
   ["MÓDULO: DIÁRIO E HUMOR", "src/modules/diario/schema.sql"],
   ["MÓDULO: TREINO", "src/modules/treino/schema.sql"],
   ["MÓDULO: TREINO — BIBLIOTECA DE EXERCÍCIOS", "src/modules/treino/seed-exercicios.sql"],
+  ["MÓDULO: SAÚDE", "src/modules/saude/schema.sql"],
+  ["MÓDULO: VÍCIOS E CONTROLE DE IMPULSOS", "src/modules/vicios/schema.sql"],
   ["MÓDULO: FINANÇAS", "src/modules/financas/schema.sql"],
   ["MÓDULO: FINANÇAS — CATEGORIAS INICIAIS", "src/modules/financas/seed-categorias.sql"],
 ];

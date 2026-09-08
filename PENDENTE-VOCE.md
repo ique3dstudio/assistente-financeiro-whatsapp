@@ -9,8 +9,8 @@ O que depende de você fica esperando aqui, marcado.
 
 ---
 
-> **Atenção: a Fase 3 (Dinheiro) acrescentou 7 tabelas.** O SQL agora tem **30 tabelas** — pegue a versão
-> nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo rodar quantas vezes quiser,
+> **Atenção: a Fase 4 (Saúde e Vícios) acrescentou 18 tabelas.** O SQL agora tem **48 tabelas** — pegue a
+> versão nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo rodar quantas vezes quiser,
 > mesmo que você já tenha rodado uma versão anterior: o que já existe é preservado e só o que falta é criado.
 
 ## 1. Rodar o SQL (resolve quase tudo)
@@ -45,6 +45,11 @@ evita confusão futura.)
 | **Adicionar à Tela de Início** pelo Safari | Sem isso o iPhone não entrega notificação nenhuma, nem roda como app | — |
 | Autorizar **microfone e câmera** | Ditado, foto de cupom, código de barras | E6.2 |
 
+No módulo Saúde e no de Controle, o que vale cadastrar quando abrir: seus **medicamentos** (com horário e
+quantas unidades você tem em casa), suas **rotinas** de saúde (dentista, check-up), os valores do **último
+exame** que você tiver em mãos, e — se for usar o módulo de Controle — pelo menos **um contato de apoio** e
+os seus **porquês**, escritos com a cabeça fria. São eles que aparecem na tela de urgência.
+
 Depois de rodar o SQL, vale cadastrar em 5 minutos, pelo app: suas **contas** (com o saldo atual), seus
 **cartões** (dia de fechamento e de vencimento — é o que faz a fatura ficar correta), seus **recorrentes**
 (salário, aluguel, assinaturas) e o **teto** das 3 ou 4 categorias em que você mais estoura. Sem isso o
@@ -55,7 +60,7 @@ módulo Dinheiro funciona, mas não tem como projetar nem avisar de nada.
 | O quê | Onde | Para quê | Etapa |
 |---|---|---|---|
 | Chaves de push (VAPID) | Eu gero e te mando; você cola no Render | Notificação com o app fechado | E1.11 |
-| Bucket privado no Supabase Storage | Painel do Supabase → Storage | Fotos de progresso, exames em PDF | E2.8 e E4.3 |
+| Bucket privado no Supabase Storage | Painel do Supabase → Storage | Fotos de progresso do treino e PDF dos exames | E2.8 e E4.3 |
 | Chave de IA (Anthropic) | console.anthropic.com | Barra de comando em linguagem natural, resumos, **gerador de programa de treino** | E6.1 e E2.7 |
 | App no Meta for Developers | developers.facebook.com | Registrar por WhatsApp | E6.3 |
 | Cron job no Render | Painel do Render | Briefing da manhã e fechamento da noite | E6.4 |

@@ -1,5 +1,5 @@
 import { acaoApi, anel, api, avisar, corDoModulo, dataLonga, escapar, estado, navegar, vazio } from "../ui.js";
-import { icone } from "../icones.js";
+import { ORDEM_ANEIS, icone } from "../icones.js";
 
 export const rota = /^\/hoje$/;
 export const aba = "hoje";
@@ -9,6 +9,8 @@ export async function render() {
   estado.dados.hoje = dados;
 
   const aneis = dados.aneis
+    .filter((item) => ORDEM_ANEIS.includes(item.id))
+    .sort((a, b) => ORDEM_ANEIS.indexOf(a.id) - ORDEM_ANEIS.indexOf(b.id))
     .map((item) =>
       item.indisponivel
         ? anel(0, "var(--tinta-3)", "—", item.nome, `avisar:${escapar(item.erro)}`)

@@ -116,7 +116,8 @@ async function painel() {
     <button class="botao secundario" data-acao="ir:/treino/rotinas">Minhas rotinas (${dados.rotinas.length})</button>
     <button class="botao secundario" data-acao="ir:/treino/biblioteca">Biblioteca de exercícios</button>
     <button class="botao secundario" data-acao="ir:/treino/stats">Gráficos e progressão</button>
-    <button class="botao secundario" data-acao="ir:/treino/medidas">Medidas do corpo</button>`;
+    <button class="botao secundario" data-acao="ir:/treino/medidas">Medidas do corpo</button>
+    <button class="botao secundario" data-acao="ir:/saude">Saúde: medicamentos, consultas e exames</button>`;
 }
 
 // ---------- execução do treino ----------

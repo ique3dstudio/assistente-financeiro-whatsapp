@@ -70,9 +70,15 @@ export async function render() {
       <button class="botao secundario" data-acao="salvar-modulos">Salvar módulos</button>
     </div>
 
+    <div class="secao"><h2>Controle de impulsos</h2>
+      <div class="cartao cartao-destaque" style="--acento:var(--c-vicios)">
+        <p class="sub" style="margin:0 0 10px">Contador ao vivo, compromisso do dia, mapa de gatilhos e uma tela
+          de urgência para quando a vontade aparecer.</p>
+        <button class="botao secundario" data-acao="ir:/vicios">Abrir Controle</button>
+      </div></div>
+
     <div class="secao"><h2>Ainda por vir</h2>
-      <p class="sub">Vícios e controle de impulsos, treino, dieta, saúde, insights cruzados e assistente por
-        WhatsApp — fases 2 a 6 do roadmap.</p></div>
+      <p class="sub">Dieta, insights cruzados e assistente por WhatsApp — fases 5 e 6 do roadmap.</p></div>
 
     <button class="botao secundario" data-acao="diagnostico">Diagnóstico do banco</button>
     <button class="botao perigo" data-acao="sair">Sair do app</button>`;

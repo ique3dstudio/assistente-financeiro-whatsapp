@@ -74,6 +74,13 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E3.5 Painel e relatórios | ✅ feito (export CSV/PDF fica para a E7.1) |
 | E3.6 Metas financeiras e dívidas | ✅ feito |
 | E3.7 Alertas de vazamento | ✅ feito |
+| E4.1 Medicamentos e suplementos | ✅ feito |
+| E4.2 Consultas e modo consulta | ✅ feito |
+| E4.3 Exames e evolução por marcador | ✅ feito (upload do PDF depende do bucket) |
+| E4.4 Sinais, sono, sintomas, vacinas | ✅ feito |
+| E4.5 Vícios: contador, pledge e marcos | ✅ feito |
+| E4.6 SOS, fissuras e mapa de gatilhos | ✅ feito |
+| E4.7 Recaída com recorde preservado e economia | ✅ feito |
 | E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
 | **Passo de design** (tokens, ícones, movimento, gráficos, fotos das telas) | ✅ feito — fora da numeração, pedido no meio da Fase 2 |
 

@@ -300,6 +300,135 @@ export const RESPOSTAS = {
   "/treino/estatisticas?dias=180": null, // preenchido abaixo
   "/treino/medidas": { medidas: [{ data: HOJE, peso_kg: 80.5, gordura_pct: 18, braco_cm: 36, peito_cm: null, cintura_cm: 84, quadril_cm: null, coxa_cm: null, panturrilha_cm: null }] },
 
+  "/saude": {
+    data: HOJE,
+    hora: 21,
+    doses: [
+      { medicamento_id: "md1", nome: "Vitamina D", dose: "2000 UI", horario: "08:00", tomado: true, dias: 25, recomprar: false },
+      { medicamento_id: "md2", nome: "Ômega 3", dose: "1 cápsula", horario: "20:00", tomado: false, dias: 5, recomprar: true },
+    ],
+    medicamentos: [
+      { id: "md1", nome: "Vitamina D", dose: "2000 UI", horarios: ["08:00:00"], estoque_atual: 50, ativo: true, dias: 25, recomprar: false },
+      { id: "md2", nome: "Ômega 3", dose: "1 cápsula", horarios: ["20:00:00"], estoque_atual: 5, ativo: true, dias: 5, recomprar: true },
+    ],
+    consultas: [
+      { id: "cs1", especialidade: "Dentista", profissional: "Dra. Ana", local: "Centro", data: "2026-09-18", hora: "15:00:00", perguntas: "perguntar sobre o siso", resumo: null, prescricao: null, retorno_em: null },
+      { id: "cs2", especialidade: "Cardiologista", profissional: "Dr. Paulo", local: null, data: "2026-06-02", hora: null, perguntas: null, resumo: "exames ok, manter caminhada", prescricao: null, retorno_em: "2027-06-02" },
+    ],
+    proximas_consultas: [
+      { id: "cs1", especialidade: "Dentista", profissional: "Dra. Ana", data: "2026-09-18", hora: "15:00:00" },
+    ],
+    recorrencias: [
+      { id: "rc1", nome: "Dentista", tipo: "consulta", cada_meses: 6, ultima_em: "2026-01-10", proxima: "2026-07-10", vencida: true, dias: -60 },
+      { id: "rc2", nome: "Check-up", tipo: "exame", cada_meses: 12, ultima_em: "2026-06-15", proxima: "2027-06-15", vencida: false, dias: 280 },
+    ],
+    exames: [{ id: "ex1", tipo: "Sangue", data: "2026-09-01", laboratorio: "Lab X", arquivo_url: null }],
+    marcadores: [
+      {
+        marcador: "Vitamina D", unidade: "ng/mL", ref_min: 30, ref_max: 60,
+        pontos: [
+          { data: "2026-03-01", valor: 18.5, situacao: "abaixo" },
+          { data: "2026-09-01", valor: 34.2, situacao: "normal" },
+        ],
+        ultimo: { data: "2026-09-01", valor: 34.2, situacao: "normal" },
+        variacao: 15.7,
+      },
+    ],
+    sinais: [
+      { id: "s1", data: "2026-09-07", tipo: "pressao", valor: 128, valor2: 84, nota: null },
+      { id: "s2", data: "2026-09-06", tipo: "peso", valor: 80.5, valor2: null, nota: null },
+    ],
+    ultimos_sinais: [
+      { id: "pressao", nome: "Pressão", unidade: "mmHg", dois_valores: true, ultimo: { data: "2026-09-07", valor: 128, valor2: 84 } },
+      { id: "fc_repouso", nome: "Frequência de repouso", unidade: "bpm", ultimo: null },
+      { id: "peso", nome: "Peso", unidade: "kg", ultimo: { data: "2026-09-06", valor: 80.5, valor2: null } },
+      { id: "glicemia", nome: "Glicemia", unidade: "mg/dL", ultimo: null },
+      { id: "saturacao", nome: "Saturação", unidade: "%", ultimo: null },
+      { id: "temperatura", nome: "Temperatura", unidade: "°C", ultimo: null },
+    ],
+    pressao_classificada: { id: "normal", nome: "Normal" },
+    sono: [{ data: HOJE, dormiu_em: "23:30:00", acordou_em: "07:15:00", duracao_min: 465, qualidade: 4 }],
+    media_sono_7d: 430,
+    linha_sono: [
+      { data: "2026-09-07", minutos: 400, qualidade: 3 },
+      { data: HOJE, minutos: 465, qualidade: 4 },
+    ],
+    sintomas: [{ id: "st1", data: "2026-09-05", nome: "dor de cabeça", intensidade: 7 }],
+    vacinas: [{ id: "vc1", nome: "Influenza", data: "2026-04-10", proxima_em: "2027-04-10" }],
+    contatos: [{ id: "ct1", nome: "Dra. Ana", especialidade: "Dentista", telefone: "11999999999" }],
+    tipos_sinal: [
+      { id: "pressao", nome: "Pressão", unidade: "mmHg", dois_valores: true },
+      { id: "fc_repouso", nome: "Frequência de repouso", unidade: "bpm" },
+      { id: "peso", nome: "Peso", unidade: "kg" },
+      { id: "glicemia", nome: "Glicemia", unidade: "mg/dL" },
+    ],
+    marcadores_conhecidos: [
+      { id: "vitamina_d", nome: "Vitamina D", unidade: "ng/mL", ref_min: 30, ref_max: 60 },
+      { id: "tsh", nome: "TSH", unidade: "µUI/mL", ref_min: 0.4, ref_max: 4 },
+    ],
+  },
+
+  "/saude/consulta-resumo": {
+    gerado_em: "2026-09-08T21:00:00Z",
+    medicamentos: [{ nome: "Vitamina D", dose: "2000 UI", horarios: ["08:00:00"] }],
+    ultimos_exames: [{ marcador: "Vitamina D", valor: 34.2, unidade: "ng/mL", data: "2026-09-01", situacao: "normal" }],
+    consultas_recentes: [{ data: "2026-06-02", especialidade: "Cardiologista", resumo: "exames ok" }],
+    sintomas_recentes: [{ data: "2026-09-05", nome: "dor de cabeça", intensidade: 7 }],
+    sinais: [{ nome: "Pressão", valor: 128, valor2: 84, unidade: "mmHg", data: "2026-09-07" }],
+    media_sono_7d: 430,
+    vacinas: [{ nome: "Influenza", data: "2026-04-10" }],
+  },
+
+  "/vicios": {
+    data: HOJE,
+    vicios: [
+      {
+        id: "vc1", nome: "Cigarro", tipo: "cigarro", tipo_info: { id: "cigarro", nome: "Cigarro", emoji: "🚭" },
+        data_inicio: "2026-08-09T18:00:00Z", custo_diario: 15, tempo_diario_min: 40,
+        motivos: [{ texto: "respirar melhor na escada", foto_url: null }],
+        contador: { dias: 30, horas: 2, minutos: 30, segundos: 45, total_segundos: 2600000 },
+        recorde_dias: 47,
+        proximo_marco: { dias: 60, faltam: 30 },
+        marcos_alcancados: [1, 3, 7, 14, 30],
+        marcos_registrados: [],
+        economia: { dinheiro: 450, dinheiro_6m: 2730, dinheiro_12m: 5475, horas: 20, dias_de_vida: 0.8 },
+        linha_recuperacao: [
+          { dias: 2, texto: "Em 48 horas, paladar e olfato começam a voltar.", alcancado: true },
+          { dias: 90, texto: "Em 3 meses, a função pulmonar aumenta de forma perceptível.", alcancado: false },
+        ],
+        pledge_hoje: null,
+        sequencia_pledge: 12,
+        mapa: {
+          total: 4, cedeu: 1, taxa_cedeu: 0.25, intensidade_media: 6.8,
+          por_faixa: [
+            { id: "noite", nome: "Noite (18h–24h)", de: 18, ate: 24, total: 3 },
+            { id: "manha", nome: "Manhã (6h–12h)", de: 6, ate: 12, total: 1 },
+          ],
+          por_gatilho: [{ nome: "estresse", total: 2, cedeu: 1 }],
+          por_emocao: [{ nome: "ansioso", total: 2, cedeu: 1 }],
+          por_dia_semana: [{ nome: "segunda", total: 2 }],
+        },
+        fissuras: [{ id: "f1", data: "2026-09-07", hora: "22:10:00", gatilho: "estresse", intensidade: 8, cedeu: false }],
+        recaidas: [{ id: "rc1", data: "2026-08-09", aprendizado: "foi depois da cerveja", recorde_anterior_dias: 47 }],
+        tentativas: 2,
+      },
+    ],
+    apoio: [{ id: "ap1", nome: "Irmão", telefone: "11988888888", tipo: "pessoa" }],
+    acoes: [
+      { id: "ac1", texto: "Beber um copo de água devagar", ordem: 1 },
+      { id: "ac2", texto: "Caminhar 10 minutos, mesmo dentro de casa", ordem: 2 },
+    ],
+    tipos: [
+      { id: "cigarro", nome: "Cigarro", emoji: "🚭" },
+      { id: "acucar", nome: "Açúcar", emoji: "🍬" },
+      { id: "outro", nome: "Outro", emoji: "🎯" },
+    ],
+    marcos: [1, 3, 7, 14, 30, 60, 90, 180, 365, 730],
+    aviso:
+      "Este módulo acompanha o seu progresso — não é tratamento. Nos momentos difíceis, fale com alguém: " +
+      "a sua rede de apoio, um profissional, ou o CVV pelo 188 (24h, gratuito).",
+  },
+
   "/diagnostico": { configurado: { url_usada: "https://x.supabase.co" }, tabelas: { perfil: "ok" } },
   "/abas": {
     abas: [

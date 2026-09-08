@@ -34,6 +34,8 @@
   --c-dinheiro: #eda100;
   --c-agenda: #e87ba4;
   --c-humor: #4a3aa7;
+  --c-saude: #eb6834;
+  --c-vicios: #e34948;
   --marca: #2a78d6;
 
   /* --- status (fixo, nunca tematizado; sempre com ícone ou rótulo) --- */
@@ -85,6 +87,8 @@
     --c-dinheiro: #c98500;
     --c-agenda: #d55181;
     --c-humor: #9085e9;
+    --c-saude: #d95926;
+    --c-vicios: #e66767;
     --marca: #3987e5;
 
     --sombra-1: 0 1px 2px rgba(0, 0, 0, .3);
@@ -110,6 +114,8 @@
   --c-dinheiro: #c98500;
   --c-agenda: #d55181;
   --c-humor: #9085e9;
+  --c-saude: #d95926;
+  --c-vicios: #e66767;
   --marca: #3987e5;
   --sombra-1: 0 1px 2px rgba(0, 0, 0, .3);
   --sombra-2: 0 2px 10px rgba(0, 0, 0, .34), 0 12px 32px rgba(0, 0, 0, .28);
@@ -640,6 +646,14 @@ main > :nth-child(4) { animation-delay: 105ms; }
 main > :nth-child(5) { animation-delay: 140ms; }
 main > :nth-child(6) { animation-delay: 175ms; }
 main > :nth-child(n + 7) { animation-delay: 200ms; }
+
+/* Modo consulta: ao imprimir (ou salvar em PDF), sai só o resumo */
+@media print {
+  .abas, .mais-botao, .topo-fixo, .aviso, .descanso, .barra-offline, .botao, .link { display: none !important; }
+  body { background: #fff; color: #000; }
+  .cartao { border: 1px solid #ddd; box-shadow: none; page-break-inside: avoid; }
+  h2 { color: #444; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

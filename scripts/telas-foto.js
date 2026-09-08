@@ -56,6 +56,12 @@ const TELAS = [
   ["dinheiro-fatura", "/#/dinheiro/fatura/cc1"],
   ["dinheiro-orcamento", "/#/dinheiro/orcamento"],
   ["dinheiro-dividas", "/#/dinheiro/dividas"],
+  ["saude", "/#/saude"],
+  ["saude-marcador", "/#/saude/marcador/Vitamina%20D"],
+  ["saude-resumo", "/#/saude/resumo"],
+  ["vicios", "/#/vicios"],
+  ["vicios-detalhe", "/#/vicios/vc1"],
+  ["vicios-sos", "/#/vicios/sos"],
   ["habito-novo", "/#/habitos/novo"],
 ];
 

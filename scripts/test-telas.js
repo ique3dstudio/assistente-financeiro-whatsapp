@@ -61,6 +61,8 @@ const telas = {
   eu: await import("../public/telas/eu.js"),
   foco: await import("../public/telas/foco.js"),
   treino: await import("../public/telas/treino.js"),
+  saude: await import("../public/telas/saude.js"),
+  vicios: await import("../public/telas/vicios.js"),
 };
 
 let passou = 0;
@@ -238,6 +240,66 @@ await teste("medidas mostram a última como referência", async () => {
   contem(html, "Medidas", "Peso (kg)", "Cintura (cm)", 'placeholder="80,5"', "Histórico", "Salvar medidas");
 });
 
+await teste("painel da Saúde: doses, rotina vencida, exames e sono", async () => {
+  const html = await telas.saude.render();
+  contem(html, "Saúde", "Vitamina D", "08:00", "Ômega 3", "estoque para 5 dias", "Rotina vencida", "Dentista",
+    "Últimos exames", "34,2", "Sono", "7h10", "Modo consulta");
+});
+
+await teste("marcador mostra evolução e faixa de referência", async () => {
+  const html = await telas.saude.render("marcador/Vitamina%20D");
+  contem(html, "Vitamina D", "referência 30–60", "18,5", "34,2", "polyline", "não é diagnóstico");
+});
+
+await teste("consulta guarda perguntas e o que foi dito", async () => {
+  const html = await telas.saude.render("consulta/cs1");
+  contem(html, "Dentista", "Dra. Ana", "Perguntas que quero fazer", "perguntar sobre o siso",
+    "O que foi dito", "Prescrição", "Marcar retorno");
+});
+
+await teste("exames listam marcadores e avisam do bucket pendente", async () => {
+  const html = await telas.saude.render("exames");
+  contem(html, "Exames", "Vitamina D", "2 medições", "variação +15,7", "Lab X", "Storage");
+});
+
+await teste("modo consulta monta o resumo para levar ao médico", async () => {
+  const html = await telas.saude.render("resumo");
+  contem(html, "Modo consulta", "Medicamentos em uso", "Vitamina D", "Últimos exames", "Medições",
+    "Sintomas recentes", "dor de cabeça", "Salvar em PDF");
+});
+
+await teste("medições classificam a pressão com a ressalva", async () => {
+  const html = await telas.saude.render("sinais");
+  contem(html, "Medições", "Normal", "não substitui avaliação médica", "128", "80,5");
+});
+
+await teste("painel do Controle: contador, apoio e aviso de que não é tratamento", async () => {
+  const html = await telas.vicios.render();
+  contem(html, "Controle", "Cigarro", "30d 02:30:45", "faltam 30 dias para 60", "R$\u00a0450,00",
+    "recorde 47d", "Rede de apoio", "Irmão", "não é tratamento", "CVV pelo 188",
+    "Estou com vontade agora");
+});
+
+await teste("detalhe do vício: marcos, economia, linha do tempo e mapa de gatilhos", async () => {
+  const html = await telas.vicios.render("vc1");
+  contem(html, "Cigarro", "2 tentativas", "seu recorde é 47 dias — ele não sumiu", "Compromisso de hoje",
+    "O que você recuperou", "R$\u00a05.475,00", "Marcos", "Meus porquês", "respirar melhor na escada",
+    "Linha do tempo", "paladar e olfato", "Onde a vontade te pega", "estresse", "cedeu em 25%",
+    "Registrar uma recaída", "o seu recorde continua guardado");
+});
+
+await teste("SOS: respiração, porquês, ações e apoio", async () => {
+  const html = await telas.vicios.render("sos");
+  contem(html, "Um minuto", "a vontade passa", "Inspire", "60s", "Por que você começou isso",
+    "respirar melhor na escada", "Em vez disso, agora", "Beber um copo de água devagar",
+    "Ligar para alguém", "Irmão", "CVV pelo 188");
+});
+
+await teste("rede de apoio e ações alternativas", async () => {
+  const html = await telas.vicios.render("apoio");
+  contem(html, "Rede de apoio", "Irmão", "Ações alternativas", "Caminhar 10 minutos", "não é tratamento");
+});
+
 await teste("trocar de tela mata o cronômetro anterior", async () => {
   await telas.foco.render("manha"); // inicia rotina guiada (timer via setTimeout)
   await telas.foco.render("pomodoro"); // troca de tela antes do timer começar
@@ -262,6 +324,19 @@ await teste("toda ação usada nas telas tem função registrada", async () => {
     await telas.treino.render("biblioteca/escolher"),
     await telas.treino.render("stats"),
     await telas.treino.render("medidas"),
+    await telas.saude.render(),
+    await telas.saude.render("medicamentos"),
+    await telas.saude.render("consultas"),
+    await telas.saude.render("consulta/cs1"),
+    await telas.saude.render("exames"),
+    await telas.saude.render("marcador/Vitamina%20D"),
+    await telas.saude.render("sinais"),
+    await telas.saude.render("sono"),
+    await telas.saude.render("resumo"),
+    await telas.vicios.render(),
+    await telas.vicios.render("vc1"),
+    await telas.vicios.render("sos"),
+    await telas.vicios.render("apoio"),
     await telas.hoje.render(),
     await telas.habitos.render(),
     await telas.habitos.render("novo"),

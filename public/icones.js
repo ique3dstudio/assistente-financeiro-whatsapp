@@ -42,12 +42,19 @@ export const ICONE_ABA = { hoje: "hoje", metas: "metas", corpo: "corpo", dinheir
 export const COR_MODULO = {
   habitos: "var(--c-rotina)",
   agua: "var(--c-agua)",
-  metas: "var(--c-metas)",
+  saude: "var(--c-saude)",
   treino: "var(--c-treino)",
   financas: "var(--c-dinheiro)",
   agenda: "var(--c-agenda)",
   diario: "var(--c-humor)",
+  metas: "var(--c-metas)",
+  vicios: "var(--c-vicios)",
 };
+
+// A ORDEM dos anéis na tela Hoje é o que foi validado para daltonismo e
+// contraste — mudar a ordem exige rodar o validador de novo. Metas e Controle
+// ficam fora da fila de anéis: não têm número diário, e têm tela própria.
+export const ORDEM_ANEIS = ["habitos", "agua", "saude", "treino", "financas", "agenda", "diario"];
 
 export const COR_ABA = {
   hoje: "var(--c-agua)",
@@ -58,6 +65,8 @@ export const COR_ABA = {
 };
 
 export const ICONE_MODULO = {
+  saude: "coracao",
+  vicios: "raio",
   habitos: "check",
   agua: "gota",
   metas: "metas",

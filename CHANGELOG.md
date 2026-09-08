@@ -141,6 +141,44 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
   "R$ 5.000,00"), e o espaço inseparável do formato brasileiro é justamente o que impede "R$" de quebrar
   para outra linha.
 
+## Fase 4 — Saúde e Vícios (E4.1 a E4.7)
+
+**Saúde**
+- **Medicamentos e suplementos** com horários, dias da semana, estoque e alerta de recompra. Cada dose entra
+  no checklist da tela Hoje no período certo, e marcar a dose baixa o estoque (desmarcar devolve).
+- **Consultas** com o que você quer perguntar (escrito antes) e o que foi dito (escrito depois), prescrição e
+  retorno; **rotinas de saúde** (dentista a cada 6 meses, check-up anual) que avisam quando vencem.
+- **Exames com evolução por marcador**: 13 marcadores comuns já vêm com a faixa de referência preenchida —
+  você só digita o valor do laudo. Cada marcador tem sua curva ao longo dos anos e a marcação de dentro ou
+  fora da faixa.
+- **Sinais** (pressão, frequência de repouso, peso, glicemia, saturação, temperatura), **sono** (que atravessa
+  a meia-noite sem erro de conta), **sintomas**, **vacinas** e **contatos de saúde**.
+- **Modo consulta**: junta medicamentos em uso, últimos exames, medições, sintomas e consultas recentes numa
+  página que imprime limpa — no iPhone, "Salvar em PDF" resolve, sem instalar nada.
+- Onde há faixa de referência, a tela diz que é referência publicada e **não substitui avaliação médica**.
+
+**Vícios e controle de impulsos**
+- **Contador ao vivo** (dias, horas, minutos, segundos) por hábito, com vários ao mesmo tempo.
+- **Compromisso do dia** com sequência própria, e **marcos** de 1 a 730 dias.
+- **Recaída que não apaga nada**: o contador reinicia, o recorde é preservado e a tela diz isso com essas
+  palavras ("seu recorde é 47 dias — ele não sumiu"). Pede o aprendizado, não a culpa.
+- **Registro de fissura** mesmo sem ter cedido, e **mapa de gatilhos**: faixa do dia, gatilho, emoção, dia da
+  semana, intensidade média e a taxa de vezes em que cedeu.
+- **Tela de urgência (SOS)**: respiração guiada de 60 segundos (4 inspirando, 4 segurando, 6 soltando, com o
+  círculo acompanhando), seus porquês, sua lista de ações alternativas e os contatos da rede de apoio com
+  botão de ligar. Nessa tela o botão + desaparece — ali o app tem uma função só.
+- **Economia** de dinheiro e tempo com projeção de 6 e 12 meses, e um botão que transforma isso numa meta
+  financeira na aba Dinheiro.
+- **Linha do tempo de recuperação** por tipo de hábito, apresentada como encorajamento e marcada como
+  informação geral de saúde — não promessa médica.
+- **O aviso de que o app acompanha e não trata fica visível em todas as telas do módulo**, junto com a rede de
+  apoio e o CVV (188).
+- 17 testes para as contas dos dois módulos: dose e estoque, rotina vencida, sono que vira o dia, faixas de
+  referência, contador, marcos, economia, mapa de gatilhos, sequência de compromissos e a recaída que preserva
+  o recorde.
+- Bug pego pelo teste de idempotência: as ações do SOS duplicavam ao rodar o SQL duas vezes — faltava a
+  restrição de unicidade que dá ao "on conflict do nothing" algo para detectar.
+
 ## Passo de design (visual, interação e movimento)
 Pausa no funcional para o app parecer app. Referências de layout: Oura e Whoop (dados em anéis, números
 grandes), Apple Fitness e Health (sistema de cartões, título grande que colapsa ao rolar), Things 3

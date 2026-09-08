@@ -7,9 +7,11 @@ import metas from "../modules/metas/index.js";
 import agenda from "../modules/agenda/index.js";
 import diario from "../modules/diario/index.js";
 import treino from "../modules/treino/index.js";
+import saude from "../modules/saude/index.js";
+import vicios from "../modules/vicios/index.js";
 import financas from "../modules/financas/index.js";
 
-export const MODULOS = [habitos, agua, agenda, treino, metas, financas, diario];
+export const MODULOS = [habitos, agua, agenda, treino, saude, metas, financas, diario, vicios];
 
 // Abas da barra inferior, na ordem da especificação.
 export const ABAS = [

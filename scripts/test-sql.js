@@ -69,6 +69,30 @@ const testes = [
   ["meta financeira", "insert into metas_financeiras (user_id, titulo, valor_alvo, valor_atual, prazo) values ('eu','Reserva de emergência',15000,2000,'2027-06-30')"],
   ["dívida", "insert into dividas (user_id, nome, saldo_atual, juros_mes, parcela_min) values ('eu','Cartão antigo',5000,12,500)"],
   ["forma de pagamento livre é aceita", "insert into transacoes (user_id, data, valor, tipo, forma_pagamento) values ('eu', current_date, 10, 'despesa', 'vale_alimentacao')"],
+  ["medicamento com horários", "insert into medicamentos (user_id, nome, dose, horarios, estoque_atual) values ('eu','Vitamina D','2000 UI','{08:00}',60)"],
+  ["dose tomada", "insert into medicamentos_log (user_id, medicamento_id, data, horario) select 'eu', id, current_date, '08:00' from medicamentos limit 1"],
+  ["mesma dose duas vezes (deve falhar)", "insert into medicamentos_log (user_id, medicamento_id, data, horario) select 'eu', id, current_date, '08:00' from medicamentos limit 1"],
+  ["consulta", "insert into saude_consultas (user_id, especialidade, profissional, data, retorno_em) values ('eu','Dentista','Dra. Ana',current_date,'2027-03-01')"],
+  ["rotina de saúde", "insert into saude_recorrencias (user_id, nome, tipo, cada_meses, ultima_em) values ('eu','Dentista','consulta',6,'2026-01-10')"],
+  ["exame", "insert into saude_exames (user_id, tipo, data, laboratorio) values ('eu','Sangue',current_date,'Lab X')"],
+  ["marcador do exame", "insert into saude_marcadores (user_id, exame_id, data, marcador, valor, unidade, ref_min, ref_max) select 'eu', id, current_date, 'Vitamina D', 22.5, 'ng/mL', 30, 60 from saude_exames limit 1"],
+  ["pressão com dois valores", "insert into sinais_log (user_id, data, tipo, valor, valor2) values ('eu', current_date, 'pressao', 128, 84)"],
+  ["tipo de sinal inválido (deve falhar)", "insert into sinais_log (user_id, data, tipo, valor) values ('eu', current_date, 'aura', 1)"],
+  ["sono", "insert into sono_log (user_id, data, dormiu_em, acordou_em, duracao_min, qualidade) values ('eu', current_date, '23:30', '07:15', 465, 4)"],
+  ["sono do mesmo dia faz upsert", "insert into sono_log (user_id, data, duracao_min) values ('eu', current_date, 400) on conflict (user_id, data) do update set duracao_min = 400"],
+  ["qualidade de sono fora da escala (deve falhar)", "insert into sono_log (user_id, data, qualidade) values ('eu', current_date - 1, 9)"],
+  ["sintoma", "insert into sintomas (user_id, data, nome, intensidade) values ('eu', current_date, 'dor de cabeça', 7)"],
+  ["intensidade de sintoma inválida (deve falhar)", "insert into sintomas (user_id, data, nome, intensidade) values ('eu', current_date, 'x', 11)"],
+  ["vacina", "insert into vacinas (user_id, nome, data, proxima_em) values ('eu','Influenza',current_date,'2027-04-01')"],
+  ["contato de saúde", "insert into saude_contatos (user_id, nome, especialidade, telefone) values ('eu','Dra. Ana','Dentista','11999999999')"],
+  ["vício com motivos em jsonb", "insert into vicios (user_id, nome, tipo, custo_diario, tempo_diario_min, motivos) values ('eu','Cigarro','cigarro',15,40,'[{\"texto\":\"respirar melhor\"}]')"],
+  ["compromisso do dia", "insert into vicios_pledges (user_id, vicio_id, data, cumprido) select 'eu', id, current_date, true from vicios limit 1"],
+  ["compromisso repetido no mesmo dia (deve falhar)", "insert into vicios_pledges (user_id, vicio_id, data, cumprido) select 'eu', id, current_date, true from vicios limit 1"],
+  ["fissura", "insert into vicios_fissuras (user_id, vicio_id, gatilho, local, intensidade, emocao, cedeu) select 'eu', id, 'estresse', 'trabalho', 8, 'ansioso', false from vicios limit 1"],
+  ["intensidade de fissura inválida (deve falhar)", "insert into vicios_fissuras (user_id, vicio_id, intensidade) select 'eu', id, 12 from vicios limit 1"],
+  ["recaída guarda o recorde anterior", "insert into vicios_recaidas (user_id, vicio_id, aprendizado, recorde_anterior_dias) select 'eu', id, 'foi depois da cerveja', 47 from vicios limit 1"],
+  ["tipo de vício inválido (deve falhar)", "insert into vicios (user_id, nome, tipo) values ('eu','x','videogame')"],
+  ["contato de apoio", "insert into vicios_apoio (user_id, nome, telefone, tipo) values ('eu','Irmão','11988888888','pessoa')"],
   ["regra de progressão inválida (deve falhar)", "insert into treino_rotina_exercicios (user_id, rotina_id, exercicio_id, regra_progressao, ordem) select 'eu', r.id, e.id, 'mágica', 9 from treino_rotinas r, exercicios e limit 1"],
   ["sensação fora da escala (deve falhar)", "insert into treino_sessoes (user_id, data, sensacao) values ('eu', current_date - 1, 9)"],
   ["config", "insert into configuracoes (user_id, chave, valor) values ('eu','agua.meta_ml','2800') on conflict (user_id, chave) do update set valor='2800'"],
@@ -90,6 +114,11 @@ for (const [nome, comando] of testes) {
     if (!deveFalhar) process.exitCode = 1;
   }
 }
+
+// As ações alternativas do SOS vieram no seed?
+const acoes = await db.query("select count(*)::int as n from vicios_acoes");
+console.log(`\nações alternativas do SOS: ${acoes.rows[0].n}`);
+if (acoes.rows[0].n < 6) process.exitCode = 1;
 
 // As categorias iniciais vieram no seed?
 const cats = await db.query("select count(*)::int as n, count(*) filter (where tipo='receita')::int as r from categorias");

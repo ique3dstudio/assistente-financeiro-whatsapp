@@ -14,9 +14,11 @@ import * as dinheiro from "./telas/dinheiro.js";
 import * as eu from "./telas/eu.js";
 import * as foco from "./telas/foco.js";
 import * as treino from "./telas/treino.js";
+import * as saude from "./telas/saude.js";
+import * as vicios from "./telas/vicios.js";
 import { pendentes, sincronizar } from "./sync.js";
 
-const TELAS = [hoje, habitos, agua, agenda, treino, metas, dinheiro, eu, foco];
+const TELAS = [hoje, habitos, agua, agenda, treino, saude, metas, dinheiro, eu, foco, vicios];
 
 const TODAS = TELAS;
 
@@ -160,7 +162,12 @@ async function render() {
   desenharAbas(tela.aba);
   // Cada aba tinge seus botões principais — o app inteiro fica coerente com a cor
   // do módulo em que você está.
-  const acento = COR_ABA[tela.aba] || "var(--marca)";
+  // Telas de foco (rotina guiada, Pomodoro, SOS) escondem o botão + : ali o app
+  // tem uma função só, e qualquer outra coisa na tela é distração.
+  const foco = /^\/(foco|vicios\/sos)/.test(rota);
+  $("#mais").hidden = foco;
+
+  const acento = foco ? "var(--c-vicios)" : COR_ABA[tela.aba] || "var(--marca)";
   $("#conteudo").style.setProperty("--acento-tela", acento);
   $("#mais").style.background = acento;
   $("#mais").style.boxShadow = `0 6px 22px color-mix(in oklab, ${acento} 45%, transparent), var(--sombra-2)`;

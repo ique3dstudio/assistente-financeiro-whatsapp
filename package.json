@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node scripts/test-habitos.js && node scripts/test-agua.js && node scripts/test-metas.js && node scripts/test-agenda.js && node scripts/test-treino.js && node scripts/test-financas.js && node scripts/test-telas.js && node scripts/test-sql.js",
+    "test": "node scripts/test-habitos.js && node scripts/test-agua.js && node scripts/test-metas.js && node scripts/test-agenda.js && node scripts/test-treino.js && node scripts/test-financas.js && node scripts/test-saude.js && node scripts/test-vicios.js && node scripts/test-telas.js && node scripts/test-sql.js",
     "sql": "node scripts/gerar-sql.js"
   },
   "dependencies": {
