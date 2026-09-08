@@ -279,6 +279,47 @@ export async function historico(usuario, habitoId, dias = 365) {
   };
 }
 
+// Rotina guiada: os hábitos de um período, na ordem, com o que já foi feito.
+export async function ritual(usuario, periodo, data = hoje()) {
+  const { itens } = await checklist(usuario, data);
+  const doPeriodo = itens.filter((item) => item.periodo === periodo);
+
+  return {
+    periodo,
+    data,
+    total: doPeriodo.length,
+    feitos: doPeriodo.filter((item) => item.concluido).length,
+    minutos_estimados: doPeriodo.reduce((soma, item) => soma + (item.duracao_min || 0), 0),
+    itens: doPeriodo,
+  };
+}
+
+export async function registrarFoco(usuario, { tipo = "pomodoro", habito_id = null, periodo = null, minutos = 0, concluido = false }) {
+  const { data, error } = await getSupabase()
+    .from("foco_sessoes")
+    .insert({ user_id: usuario, tipo, habito_id, periodo, data: hoje(), minutos: Math.round(minutos), concluido })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Falha ao registrar foco: ${error.message}`);
+  return data;
+}
+
+export async function focoDoDia(usuario, data = hoje()) {
+  const { data: sessoes, error } = await getSupabase()
+    .from("foco_sessoes")
+    .select("minutos, tipo")
+    .eq("user_id", usuario)
+    .eq("data", data);
+
+  if (error) throw new Error(`Falha ao ler sessões de foco: ${error.message}`);
+
+  return {
+    minutos: sessoes.reduce((soma, s) => soma + s.minutos, 0),
+    sessoes: sessoes.length,
+  };
+}
+
 export async function listar(usuario) {
   const { habitos, porHabito } = await carregarJanela(usuario);
   const hojeISO = hoje();

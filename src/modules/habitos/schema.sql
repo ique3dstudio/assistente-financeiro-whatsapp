@@ -46,3 +46,19 @@ create table if not exists habitos_folgas (
   unique (user_id, habito_id, data)
 );
 alter table habitos_folgas enable row level security;
+
+-- Rotina guiada e Pomodoro (E1.10): guarda o tempo que você de fato passou
+-- em cada hábito ou bloco de foco.
+create table if not exists foco_sessoes (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  tipo text not null default 'pomodoro' check (tipo in ('pomodoro', 'ritual', 'habito')),
+  habito_id uuid references habitos (id) on delete set null,
+  periodo text,
+  data date not null,
+  minutos integer not null default 0,
+  concluido boolean not null default false,
+  criado_em timestamptz not null default now()
+);
+create index if not exists foco_sessoes_user_data_idx on foco_sessoes (user_id, data);
+alter table foco_sessoes enable row level security;

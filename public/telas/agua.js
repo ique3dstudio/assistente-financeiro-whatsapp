@@ -19,8 +19,9 @@ export async function render() {
 
   const recipientes = dados.recipientes
     .map(
-      (r) => `<button class="copo" data-acao="agua-registrar:${r.volume_ml}:${r.bebida}">
-        ${escapar(r.emoji)}<small>${r.volume_ml} ml</small></button>`
+      (r) => `<button class="copo" data-acao="agua-registrar:${r.volume_ml}:${r.bebida}"
+                title="${escapar(r.nome)}" aria-label="${escapar(r.nome)} ${r.volume_ml} ml">
+        ${escapar(r.emoji)}<small>${escapar(r.nome)}</small><small>${r.volume_ml} ml</small></button>`
     )
     .join("");
 

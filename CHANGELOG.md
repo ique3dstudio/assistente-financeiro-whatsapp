@@ -77,11 +77,31 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
 - Botão flutuante com os 8 registros mais usados: água (1 toque), gasto, tarefa, compromisso, humor, nota,
   hábito e treino (em breve). O gasto já abre com a última categoria usada.
 
+## E1.10 — Rotina guiada e foco
+- "▶ iniciar rotina" em cada período: o app conduz hábito por hábito, com cronômetro (contagem regressiva
+  quando o hábito tem duração), marcação automática e passagem para o próximo — a ideia é você não decidir nada.
+- Card "Foco agora" na tela Hoje com bloco de Pomodoro (15/25/45/60 min) e bip no fim.
+- Tabela `foco_sessoes` guarda o tempo real gasto em rotina e em foco.
+
+## E0.5 — Offline-first
+- Registro nunca falha: sem rede, o lançamento vai para uma fila no próprio aparelho (IndexedDB, que sobrevive
+  a fechar o app) e sobe sozinho quando a conexão volta — ao ficar online, ao reabrir o app ou ao voltar para
+  a aba.
+- Barra no alto avisa "sem conexão" e quantos registros estão esperando.
+- Leitura offline: a última resposta de cada tela fica guardada no aparelho, então o app abre com dados mesmo
+  sem sinal.
+- **Nada duplica no reenvio**: cada registro leva um `origem_id` gerado no celular e o servidor guarda o que já
+  processou (`sync_idempotencia`), devolvendo a mesma resposta se o mesmo registro chegar duas vezes — o padrão
+  de chave de idempotência usado em API de pagamento, aplicado a copos de água e séries de treino.
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
-- `npm test` roda 34 testes de regra (hábitos, água, metas, agenda) **e valida o SQL num Postgres real**
-  (PGlite): confere que aplica limpo, que aplica duas vezes sem quebrar e que as tabelas aceitam exatamente
-  os inserts do app, barrando os inválidos.
+- `npm test` roda 50 testes: as regras de cálculo (hábitos, água, metas, agenda), **as 14 telas renderizadas
+  num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL num Postgres
+  real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as tabelas
+  aceitam exatamente os inserts do app, barrando os inválidos.
+- O teste de telas já pegou dois defeitos antes do deploy: recipiente de água sem nome na tela e cronômetro
+  da rotina guiada que continuava rodando depois de trocar de tela.
 - `npm run sql` regenera `db/RODAR-TUDO.sql` a partir dos schemas dos módulos.
 - Perfil guarda os módulos DESLIGADOS (não os ligados), então módulo novo já nasce ativo.
 

@@ -61,6 +61,30 @@ router.post("/:id/folga", async (req, res, next) => {
   }
 });
 
+router.get("/ritual/:periodo", async (req, res, next) => {
+  try {
+    res.json(await habitos.ritual(req.usuario, req.params.periodo));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.post("/foco", async (req, res, next) => {
+  try {
+    res.json(await habitos.registrarFoco(req.usuario, req.body || {}));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.get("/foco", async (req, res, next) => {
+  try {
+    res.json(await habitos.focoDoDia(req.usuario));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
 router.get("/:id/historico", async (req, res, next) => {
   try {
     res.json(await habitos.historico(req.usuario, req.params.id, Number(req.query.dias) || 365));

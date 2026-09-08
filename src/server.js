@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { entrar, exigirLogin, sair, autenticado } from "./core/auth.js";
+import { idempotencia } from "./core/sync.js";
 import { ABAS, MODULOS, dashboard } from "./core/modulos.js";
 import { montarHoje } from "./core/hoje.js";
 import { lerPerfil, salvarPerfil } from "./core/perfil.js";
@@ -78,8 +79,9 @@ app.put("/api/perfil", exigirLogin, async (req, res, next) => {
 });
 
 // --- Módulos: cada um vira /api/<id> ---
+// A idempotência entra antes das rotas: reenvio de fila offline não duplica.
 for (const modulo of MODULOS) {
-  app.use(`/api/${modulo.id}`, exigirLogin, modulo.rotas);
+  app.use(`/api/${modulo.id}`, exigirLogin, idempotencia, modulo.rotas);
 }
 
 // --- WhatsApp (entrada rápida por mensagem) ---

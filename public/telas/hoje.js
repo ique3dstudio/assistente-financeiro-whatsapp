@@ -35,10 +35,15 @@ export async function render() {
     : "";
 
   const periodos = dados.periodos
-    .map(
-      (periodo) => `<section class="periodo"><h2>${periodo.nome}</h2>
-        ${periodo.itens.map(item).join("")}</section>`
-    )
+    .map((periodo) => {
+      const pendentes = periodo.itens.filter((i) => !i.concluido && i.tipo === "habito").length;
+      return `<section class="periodo">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>${periodo.nome}</h2>
+          ${pendentes > 1 ? `<button class="link" data-acao="iniciar-ritual:${periodo.id}">▶ iniciar rotina</button>` : ""}
+        </div>
+        ${periodo.itens.map(item).join("")}</section>`;
+    })
     .join("");
 
   const vazio = `<div class="vazio">
@@ -58,6 +63,7 @@ export async function render() {
     <div class="secao aneis">${aneis}</div>
     ${dados.total ? periodos : vazio}
     ${compromissos}
+    ${focoAgora(dados)}
     ${dados.mostrar_fechamento ? await blocoFechamento() : ""}
     ${dados.erros.length ? `<p class="sub secao">⚠️ ${escapar(dados.erros[0])}</p>` : ""}
   `;
@@ -89,6 +95,20 @@ function item(item) {
     </button>
     <button class="mais" data-acao="${opcoes}">···</button>
   </div>`;
+}
+
+// "Foco agora" (E1.10): o próximo item pendente e um bloco de Pomodoro.
+function focoAgora(dados) {
+  const proximo = dados.periodos.flatMap((p) => p.itens).find((i) => !i.concluido);
+  if (!proximo) return "";
+
+  return `<section class="secao"><h2>Foco agora</h2>
+    <div class="cartao">
+      <div class="item-nome">${escapar(proximo.emoji)} ${escapar(proximo.nome)}</div>
+      <p class="sub">${escapar(proximo.horario ? `sugerido às ${proximo.horario}` : "o próximo da fila")}</p>
+      <button class="botao secundario" data-acao="iniciar-pomodoro">▶ Bloco de foco de 25 min</button>
+    </div>
+  </section>`;
 }
 
 // Fechamento do dia (E1.9): aparece depois das 20h.

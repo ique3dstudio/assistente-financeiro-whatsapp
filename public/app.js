@@ -1,5 +1,5 @@
 // Life OS — montagem do app: abas, roteamento, botão + universal e boot.
-import { $, abrirPainel, acaoApi, api, atualizar, avisar, definirRender, escapar, estado, fecharPainel, navegar } from "./ui.js";
+import { $, abrirPainel, acaoApi, api, atualizar, avisar, definirRender, escapar, estado, fecharPainel, limparTimer, navegar } from "./ui.js";
 
 import * as hoje from "./telas/hoje.js";
 import * as habitos from "./telas/habitos.js";
@@ -8,8 +8,10 @@ import * as agenda from "./telas/agenda.js";
 import * as metas from "./telas/metas.js";
 import * as dinheiro from "./telas/dinheiro.js";
 import * as eu from "./telas/eu.js";
+import * as foco from "./telas/foco.js";
+import { pendentes, sincronizar } from "./sync.js";
 
-const TELAS = [hoje, habitos, agua, agenda, metas, dinheiro, eu];
+const TELAS = [hoje, habitos, agua, agenda, metas, dinheiro, eu, foco];
 
 const corpo = {
   rota: /^\/corpo$/,
@@ -108,6 +110,7 @@ for (const tela of TODAS) Object.assign(ACOES, tela.acoes || {});
 // ---------- roteamento ----------
 
 async function render() {
+  limparTimer(); // cronômetro de outra tela não continua rodando escondido
   const rota = location.hash.replace(/^#/, "") || "/hoje";
   estado.rota = rota;
 
@@ -126,7 +129,34 @@ async function render() {
   }
 
   desenharAbas(tela.aba);
+  await desenharEstadoRede();
   window.scrollTo(0, 0);
+}
+
+// Mostra, no alto da tela, quando o app está sem rede e quantos registros
+// estão esperando para subir.
+async function desenharEstadoRede() {
+  estado.fila = await pendentes();
+  const barra = $("#barra-offline");
+  const semRede = estado.offline || !navigator.onLine;
+
+  if (!semRede && estado.fila === 0) {
+    barra.hidden = true;
+    return;
+  }
+
+  barra.hidden = false;
+  barra.textContent = estado.fila
+    ? `${semRede ? "Sem conexão · " : ""}${estado.fila} registro(s) aguardando envio`
+    : "Sem conexão — pode registrar, sobe depois";
+}
+
+// Rede voltou: sobe a fila e redesenha com os dados de verdade.
+async function aoVoltarRede() {
+  const { enviados } = await sincronizar();
+  estado.offline = false;
+  if (enviados) avisar(`${enviados} registro(s) enviados`);
+  await render();
 }
 
 function desenharAbas(ativa) {
@@ -164,6 +194,11 @@ document.addEventListener("change", (evento) => {
 
 $("#sombra").addEventListener("click", fecharPainel);
 window.addEventListener("hashchange", render);
+window.addEventListener("online", aoVoltarRede);
+window.addEventListener("offline", () => desenharEstadoRede());
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && navigator.onLine) aoVoltarRede().catch(() => {});
+});
 document.addEventListener("sessao-expirada", mostrarLogin);
 
 // ---------- boot ----------
@@ -181,6 +216,9 @@ async function abrirApp() {
 
   $("#tela-login").hidden = true;
   $("#app").hidden = false;
+
+  // Abriu o app: se sobrou fila da última vez sem rede, sobe antes de desenhar.
+  if ((await pendentes()) > 0 && navigator.onLine) await sincronizar().catch(() => {});
   await render();
 }
 
