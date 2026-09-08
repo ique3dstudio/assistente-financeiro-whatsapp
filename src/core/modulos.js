@@ -1,4 +1,4 @@
-// Registro dos módulos do Vida OS.
+// Registro dos módulos do Life OS.
 // Para adicionar um módulo novo: crie a pasta em src/modules/<id>/ seguindo o
 // molde do módulo Água e acrescente o import na lista abaixo. Nada mais.
 import agua from "../modules/agua/index.js";

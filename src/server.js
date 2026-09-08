@@ -18,7 +18,7 @@ app.use(express.static(path.join(PASTA, "..", "public")));
 
 // --- Núcleo ---
 app.get("/saude", (req, res) => {
-  res.json({ status: "ok", app: "vida-os", data: hoje(), modulos: MODULOS.map((m) => m.id) });
+  res.json({ status: "ok", app: "life-os", data: hoje(), modulos: MODULOS.map((m) => m.id) });
 });
 
 app.post("/api/login", entrar);
@@ -57,5 +57,5 @@ app.use((erro, req, res, next) => {
 });
 
 app.listen(porta, () => {
-  console.log(`Vida OS rodando em http://localhost:${porta}`);
+  console.log(`Life OS rodando em http://localhost:${porta}`);
 });

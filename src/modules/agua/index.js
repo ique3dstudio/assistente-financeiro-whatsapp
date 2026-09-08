@@ -1,4 +1,4 @@
-// Contrato de um módulo do Vida OS:
+// Contrato de um módulo do Life OS:
 //   id, nome, emoji  → identificação e como aparece no app
 //   rotas            → router do Express, montado em /api/<id>
 //   resumoDoDia      → o que o módulo mostra no card do dashboard

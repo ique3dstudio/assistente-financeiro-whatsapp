@@ -1,7 +1,7 @@
 {
-  "name": "Vida OS",
-  "short_name": "Vida OS",
-  "description": "Painel da minha vida: água, hábitos, treino, dieta, tarefas e finanças.",
+  "name": "Life OS",
+  "short_name": "Life OS",
+  "description": "Painel da minha vida: rotina, metas, corpo, dinheiro e autoconhecimento.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

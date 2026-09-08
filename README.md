@@ -1,7 +1,11 @@
-# Vida OS
+# Life OS
 
-Painel pessoal que junta vários assuntos da minha vida num app só: água, hábitos, dieta, treino, tarefas, vícios,
-finanças e o que mais vier. Duas portas de entrada para os mesmos dados:
+Painel pessoal que junta vários assuntos da minha vida num app só: rotina, metas, corpo (treino, dieta, saúde),
+dinheiro e autoconhecimento. A especificação funcional completa está em [`ESPEC.md`](ESPEC.md); o plano de
+construção, etapa por etapa, em [`ROADMAP.md`](ROADMAP.md); o que já foi entregue, em
+[`CHANGELOG.md`](CHANGELOG.md).
+
+Duas portas de entrada para os mesmos dados:
 
 - **PWA** — site que instala na tela inicial do celular e abre como app (dashboard do dia, botões, gráficos).
 - **WhatsApp** — mensagem solta tipo "bebi 500ml" ou "gastei 50 no mercado" cai no módulo certo (em construção).
@@ -81,7 +85,8 @@ npm run dev
 ```
 
 Abra `http://localhost:3000`, digite a senha e o dashboard aparece.
-`http://localhost:3000/saude` mostra o status e os módulos carregados.
+`http://localhost:3000/saude` mostra o status e os módulos carregados; `/api/diagnostico` (depois de logar)
+mostra o estado da conexão com o Supabase, tabela por tabela.
 
 ## Testes manuais
 
@@ -105,11 +110,15 @@ periódico (UptimeRobot) ou o plano de US$ 7/mês resolvem. Todo `git push` na b
 
 ## Roteiro
 
-1. ~~Núcleo do Vida OS: login, dashboard, PWA e o módulo Água como molde~~ (feito)
-2. Deploy no Render + instalar na tela inicial do celular
-3. Módulos de hábito, reaproveitando o molde da Água: dieta, treino, vícios (dias sem), sono
-4. Módulo Tarefas (prazo, prioridade, concluído)
-5. Finanças completo no app: lançamento manual, extrato e resumo do mês na tela
-6. Roteador de IA no WhatsApp: uma mensagem qualquer cai no módulo certo
-7. Resumo diário automático pelo WhatsApp
-8. Módulos novos, conforme forem sendo definidos
+O plano completo está em [`ROADMAP.md`](ROADMAP.md), em 7 fases:
+
+| Fase | Conteúdo | Situação |
+|---|---|---|
+| 0 | Fundação: núcleo, 5 abas, perfil, offline, bloqueio biométrico | E0.1 feito, E0.2 em ajuste |
+| 1 | O dia a dia: hábitos, tela Hoje, botão +, água v2, metas, agenda, fechamento do dia | a fazer |
+| 2 | Corpo: biblioteca de exercícios, rotinas, execução, progressão de carga, gráficos, medidas | a fazer |
+| 3 | Dinheiro: contas, cartões e faturas, recorrentes, orçamento, relatórios, dívidas | a fazer |
+| 4 | Saúde e vícios: medicamentos, consultas, exames, contador, SOS, gatilhos | a fazer |
+| 5 | Dieta e diário: refeições, macros, ajuste adaptativo, humor, revisão semanal | a fazer |
+| 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | a fazer |
+| 7 | Fechamento: export total, acabamento visual, calendário externo | a fazer |
