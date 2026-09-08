@@ -68,19 +68,25 @@ const ACOES = {
     await acaoApi("/agua", { method: "POST", body: JSON.stringify({ quantidade_ml: 500, bebida: "agua" }) }, "+500 ml");
   },
 
-  "rapido-gasto"() {
-    const categorias = ["alimentacao", "mercado", "transporte", "moradia", "saude", "lazer", "compras", "servicos", "outros"];
-    const ultima = localStorage.getItem("ultima-categoria") || "alimentacao";
+  // Gasto rápido: usa as suas categorias de verdade e lembra a última usada.
+  async "rapido-gasto"() {
+    const { categorias } = await api("/financas/categorias?tipo=despesa");
+    const { contas } = await api("/financas/contas");
+    const ultima = localStorage.getItem("ultima-categoria");
 
     abrirPainel(`<div class="titulo">Novo gasto</div>
       <div style="padding:0 14px 14px">
         <label class="campo"><span>Valor (R$)</span>
-          <input id="g-valor" type="number" inputmode="decimal" placeholder="45,00" autofocus /></label>
+          <input id="g-valor" type="number" inputmode="decimal" step="0.01" placeholder="45,90" autofocus /></label>
         <label class="campo"><span>Categoria</span>
           <select id="g-categoria">${categorias
-            .map((c) => `<option value="${c}" ${c === ultima ? "selected" : ""}>${c}</option>`)
+            .map((c) => `<option value="${c.id}" ${c.id === ultima ? "selected" : ""}>${c.icone} ${escapar(c.nome)}</option>`)
             .join("")}</select></label>
         <label class="campo"><span>Descrição (opcional)</span><input id="g-descricao" placeholder="almoço" /></label>
+        <label class="campo"><span>Conta</span>
+          <select id="g-conta">${contas
+            .map((c) => `<option value="${c.id}">${c.icone} ${escapar(c.nome)}</option>`)
+            .join("")}</select></label>
         <label class="marca-linha"><input id="g-receita" type="checkbox" /><span>É uma entrada de dinheiro</span></label>
         <button class="botao" data-acao="salvar-gasto">Salvar</button>
       </div>
@@ -95,6 +101,8 @@ const ACOES = {
     localStorage.setItem("ultima-categoria", categoria);
 
     fecharPainel();
+    estado.dados.financas = null;
+
     await acaoApi(
       "/financas",
       {
@@ -102,8 +110,10 @@ const ACOES = {
         body: JSON.stringify({
           valor,
           tipo: $("#g-receita").checked ? "receita" : "despesa",
-          categoria,
+          categoria_id: categoria,
+          conta_id: $("#g-conta").value || null,
           descricao: $("#g-descricao").value.trim() || null,
+          forma_pagamento: "pix",
         }),
       },
       "Lançamento salvo"

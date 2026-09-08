@@ -51,6 +51,11 @@ const TELAS = [
   ["metas", "/#/metas"],
   ["agenda", "/#/agenda"],
   ["eu", "/#/eu"],
+  ["dinheiro", "/#/dinheiro"],
+  ["dinheiro-lancar", "/#/dinheiro/lancar"],
+  ["dinheiro-fatura", "/#/dinheiro/fatura/cc1"],
+  ["dinheiro-orcamento", "/#/dinheiro/orcamento"],
+  ["dinheiro-dividas", "/#/dinheiro/dividas"],
   ["habito-novo", "/#/habitos/novo"],
 ];
 

@@ -135,9 +135,55 @@ await teste("formulário de meta oferece as métricas automáticas", async () =>
   contem(html, "Nova meta", "Dias seguidos batendo a água (agora: 3)", "atualizo na mão", "Por que isso importa");
 });
 
-await teste("dinheiro mostra entra/sai/sobra", async () => {
+await teste("painel do Dinheiro: entra/sai/sobra, projeção, cartão, envelopes e alertas", async () => {
   const html = await telas.dinheiro.render();
-  contem(html, "R$ 5000,00", "R$ 1234,50", "R$ 3765,50", "almoço", "alimentacao");
+  contem(html, "R$\u00a05.000", "R$\u00a03.215", "R$\u00a01.786", "Previsto para o fim do mês", "R$\u00a01.790,35",
+    "Visa Infinite", "Delivery", "estourou", "Onde foi o dinheiro", "almoço", "acima da sua média",
+    "setembro de 2026");
+});
+
+await teste("lançamento com parcelas e crédito", async () => {
+  const html = await telas.dinheiro.render("lancar");
+  contem(html, "Novo lançamento", "l-valor", "Parcelas", "Forma de pagamento", "Crédito", "Visa Infinite",
+    "respeitando o", "Gasto", "Entrada");
+});
+
+await teste("fatura do cartão com compras e parcela", async () => {
+  const html = await telas.dinheiro.render("fatura/cc1");
+  contem(html, "Visa Infinite", "fatura de setembro de 2026", "R$\u00a01.840,90", "notebook 1/10",
+    "Registrar pagamento", "2 compras");
+});
+
+await teste("cartões mostram fechamento, vencimento e limite", async () => {
+  const html = await telas.dinheiro.render("cartoes");
+  contem(html, "Cartões", "fecha dia 20", "vence dia 1", "R$\u00a08.000,00", "próxima fatura", "R$\u00a01.240,80");
+});
+
+await teste("orçamento com envelopes e regra 50/30/20", async () => {
+  const html = await telas.dinheiro.render("orcamento");
+  contem(html, "Orçamento", "Regra 50/30/20", "Essenciais", "R$\u00a02.500,00", "Envelopes", "Delivery", "140%");
+});
+
+await teste("relatórios com mês a mês, categorias e dia da semana", async () => {
+  const html = await telas.dinheiro.render("relatorios");
+  contem(html, "Relatórios", "Gasto por mês", "Por categoria", "Por forma de pagamento",
+    "Por dia da semana", "Maiores gastos", "notebook");
+});
+
+await teste("dívidas comparam avalanche e bola de neve", async () => {
+  const html = await telas.dinheiro.render("dividas");
+  contem(html, "Dívidas", "Cartão antigo", "R$\u00a05.000,00", "Avalanche", "Bola de neve", "12 meses até quitar",
+    "R$\u00a02.100,50 de juros");
+});
+
+await teste("metas financeiras com progresso e aporte", async () => {
+  const html = await telas.dinheiro.render("metas");
+  contem(html, "Reserva de emergência", "R$\u00a04.200,00", "R$\u00a015.000,00", "28%", "Registrar aporte");
+});
+
+await teste("contas somam saldo", async () => {
+  const html = await telas.dinheiro.render("contas");
+  contem(html, "Contas", "Nubank", "R$\u00a03.810,35", "Carteira", "saldo somado");
 });
 
 await teste("aba Eu: humor, perfil e módulos", async () => {
@@ -225,6 +271,15 @@ await teste("toda ação usada nas telas tem função registrada", async () => {
     await telas.metas.render(),
     await telas.metas.render("nova"),
     await telas.dinheiro.render(),
+    await telas.dinheiro.render("lancar"),
+    await telas.dinheiro.render("extrato"),
+    await telas.dinheiro.render("contas"),
+    await telas.dinheiro.render("cartoes"),
+    await telas.dinheiro.render("fatura/cc1"),
+    await telas.dinheiro.render("orcamento"),
+    await telas.dinheiro.render("relatorios"),
+    await telas.dinheiro.render("metas"),
+    await telas.dinheiro.render("dividas"),
     await telas.eu.render(),
     await telas.foco.render("manha"),
     await telas.foco.render("pomodoro"),

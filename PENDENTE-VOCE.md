@@ -9,8 +9,9 @@ O que depende de você fica esperando aqui, marcado.
 
 ---
 
-> **Nesta etapa (passo de design) não entrou nenhuma tabela nova.** O SQL continua o mesmo de antes:
-> 23 tabelas, o mesmo arquivo. Se você já tinha baixado, não precisa baixar de novo.
+> **Atenção: a Fase 3 (Dinheiro) acrescentou 7 tabelas.** O SQL agora tem **30 tabelas** — pegue a versão
+> nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo rodar quantas vezes quiser,
+> mesmo que você já tenha rodado uma versão anterior: o que já existe é preservado e só o que falta é criado.
 
 ## 1. Rodar o SQL (resolve quase tudo)
 
@@ -43,6 +44,11 @@ evita confusão futura.)
 | Cadastrar **Face ID** na primeira abertura | Bloqueio do app e dos módulos sensíveis (Saúde, Vícios, Finanças) | E0.6 |
 | **Adicionar à Tela de Início** pelo Safari | Sem isso o iPhone não entrega notificação nenhuma, nem roda como app | — |
 | Autorizar **microfone e câmera** | Ditado, foto de cupom, código de barras | E6.2 |
+
+Depois de rodar o SQL, vale cadastrar em 5 minutos, pelo app: suas **contas** (com o saldo atual), seus
+**cartões** (dia de fechamento e de vencimento — é o que faz a fatura ficar correta), seus **recorrentes**
+(salário, aluguel, assinaturas) e o **teto** das 3 ou 4 categorias em que você mais estoura. Sem isso o
+módulo Dinheiro funciona, mas não tem como projetar nem avisar de nada.
 
 ## 4. Chaves e cadastros externos (quando cada fase chegar)
 

@@ -16,6 +16,7 @@ const PARTES = [
   ["MÓDULO: TREINO", "src/modules/treino/schema.sql"],
   ["MÓDULO: TREINO — BIBLIOTECA DE EXERCÍCIOS", "src/modules/treino/seed-exercicios.sql"],
   ["MÓDULO: FINANÇAS", "src/modules/financas/schema.sql"],
+  ["MÓDULO: FINANÇAS — CATEGORIAS INICIAIS", "src/modules/financas/seed-categorias.sql"],
 ];
 
 const cabecalho = `-- Life OS — banco completo (núcleo + todos os módulos já construídos).

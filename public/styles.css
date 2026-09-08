@@ -242,7 +242,7 @@ button.cartao:active, .item:active, .chip:active { transform: scale(.985); }
 .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .tres > div { text-align: center; padding: 2px 0; }
 .tres small { display: block; color: var(--tinta-3); font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
-.tres span { font-size: 21px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tres span { font-size: 19px; font-weight: 650; letter-spacing: -.025em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---------- anéis de progresso ---------- */
 

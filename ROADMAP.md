@@ -67,6 +67,13 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E2.6 Gráficos e mapa de calor muscular | ✅ feito |
 | E2.8 Medidas corporais | ✅ feito (fotos dependem do bucket do Storage) |
 | E0.6 Bloqueio biométrico · E1.11 Notificações · E2.7 Programas periodizados | ⬜ dependem de você (ver `PENDENTE-VOCE.md`) |
+| E3.1 Contas, categorias e lançamento completo | ✅ feito |
+| E3.2 Cartões, faturas e parcelamentos | ✅ feito |
+| E3.3 Recorrentes e projeção | ✅ feito |
+| E3.4 Orçamento por envelope | ✅ feito |
+| E3.5 Painel e relatórios | ✅ feito (export CSV/PDF fica para a E7.1) |
+| E3.6 Metas financeiras e dívidas | ✅ feito |
+| E3.7 Alertas de vazamento | ✅ feito |
 | E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
 | **Passo de design** (tokens, ícones, movimento, gráficos, fotos das telas) | ✅ feito — fora da numeração, pedido no meio da Fase 2 |
 

@@ -124,10 +124,97 @@ export const RESPOSTAS = {
 
   "/financas": {
     mes: "2026-09",
-    despesas: 1234.5,
+    data: HOJE,
     receitas: 5000,
-    por_categoria: [{ categoria: "alimentacao", total: 800 }],
-    lancamentos: [{ id: "l1", data: HOJE, valor: 45.9, tipo: "despesa", categoria: "alimentacao", descricao: "almoço" }],
+    despesas: 3214.5,
+    sobra: 1785.5,
+    previstas: 400,
+    saldo_total: 4210.35,
+    projecao: { variavel_previsto: 620, recorrentes_previstos: -1800, saldo_previsto: 1790.35 },
+    contas: [
+      { id: "ct1", nome: "Nubank", tipo: "corrente", icone: "🏦", cor: "#4a3aa7", saldo: 3810.35, saldo_inicial: 1000 },
+      { id: "ct2", nome: "Carteira", tipo: "carteira", icone: "👛", cor: "#eda100", saldo: 400, saldo_inicial: 400 },
+    ],
+    cartoes: [
+      {
+        id: "cc1", nome: "Visa Infinite", icone: "💳", cor: "#eda100", limite: 8000, fechamento: 20, vencimento: 1,
+        fatura_atual: { mes: "2026-09", total: 1840.9, pago: 0, vencimento: "2026-09-01" },
+        fatura_proxima: { mes: "2026-10", total: 620.4 },
+        comprometido_futuro: 1240.8,
+        limite_usado: 0.385,
+      },
+    ],
+    recorrentes: [
+      { id: "r1", descricao: "Aluguel", valor: 1800, tipo: "despesa", dia_do_mes: 5, frequencia: "mensal", inicio: "2026-01-01" },
+    ],
+    orcamentos: [
+      { categoria: { id: "cat1", nome: "Delivery", icone: "🛵", cor: "#eb6834" }, planejado: 300, gasto: 420, resta: -120, proporcao: 1.4, situacao: "estourou" },
+      { categoria: { id: "cat2", nome: "Mercado", icone: "🛒", cor: "#eb6834" }, planejado: 900, gasto: 740, resta: 160, proporcao: 0.82, situacao: "atencao" },
+      { categoria: { id: "cat3", nome: "Lazer", icone: "🎬", cor: "#eda100" }, planejado: 400, gasto: 120, resta: 280, proporcao: 0.3, situacao: "ok" },
+    ],
+    por_categoria: [
+      { id: "cat2", nome: "Mercado", icone: "🛒", cor: "#eb6834", essencial: true, total: 740 },
+      { id: "cat1", nome: "Delivery", icone: "🛵", cor: "#eb6834", essencial: false, total: 420 },
+      { id: "cat3", nome: "Lazer", icone: "🎬", cor: "#eda100", essencial: false, total: 120 },
+    ],
+    regra_502030: [
+      { id: "essenciais", nome: "Essenciais", alvo: 2500, real: 2540 },
+      { id: "resto", nome: "Estilo de vida", alvo: 1500, real: 540 },
+      { id: "poupanca", nome: "Poupar e investir", alvo: 1000, real: 134.5 },
+    ],
+    metas: [{ id: "mf1", titulo: "Reserva de emergência", valor_alvo: 15000, valor_atual: 4200, prazo: "2027-06-30", progresso: 0.28 }],
+    dividas: [{ id: "d1", nome: "Cartão antigo", saldo_atual: 5000, juros_mes: 12, parcela_min: 500 }],
+    plano_quitacao: {
+      avalanche: { meses: 12, total_juros: 2100.5, parcela_total: 500, ordem: ["Cartão antigo"], quitadas: [], nunca_quita: false },
+      bola_de_neve: { meses: 12, total_juros: 2100.5, parcela_total: 500, ordem: ["Cartão antigo"], quitadas: [], nunca_quita: false },
+    },
+    lancamentos: [
+      { id: "l1", data: HOJE, valor: 45.9, tipo: "despesa", categoria_id: "cat1", categoria: "Delivery", descricao: "almoço", forma_pagamento: "pix", parcela_num: null, parcela_total: null, efetivada: true },
+      { id: "l2", data: "2026-09-05", valor: 5000, tipo: "receita", categoria_id: "cat9", categoria: "Salário", descricao: "salário", forma_pagamento: "transferencia", efetivada: true },
+      { id: "l3", data: "2026-09-03", valor: 120, tipo: "despesa", categoria_id: "cat3", categoria: "Lazer", descricao: "cinema", forma_pagamento: "credito", parcela_num: 1, parcela_total: 3, efetivada: true },
+    ],
+    alertas: [
+      { tipo: "categoria_acima", texto: "Delivery está 62% acima da sua média" },
+      { tipo: "assinatura_esquecida", texto: '"Streaming" está cadastrada como fixa mas não aparece nos lançamentos' },
+    ],
+    formas: [
+      { id: "dinheiro", nome: "Dinheiro" }, { id: "debito", nome: "Débito" }, { id: "credito", nome: "Crédito" },
+      { id: "pix", nome: "Pix" }, { id: "boleto", nome: "Boleto" }, { id: "transferencia", nome: "Transferência" },
+    ],
+    categorias: [
+      { id: "cat1", nome: "Delivery", tipo: "despesa", icone: "🛵", cor: "#eb6834", teto_mensal: 300, essencial: false },
+      { id: "cat2", nome: "Mercado", tipo: "despesa", icone: "🛒", cor: "#eb6834", teto_mensal: 900, essencial: true },
+      { id: "cat3", nome: "Lazer", tipo: "despesa", icone: "🎬", cor: "#eda100", teto_mensal: 400, essencial: false },
+      { id: "cat9", nome: "Salário", tipo: "receita", icone: "💼", cor: "#008300", teto_mensal: null, essencial: false },
+    ],
+  },
+
+  "/financas/lancamentos?mes=2026-09&limite=200&futuros=1": { lancamentos: [] },
+  "/financas/categorias?tipo=despesa": { categorias: [] },
+  "/financas/contas": { contas: [] },
+  "/financas/cartoes/cc1/fatura?mes=2026-09": {
+    mes: "2026-09",
+    total: 1840.9,
+    pago: 0,
+    itens: [
+      { id: "f1", data: "2026-08-25", valor: 620.4, tipo: "despesa", categoria_id: "cat2", descricao: "mercado do mês", parcela_num: null, parcela_total: null, efetivada: true },
+      { id: "f2", data: "2026-09-01", valor: 1220.5, tipo: "despesa", categoria_id: "cat3", descricao: "notebook", parcela_num: 1, parcela_total: 10, efetivada: true },
+    ],
+  },
+  "/financas/relatorios?meses=6": {
+    meses: 6,
+    por_mes: [
+      { mes: "2026-08", receitas: 5000, despesas: 4100, sobra: 900 },
+      { mes: "2026-09", receitas: 5000, despesas: 3214.5, sobra: 1785.5 },
+    ],
+    por_categoria: [{ nome: "Mercado", total: 1480 }, { nome: "Delivery", total: 820 }],
+    por_forma: [{ nome: "Crédito", total: 2100 }, { nome: "Pix", total: 900 }],
+    por_dia_semana: [
+      { nome: "domingo", total: 210 }, { nome: "segunda", total: 180 }, { nome: "terça", total: 90 },
+      { nome: "quarta", total: 140 }, { nome: "quinta", total: 160 }, { nome: "sexta", total: 320 },
+      { nome: "sábado", total: 410 },
+    ],
+    maiores: [{ descricao: "notebook", valor: 1220.5, data: "2026-09-01" }],
   },
 
   "/perfil": { user_id: "eu", nome: "Gustavo Ique", peso_kg: 80, altura_cm: 178, nascimento: "1995-05-10", modulos_inativos: [] },

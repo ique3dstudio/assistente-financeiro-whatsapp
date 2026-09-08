@@ -93,7 +93,14 @@ export const escapar = (texto) =>
   String(texto ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export const litros = (ml) => `${(ml / 1000).toFixed(1).replace(".", ",")} L`;
-export const reais = (valor) => `R$ ${Number(valor || 0).toFixed(2).replace(".", ",")}`;
+// Dinheiro no formato brasileiro, com separador de milhar: R$ 5.000,00.
+const MOEDA = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MOEDA_CURTA = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+export const reais = (valor) => MOEDA.format(Number(valor || 0));
+
+// Sem centavos, para os cartões de resumo — centavo ali é ruído.
+export const reaisCurto = (valor) => MOEDA_CURTA.format(Number(valor || 0));
 export const numero = (valor) => String(Number(valor || 0)).replace(".", ",");
 // "1 exercício" / "2 exercícios" — detalhe pequeno que separa app de protótipo.
 export function plural(quantidade, singular, plural) {

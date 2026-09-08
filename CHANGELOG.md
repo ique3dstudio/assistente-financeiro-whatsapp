@@ -115,6 +115,32 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
   número de treinos) que as metas podem acompanhar sozinhas.
 - 16 testes cobrem só o motor de progressão — é o cálculo que decide o peso que você levanta.
 
+## Fase 3 — Dinheiro (E3.1 a E3.7)
+- **Contas** (corrente, poupança, carteira, investimento) com saldo calculado a partir do movimento, e
+  **28 categorias iniciais** com ícone, cor, marca de essencial e teto — todas editáveis.
+- **Lançamento completo**: valor, tipo, categoria, descrição, forma de pagamento, conta, cartão, tags,
+  observação e data. O lançamento rápido do botão + agora usa as suas categorias de verdade e lembra a última.
+- **Cartão de crédito com lógica de fatura de verdade**: compra feita depois do fechamento cai na fatura
+  seguinte; a fatura é identificada pelo mês do vencimento, como as pessoas falam. Fatura atual, próxima,
+  limite usado e comprometimento das próximas.
+- **Parcelamento** que não perde centavo: a diferença do arredondamento vai na primeira parcela, e cada
+  parcela nasce já na fatura certa (10x começando na fatura de novembro, por exemplo).
+- **Pagamento de fatura é transferência, não gasto novo** — senão a compra do cartão seria contada duas vezes.
+- **Recorrentes** (salário, aluguel, assinatura) projetados nos meses seguintes sem virar linha no banco.
+- **Projeção do fim do mês**: saldo atual + fixos que ainda vão cair − o seu ritmo de gasto variável.
+- **Orçamento por envelope** com aviso em 80% e 100%, e a **regra 50/30/20** calculada sobre a receita real.
+- **Relatórios**: mês a mês, por categoria, por forma de pagamento, por dia da semana e maiores gastos.
+- **Metas financeiras** com aporte, e **dívidas** com os dois planos de quitação comparados
+  (avalanche × bola de neve), incluindo o aviso honesto de quando a dívida **não fecha** com o pagamento atual.
+- **Alertas de vazamento**: categoria acima da própria média, assinatura cadastrada que não aparece nos
+  lançamentos, e gasto fora do padrão (média + 2 desvios, com piso para não acusar um café).
+- 25 testes só para a matemática do dinheiro: regra de fatura nas duas configurações de cartão, virada de ano,
+  parcelamento de valor difícil (R$ 0,10 em 3x), recorrente do dia 31 em fevereiro, projeção, envelopes,
+  50/30/20, os dois planos de quitação e a detecção de anomalia.
+- Correção que a foto das telas revelou: faltava **separador de milhar** no dinheiro ("R$ 5000,00" em vez de
+  "R$ 5.000,00"), e o espaço inseparável do formato brasileiro é justamente o que impede "R$" de quebrar
+  para outra linha.
+
 ## Passo de design (visual, interação e movimento)
 Pausa no funcional para o app parecer app. Referências de layout: Oura e Whoop (dados em anéis, números
 grandes), Apple Fitness e Health (sistema de cartões, título grande que colapsa ao rolar), Things 3
