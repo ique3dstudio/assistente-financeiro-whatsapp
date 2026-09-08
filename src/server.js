@@ -4,7 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { entrar, exigirLogin, sair, autenticado } from "./core/auth.js";
-import { MODULOS, dashboard } from "./core/modulos.js";
+import { ABAS, MODULOS, dashboard } from "./core/modulos.js";
+import { montarHoje } from "./core/hoje.js";
+import { lerPerfil, salvarPerfil } from "./core/perfil.js";
 import { diagnosticar } from "./core/diagnostico.js";
 import { hoje } from "./core/datas.js";
 import webhookRouter from "./core/webhook.js";
@@ -38,6 +40,38 @@ app.get("/api/diagnostico", exigirLogin, async (req, res, next) => {
 app.get("/api/dashboard", exigirLogin, async (req, res, next) => {
   try {
     res.json({ data: hoje(), ...(await dashboard(req.usuario)) });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// Tela Hoje: checklist agregado de todos os módulos + anéis do dia.
+app.get("/api/hoje", exigirLogin, async (req, res, next) => {
+  try {
+    res.json(await montarHoje(req.usuario));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+app.get("/api/abas", exigirLogin, (req, res) => {
+  res.json({
+    abas: ABAS,
+    modulos: MODULOS.map((m) => ({ id: m.id, nome: m.nome, emoji: m.emoji, aba: m.aba || "eu" })),
+  });
+});
+
+app.get("/api/perfil", exigirLogin, async (req, res, next) => {
+  try {
+    res.json(await lerPerfil(req.usuario));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+app.put("/api/perfil", exigirLogin, async (req, res, next) => {
+  try {
+    res.json(await salvarPerfil(req.usuario, req.body || {}));
   } catch (erro) {
     next(erro);
   }

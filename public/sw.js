@@ -1,6 +1,6 @@
 // Service worker mínimo: guarda a casca do app para abrir rápido e offline.
 // Os dados (chamadas /api) nunca são cacheados — sempre vêm da rede.
-const CACHE = "vidaos-v1";
+const CACHE = "lifeos-v2";
 const CASCA = ["/", "/styles.css", "/app.js", "/manifest.json", "/icone.svg"];
 
 self.addEventListener("install", (evento) => {

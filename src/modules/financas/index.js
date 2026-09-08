@@ -5,6 +5,7 @@ export default {
   id: "financas",
   nome: "Finanças",
   emoji: "💰",
+  aba: "dinheiro",
   rotas,
   async resumoDoDia(usuario) {
     const { despesas, receitas } = await resumoDoDia(usuario);

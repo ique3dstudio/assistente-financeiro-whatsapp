@@ -44,11 +44,17 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 
 | Etapa | Situação |
 |---|---|
-| E0.1 Núcleo (servidor, login por senha, dashboard, PWA instalável, deploy no Render) | ✅ feito |
-| E0.2 Conexão com o Supabase e as três primeiras tabelas | 🔄 em ajuste (URL do projeto) |
-| E0.3 em diante | ⬜ a fazer |
+| E0.1 Núcleo (servidor, login por senha, PWA instalável, deploy no Render) | ✅ feito |
+| E0.2 Conexão com o Supabase | 🔄 falta rodar o SQL (`db/RODAR-TUDO.sql`) |
+| E0.3 Casca do app: 5 abas + tema | ✅ feito |
+| E0.4 Perfil e preferências | ✅ feito |
+| E1.1 Hábitos e rituais | ✅ feito |
+| E1.2 Checklist do dia e streaks | ✅ feito |
+| E1.3 Tela Hoje | ✅ feito (montagem e anéis; agenda e foco entram com E1.8 e E1.10) |
+| E0.5, E0.6 e E1.4 em diante | ⬜ a fazer |
 
-Módulos hoje: Água (completo em v1) e Finanças (só a base herdada do assistente do WhatsApp).
+**Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
+novo quantas vezes quiser — nada é apagado nem duplicado.
 
 ---
 

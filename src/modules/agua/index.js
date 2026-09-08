@@ -9,6 +9,7 @@ export default {
   id: "agua",
   nome: "Água",
   emoji: "💧",
+  aba: "hoje",
   rotas,
   async resumoDoDia(usuario) {
     const { total, meta, progresso, sequencia } = await panorama(usuario, 14);

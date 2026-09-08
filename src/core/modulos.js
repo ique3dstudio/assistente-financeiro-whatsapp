@@ -1,10 +1,20 @@
 // Registro dos módulos do Life OS.
 // Para adicionar um módulo novo: crie a pasta em src/modules/<id>/ seguindo o
 // molde do módulo Água e acrescente o import na lista abaixo. Nada mais.
+import habitos from "../modules/habitos/index.js";
 import agua from "../modules/agua/index.js";
 import financas from "../modules/financas/index.js";
 
-export const MODULOS = [agua, financas];
+export const MODULOS = [habitos, agua, financas];
+
+// Abas da barra inferior, na ordem da especificação.
+export const ABAS = [
+  { id: "hoje", nome: "Hoje", emoji: "☀️" },
+  { id: "metas", nome: "Metas", emoji: "🎯" },
+  { id: "corpo", nome: "Corpo", emoji: "💪" },
+  { id: "dinheiro", nome: "Dinheiro", emoji: "💰" },
+  { id: "eu", nome: "Eu", emoji: "🧠" },
+];
 
 export function acharModulo(id) {
   return MODULOS.find((modulo) => modulo.id === id);
