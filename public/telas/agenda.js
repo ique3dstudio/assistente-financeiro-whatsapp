@@ -1,4 +1,5 @@
-import { $, abrirPainel, acaoApi, api, avisar, dataCurta, escapar, estado, navegar, selecao } from "../ui.js";
+import { $, abrirPainel, acaoApi, api, avisar, dataCurta, escapar, estado, navegar, selecao, vazio } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/agenda(?:\/(.+))?$/;
 export const aba = "hoje";
@@ -21,19 +22,20 @@ export async function render(parametro) {
           </section>`
         )
         .join("")
-    : `<div class="vazio">Nenhum compromisso nos próximos 30 dias.</div>`;
+    : vazio("Nenhum compromisso nos próximos 30 dias.", "calendario");
 
   const tarefas = dados.tarefas.length
     ? dados.tarefas.map(linhaTarefa).join("")
-    : `<div class="vazio">Nenhuma tarefa aberta.</div>`;
+    : vazio("Nenhuma tarefa aberta.", "check");
 
   const conflitos = dados.conflitos_hoje.length
-    ? `<div class="cartao secao" style="border-color:var(--alerta)">
-        ⚠️ Conflito hoje: ${dados.conflitos_hoje.map(([a, b]) => `${escapar(a)} × ${escapar(b)}`).join(" · ")}
+    ? `<div class="cartao secao" style="border-color:var(--atencao);--acento:var(--atencao)">
+        <div class="item-nome" style="color:var(--atencao)">${icone("raio", 16)} Conflito hoje</div>
+        <p class="sub">${dados.conflitos_hoje.map(([a, b]) => `${escapar(a)} × ${escapar(b)}`).join(" · ")}</p>
       </div>`
     : "";
 
-  return `<header class="topo"><h1>📅 Agenda</h1></header>
+  return `<header class="topo"><div><h1>Agenda</h1><p class="sub">próximos 30 dias</p></div></header>
     ${conflitos}
     ${agenda}
     <div class="secao"><h2>Tarefas abertas</h2>${tarefas}</div>
@@ -42,8 +44,8 @@ export async function render(parametro) {
 }
 
 function linhaEvento(evento) {
-  return `<div class="item">
-    <span class="caixa" style="border-color:${escapar(evento.cor)}">${escapar(evento.emoji)}</span>
+  return `<div class="item" style="--acento:${escapar(evento.cor)}">
+    <span class="caixa" style="border-color:color-mix(in oklab, ${escapar(evento.cor)} 55%, var(--borda))">${escapar(evento.emoji)}</span>
     <button class="item-corpo" data-acao="evento-opcoes:${evento.id}"
             style="background:none;border:0;padding:0;text-align:left">
       <span class="item-nome">${escapar(evento.titulo)}</span>
@@ -58,8 +60,10 @@ function linhaEvento(evento) {
 }
 
 function linhaTarefa(tarefa) {
-  return `<div class="item ${tarefa.concluida_em ? "feito" : ""}">
-    <button class="caixa" data-acao="tarefa-concluir:${tarefa.id}"></button>
+  return `<div class="item ${tarefa.concluida_em ? "feito" : ""}"
+       style="--acento:${tarefa.prioridade === 1 ? "var(--critico)" : "var(--c-agenda)"}">
+    <button class="caixa" data-acao="tarefa-concluir:${tarefa.id}" aria-label="concluir">
+      ${tarefa.concluida_em ? icone("check", 15) : ""}</button>
     <button class="item-corpo" data-acao="tarefa-opcoes:${tarefa.id}"
             style="background:none;border:0;padding:0;text-align:left">
       <span class="item-nome">${escapar(tarefa.prioridade_info.emoji)} ${escapar(tarefa.titulo)}</span>

@@ -115,6 +115,37 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
   número de treinos) que as metas podem acompanhar sozinhas.
 - 16 testes cobrem só o motor de progressão — é o cálculo que decide o peso que você levanta.
 
+## Passo de design (visual, interação e movimento)
+Pausa no funcional para o app parecer app. Referências de layout: Oura e Whoop (dados em anéis, números
+grandes), Apple Fitness e Health (sistema de cartões, título grande que colapsa ao rolar), Things 3
+(tipografia calma), Copilot Money (chips e cartões de finanças), Linear (movimento contido).
+
+- **Sistema de tokens** em `public/styles.css`: superfícies, tinta, raio, sombra, tempos e curvas de
+  animação — claro e escuro escritos explicitamente (não é inversão automática).
+- **Paleta de dados validada, não escolhida por gosto**: 7 matizes (um por módulo) passaram nos testes de
+  daltonismo e contraste nos dois modos, na ordem em que aparecem na tela. Duas ordens "bonitas" foram
+  reprovadas pelo validador antes desta: laranja ao lado de amarelo e violeta ao lado de azul são
+  indistinguíveis para parte das pessoas. Cor nunca vem sozinha: todo anel, barra e status tem número ou
+  rótulo escrito ao lado.
+- **Ícones desenhados** (`public/icones.js`) na navegação e nos botões; emoji ficou só para o que é sua
+  escolha (ícone de hábito, humor).
+- **Barra de abas** com indicador que desliza e cor por aba; cada aba tinge seus botões principais e o
+  botão +, então o app inteiro fica coerente com o módulo em que você está.
+- **Anéis** com brilho suave, animação de entrada de zero até o valor, e cor do próprio módulo.
+- **Movimento**: entrada das seções em cascata, painel que sobe com fundo desfocado, botão + que sai do
+  caminho ao rolar para baixo, cronômetro de descanso que sobrevive à troca de tela, vibração curta ao
+  registrar. Tudo desligado se o sistema pedir menos animação.
+- **Esqueleto de carregamento** no lugar de tela branca, e **estados vazios ilustrados** com uma única ação.
+- **Tipografia**: escala definida, números tabulares nas colunas de dados, título grande que vira barra
+  compacta ao rolar.
+- **Gráficos** refeitos com as especificações do guia: topo arredondado, respiro entre barras, rótulo
+  direto só no maior valor, ponto final da curva com anel da cor do fundo, e toque numa barra mostra o
+  valor exato (o "hover" que não existe no celular).
+- Ferramenta nova: `node scripts/telas-foto.js` sobe o app com dados de mentira e **fotografa as 9 telas
+  nos dois temas** num Chromium de verdade. Foi assim que apareceram três defeitos reais: a barra fixa do
+  cabeçalho empurrava a página 18 px para o lado (desalinhando a barra de abas), o botão + cobria o cartão
+  da agenda, e o texto "1 exercícios".
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
 - `npm test` roda 72 testes: as regras de cálculo (hábitos, água, metas, agenda), **as 20 telas renderizadas

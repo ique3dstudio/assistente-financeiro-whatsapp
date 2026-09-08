@@ -2,6 +2,7 @@
 // o anel de progresso e o painel que sobe de baixo.
 
 import { enfileirar, novoOrigemId, pendentes } from "./sync.js";
+import { COR_MODULO, icone } from "./icones.js";
 
 export const estado = { abas: [], modulos: [], dados: {}, rascunho: null, rota: "/hoje", offline: false, fila: 0 };
 
@@ -94,6 +95,11 @@ export const escapar = (texto) =>
 export const litros = (ml) => `${(ml / 1000).toFixed(1).replace(".", ",")} L`;
 export const reais = (valor) => `R$ ${Number(valor || 0).toFixed(2).replace(".", ",")}`;
 export const numero = (valor) => String(Number(valor || 0)).replace(".", ",");
+// "1 exercício" / "2 exercícios" — detalhe pequeno que separa app de protótipo.
+export function plural(quantidade, singular, plural) {
+  return `${quantidade} ${Number(quantidade) === 1 ? singular : plural}`;
+}
+
 export const porcento = (fracao) => `${Math.round((fracao || 0) * 100)}%`;
 
 export function dataLonga(dataISO) {
@@ -108,20 +114,115 @@ export function hojeISO() {
   return estado.dados.hoje?.data || new Date().toISOString().slice(0, 10);
 }
 
-export function anel(progresso, cor, valor, nome, acao = "") {
+export function anel(progresso, cor, valor, nome, acao = "", iconeNome = null) {
   const raio = 26;
   const volta = 2 * Math.PI * raio;
-  const falta = volta * (1 - Math.min(1, Math.max(0, progresso || 0)));
+  const fracao = Math.min(1, Math.max(0, progresso || 0));
 
-  return `<button class="anel-item" ${acao ? `data-acao="${acao}"` : ""}>
-    <svg viewBox="0 0 62 62">
+  // O anel entra animando de zero: o traço começa vazio e o CSS faz a transição.
+  return `<button class="anel-item" style="--acento:${cor}" ${acao ? `data-acao="${acao}"` : ""}>
+    <svg viewBox="0 0 62 62" data-anel="${(volta * (1 - fracao)).toFixed(1)}">
       <circle class="anel-fundo" cx="31" cy="31" r="${raio}"></circle>
-      <circle class="anel-frente" cx="31" cy="31" r="${raio}" stroke="${cor}"
-              stroke-dasharray="${volta.toFixed(1)}" stroke-dashoffset="${falta.toFixed(1)}"></circle>
+      <circle class="anel-frente" cx="31" cy="31" r="${raio}"
+              stroke-dasharray="${volta.toFixed(1)}" stroke-dashoffset="${volta.toFixed(1)}"></circle>
     </svg>
     <span class="anel-valor">${escapar(valor)}</span>
     <span class="anel-nome">${escapar(nome)}</span>
   </button>`;
+}
+
+// Chamado depois de a tela entrar no DOM: dispara a animação dos anéis.
+export function animarAneis() {
+  requestAnimationFrame(() => {
+    for (const svg of $$("[data-anel]")) {
+      const traco = svg.querySelector(".anel-frente");
+      if (traco) traco.style.strokeDashoffset = svg.dataset.anel;
+    }
+  });
+}
+
+export function corDoModulo(id) {
+  return COR_MODULO[id] || "var(--marca)";
+}
+
+// Estado vazio com ilustração e uma única ação — nunca uma tela em branco.
+export function vazio(texto, iconeNome = "vazio", acao = null) {
+  return `<div class="vazio">${icone(iconeNome)}<div>${texto}</div></div>
+    ${acao ? `<button class="botao" data-acao="${acao.acao}">${escapar(acao.rotulo)}</button>` : ""}`;
+}
+
+// Esqueleto de carregamento: o app nunca pisca em branco entre telas.
+export function esqueleto() {
+  return `<div style="padding-top:26px">
+    <div class="esqueleto" style="height:34px;width:58%"></div>
+    <div class="esqueleto" style="height:15px;width:38%;margin-top:10px"></div>
+    <div style="display:flex;gap:8px;margin-top:26px">
+      ${Array.from({ length: 4 }, () => '<div class="esqueleto" style="height:96px;flex:1"></div>').join("")}
+    </div>
+    ${Array.from({ length: 3 }, () => '<div class="esqueleto" style="height:64px;margin-top:10px"></div>').join("")}
+  </div>`;
+}
+
+// Vibração curta ao registrar algo (Android responde; iPhone ignora em silêncio).
+export function vibrar(ms = 8) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    // sem vibração, sem problema
+  }
+}
+
+// Barras de um período — usadas por água (azul) e treino (verde-água).
+// Especificação de marca: topo arredondado, 2px de respiro entre barras,
+// rótulo direto só no maior valor, e toque mostra o valor exato.
+export function barras(pontos, { cor, formatar = (v) => String(v), acaoToque = null }) {
+  if (pontos.length === 0) return "";
+
+  const maior = Math.max(...pontos.map((p) => p.valor), 1);
+  const indiceMaior = pontos.findIndex((p) => p.valor === maior);
+
+  return `<div class="historico" style="--acento:${cor}">
+    ${pontos
+      .map((ponto, i) => {
+        const altura = Math.max(3, Math.round((ponto.valor / maior) * 100));
+        const acao = acaoToque ? `data-acao="${acaoToque}:${escapar(ponto.rotulo)}|${escapar(formatar(ponto.valor))}"` : "";
+        return `<div class="dia" ${acao} title="${escapar(ponto.rotulo)}: ${escapar(formatar(ponto.valor))}">
+          ${i === indiceMaior && ponto.valor > 0 ? `<span class="grafico-rotulo">${escapar(formatar(ponto.valor))}</span>` : ""}
+          <div class="dia-barra ${ponto.destaque ? "bateu" : ""}" style="height:${altura}%"></div>
+          <div class="dia-rotulo">${escapar(ponto.rotulo)}</div>
+        </div>`;
+      })
+      .join("")}
+  </div>`;
+}
+
+// Linha de evolução: traço de 2px, ponto final com anel da cor do fundo e
+// rótulo direto no valor mais recente (nunca um número em cada ponto).
+export function linha(pontos, { cor, formatar = (v) => String(v) }) {
+  if (pontos.length < 2) return "";
+
+  const largura = 300;
+  const altura = 64;
+  const valores = pontos.map((p) => p.valor);
+  const menor = Math.min(...valores);
+  const maior = Math.max(...valores);
+  const faixa = Math.max(0.1, maior - menor);
+
+  const coordenadas = pontos.map((ponto, i) => ({
+    x: (i / (pontos.length - 1)) * largura,
+    y: altura - ((ponto.valor - menor) / faixa) * altura,
+  }));
+
+  const fim = coordenadas[coordenadas.length - 1];
+
+  return `<svg viewBox="0 -8 ${largura + 46} ${altura + 20}" style="width:100%;height:82px;overflow:visible">
+    <polyline points="${coordenadas.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ")}"
+              fill="none" stroke="${cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="${fim.x.toFixed(1)}" cy="${fim.y.toFixed(1)}" r="4.5" fill="${cor}"
+            stroke="var(--superficie)" stroke-width="2" />
+    <text x="${(fim.x + 10).toFixed(1)}" y="${(fim.y + 4).toFixed(1)}"
+          fill="var(--tinta-2)" font-size="12" font-weight="600">${escapar(formatar(maior))}</text>
+  </svg>`;
 }
 
 export function abrirPainel(html) {

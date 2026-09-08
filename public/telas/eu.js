@@ -1,4 +1,5 @@
-import { $, $$, abrirPainel, acaoApi, api, atualizar, avisar, dataCurta, escapar, estado, fecharPainel } from "../ui.js";
+import { $, $$, abrirPainel, acaoApi, api, atualizar, avisar, barras, dataCurta, escapar, estado, fecharPainel } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/eu$/;
 export const aba = "eu";
@@ -11,15 +12,10 @@ export async function render() {
   const desligados = perfil.modulos_inativos || [];
   const linha = diario?.linha || [];
   const grafico = linha.length
-    ? `<div class="historico" style="height:70px">
-        ${linha
-          .map(
-            (dia) => `<div class="dia" title="${dia.data}${dia.nota ? `: ${dia.nota}/5` : ""}">
-              <div class="dia-barra ${dia.nota >= 4 ? "bateu" : ""}" style="height:${dia.nota ? dia.nota * 20 : 2}%"></div>
-            </div>`
-          )
-          .join("")}
-      </div>`
+    ? barras(
+        linha.map((dia) => ({ rotulo: dia.data.slice(8, 10), valor: dia.nota || 0, destaque: (dia.nota || 0) >= 4 })),
+        { cor: "var(--c-humor)", formatar: (v) => (v ? `${v}/5` : "sem registro"), acaoToque: "ver-ponto" }
+      )
     : "";
 
   const anotacoes = (diario?.anotacoes || [])
@@ -30,13 +26,15 @@ export async function render() {
     )
     .join("");
 
-  return `<header class="topo"><h1>🧠 Eu</h1></header>
+  return `<header class="topo"><div><h1>Eu</h1><p class="sub">humor, perfil e ajustes</p></div></header>
 
     <div class="secao"><h2>Humor dos últimos 30 dias</h2>
-      <div class="cartao">
+      <div class="cartao cartao-destaque" style="--acento:var(--c-humor)">
         ${
           diario
-            ? `<div class="item-nome">${diario.media_humor ? `${diario.media_humor.toFixed(1).replace(".", ",")} / 5` : "sem registros"}</div>
+            ? `<div class="item-nome" style="font-size:26px;font-weight:680;letter-spacing:-.02em">${
+                diario.media_humor ? `${diario.media_humor.toFixed(1).replace(".", ",")} / 5` : "sem registros"
+              }</div>
                <p class="sub">${diario.dias_registrados} dias com check-in</p>${grafico}`
             : `<p class="sub">Rode o SQL do banco para ativar o diário.</p>`
         }

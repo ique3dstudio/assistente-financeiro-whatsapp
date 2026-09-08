@@ -68,6 +68,7 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E2.8 Medidas corporais | ✅ feito (fotos dependem do bucket do Storage) |
 | E0.6 Bloqueio biométrico · E1.11 Notificações · E2.7 Programas periodizados | ⬜ dependem de você (ver `PENDENTE-VOCE.md`) |
 | E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
+| **Passo de design** (tokens, ícones, movimento, gráficos, fotos das telas) | ✅ feito — fora da numeração, pedido no meio da Fase 2 |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
 novo quantas vezes quiser — nada é apagado nem duplicado. O arquivo é gerado por `npm run sql` e validado

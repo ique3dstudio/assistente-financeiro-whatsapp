@@ -9,6 +9,9 @@ O que depende de você fica esperando aqui, marcado.
 
 ---
 
+> **Nesta etapa (passo de design) não entrou nenhuma tabela nova.** O SQL continua o mesmo de antes:
+> 23 tabelas, o mesmo arquivo. Se você já tinha baixado, não precisa baixar de novo.
+
 ## 1. Rodar o SQL (resolve quase tudo)
 
 **Arquivo:** `db/RODAR-TUDO.sql` — cole inteiro no **SQL Editor** do Supabase e clique em **Run**.

@@ -1,5 +1,9 @@
 // Life OS — montagem do app: abas, roteamento, botão + universal e boot.
-import { $, abrirPainel, acaoApi, api, atualizar, avisar, definirRender, escapar, estado, fecharPainel, limparTimer, navegar, pararDescanso } from "./ui.js";
+import {
+  $, abrirPainel, acaoApi, animarAneis, api, atualizar, avisar, definirRender, escapar, esqueleto,
+  estado, fecharPainel, limparTimer, navegar, pararDescanso, vibrar,
+} from "./ui.js";
+import { COR_ABA, ICONE_ABA, icone } from "./icones.js";
 
 import * as hoje from "./telas/hoje.js";
 import * as habitos from "./telas/habitos.js";
@@ -27,18 +31,34 @@ const ACOES = {
   "em-breve": () => avisar("Esse módulo chega nas próximas fases do roadmap."),
   "rapido-treino": () => navegar("/treino/exec"),
 
+  // Toque numa barra do gráfico: mostra o valor exato (o "hover" do celular).
+  "ver-ponto"(argumento) {
+    const [rotulo, valor] = argumento.split("|");
+    avisar(`${rotulo}: ${valor}`);
+  },
+
   // Botão + universal (E1.4): os registros mais usados a um ou dois toques.
   mais() {
+    const atalhos = [
+      ["rapido-agua", "gota", "Água 500 ml", "var(--c-agua)"],
+      ["rapido-gasto", "dinheiro", "Gasto", "var(--c-dinheiro)"],
+      ["nova-tarefa", "check", "Tarefa", "var(--c-rotina)"],
+      ["ir:/agenda/novo", "calendario", "Compromisso", "var(--c-agenda)"],
+      ["fechamento", "coracao", "Humor", "var(--c-humor)"],
+      ["rapido-nota", "livro", "Nota", "var(--tinta-2)"],
+      ["ir:/habitos/novo", "raio", "Hábito", "var(--c-rotina)"],
+      ["rapido-treino", "corpo", "Treino", "var(--c-treino)"],
+    ];
+
     abrirPainel(`<div class="titulo">Registrar agora</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px">
-        <button class="copo" data-acao="rapido-agua">💧<small>Água 500 ml</small></button>
-        <button class="copo" data-acao="rapido-gasto">💰<small>Gasto</small></button>
-        <button class="copo" data-acao="nova-tarefa">✅<small>Tarefa</small></button>
-        <button class="copo" data-acao="ir:/agenda/novo">📅<small>Compromisso</small></button>
-        <button class="copo" data-acao="fechamento">🙂<small>Humor</small></button>
-        <button class="copo" data-acao="rapido-nota">📝<small>Nota</small></button>
-        <button class="copo" data-acao="ir:/habitos/novo">🔁<small>Hábito</small></button>
-        <button class="copo" data-acao="rapido-treino">🏋️<small>Treino</small></button>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 8px 8px">
+        ${atalhos
+          .map(
+            ([acao, nome, rotulo, cor]) => `<button class="copo" data-acao="${acao}" style="--acento:${cor}">
+              <span style="color:${cor};display:grid;place-items:center">${icone(nome, 22)}</span>
+              <small>${rotulo}</small></button>`
+          )
+          .join("")}
       </div>
       <button data-acao="fechar-painel">Cancelar</button>`);
   },
@@ -112,9 +132,15 @@ async function render() {
 
   const parametro = rota.match(tela.rota)[1];
 
+  // Esqueleto enquanto a tela carrega: nunca uma tela em branco.
+  const espera = setTimeout(() => ($("#conteudo").innerHTML = esqueleto()), 90);
+
   try {
-    $("#conteudo").innerHTML = await tela.render(parametro);
+    const html = await tela.render(parametro);
+    clearTimeout(espera);
+    $("#conteudo").innerHTML = html;
   } catch (erro) {
+    clearTimeout(espera);
     if (erro.message === "sessao") return;
     $("#conteudo").innerHTML = `<div class="vazio">Não consegui carregar esta tela.<br /><br />${escapar(erro.message)}</div>
       <button class="botao secundario" data-acao="recarregar">Tentar de novo</button>
@@ -122,8 +148,33 @@ async function render() {
   }
 
   desenharAbas(tela.aba);
+  // Cada aba tinge seus botões principais — o app inteiro fica coerente com a cor
+  // do módulo em que você está.
+  const acento = COR_ABA[tela.aba] || "var(--marca)";
+  $("#conteudo").style.setProperty("--acento-tela", acento);
+  $("#mais").style.background = acento;
+  $("#mais").style.boxShadow = `0 6px 22px color-mix(in oklab, ${acento} 45%, transparent), var(--sombra-2)`;
   await desenharEstadoRede();
   window.scrollTo(0, 0);
+  animarAneis();
+  prepararCabecalho();
+}
+
+// Título grande que vira barra compacta ao rolar (como nos apps da Apple).
+function prepararCabecalho() {
+  const titulo = $("#conteudo h1");
+  const barra = $("#topo-fixo");
+  if (!titulo || !barra) return;
+
+  barra.querySelector("strong").textContent = titulo.textContent.trim();
+  barra.classList.remove("visivel");
+
+  if (estado._observador) estado._observador.disconnect();
+  estado._observador = new IntersectionObserver(
+    ([entrada]) => barra.classList.toggle("visivel", !entrada.isIntersecting),
+    { rootMargin: "-52px 0px 0px 0px", threshold: 1 }
+  );
+  estado._observador.observe(titulo);
 }
 
 // Mostra, no alto da tela, quando o app está sem rede e quantos registros
@@ -155,8 +206,9 @@ async function aoVoltarRede() {
 function desenharAbas(ativa) {
   $("#abas").innerHTML = estado.abas
     .map(
-      (aba) => `<button class="aba ${aba.id === ativa ? "ativa" : ""}" data-acao="ir:/${aba.id}">
-        <span>${aba.emoji}</span>${aba.nome}
+      (aba) => `<button class="aba ${aba.id === ativa ? "ativa" : ""}"
+                  style="--acento:${COR_ABA[aba.id] || "var(--marca)"}" data-acao="ir:/${aba.id}">
+        ${icone(ICONE_ABA[aba.id] || "vazio")}${aba.nome}
       </button>`
     )
     .join("");
@@ -175,6 +227,8 @@ document.addEventListener("click", (evento) => {
   if (!acao) return;
 
   evento.preventDefault();
+  if (/^(marcar|habito-marcar|tarefa-concluir|serie-salvar|serie-repetir|rapido-|agua-registrar|humor)/.test(nome)) vibrar();
+
   Promise.resolve(acao(resto.join(":"))).catch((erro) => {
     if (erro.message !== "sessao") avisar(erro.message);
   });
@@ -187,6 +241,21 @@ document.addEventListener("change", (evento) => {
 
 $("#sombra").addEventListener("click", fecharPainel);
 $("#descanso").addEventListener("click", pararDescanso);
+
+// Botão + sai do caminho quando você está lendo (rolando para baixo) e volta
+// assim que você sobe — o conteúdo nunca fica escondido atrás dele.
+let ultimaRolagem = 0;
+addEventListener(
+  "scroll",
+  () => {
+    const y = window.scrollY;
+    const descendo = y > ultimaRolagem + 6;
+    const subindo = y < ultimaRolagem - 6;
+    if (descendo || subindo) $("#mais").classList.toggle("escondido", descendo && y > 120);
+    ultimaRolagem = y;
+  },
+  { passive: true }
+);
 window.addEventListener("hashchange", render);
 window.addEventListener("online", aoVoltarRede);
 window.addEventListener("offline", () => desenharEstadoRede());

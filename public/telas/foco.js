@@ -1,6 +1,7 @@
 // Rotina guiada (E1.10): o app conduz item por item, com cronômetro e
 // passagem automática — o objetivo é você não precisar decidir nada.
-import { $, api, atualizar, avisar, bip, definirTimer, escapar, estado, limparTimer, navegar, relogio } from "../ui.js";
+import { $, api, avisar, bip, definirTimer, escapar, estado, limparTimer, navegar, relogio } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/foco\/(.+)$/;
 export const aba = "hoje";
@@ -49,9 +50,9 @@ function telaDoItem() {
   if (!item) {
     limparTimer();
     return `<header class="topo"><h1>Rotina concluída</h1></header>
-      <div class="cartao secao" style="text-align:center">
+      <div class="cartao cartao-destaque secao" style="--acento:var(--c-rotina);text-align:center">
         <div style="font-size:44px">🎉</div>
-        <div class="valor-grande">${foco.feitos} de ${foco.total}</div>
+        <div class="numero" style="font-size:30px;font-weight:680">${foco.feitos} de ${foco.total}</div>
         <p class="sub">${Math.round(foco.segundos / 60)} min de rotina</p>
       </div>
       <button class="botao" data-acao="ir:/hoje">Voltar para Hoje</button>`;
@@ -65,16 +66,16 @@ function telaDoItem() {
       <button class="link" data-acao="ir:/hoje">sair</button>
     </header>
 
-    <div class="cartao secao" style="text-align:center;padding:28px 16px">
+    <div class="cartao cartao-destaque secao" style="--acento:var(--c-rotina);text-align:center;padding:30px 16px">
       <div style="font-size:52px">${escapar(item.emoji)}</div>
       <h3 style="margin-top:10px">${escapar(item.nome)}</h3>
       ${item.meta_qtd ? `<p class="sub">meta: ${item.meta_qtd} ${escapar(item.unidade || "")}</p>` : ""}
-      <div id="foco-relogio" class="valor-grande" style="font-size:44px;margin-top:14px">
+      <div id="foco-relogio" class="numero" style="font-size:46px;font-weight:680;letter-spacing:-.03em;margin-top:14px">
         ${alvo ? relogio(alvo) : "0:00"}</div>
       ${alvo ? `<p class="sub">${item.duracao_min} min previstos</p>` : ""}
     </div>
 
-    <button class="botao" data-acao="foco-feito">Feito ✓</button>
+    <button class="botao" data-acao="foco-feito" style="background:var(--c-rotina)">${icone("check", 18)} Feito</button>
     <button class="botao secundario" data-acao="foco-pular">Pular este</button>`;
 }
 
@@ -146,8 +147,8 @@ function pomodoro() {
       <button class="link" data-acao="ir:/hoje">sair</button>
     </header>
 
-    <div class="cartao secao" style="text-align:center;padding:34px 16px">
-      <div id="foco-relogio" style="font-size:56px;font-weight:650">25:00</div>
+    <div class="cartao cartao-destaque secao" style="--acento:var(--marca);text-align:center;padding:36px 16px">
+      <div id="foco-relogio" class="numero" style="font-size:58px;font-weight:680;letter-spacing:-.04em">25:00</div>
       <p class="sub" id="foco-estado">pausado</p>
     </div>
 

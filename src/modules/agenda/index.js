@@ -28,7 +28,7 @@ export default {
       tipo: "tarefa",
       modulo: "agenda",
       nome: tarefa.titulo,
-      emoji: tarefa.atrasada ? "⚠️" : tarefa.prioridade_info.emoji,
+      emoji: "",
       cor: tarefa.prioridade === 1 ? "#f87171" : "#3ba9f4",
       periodo: tarefa.periodo,
       horario: tarefa.hora,

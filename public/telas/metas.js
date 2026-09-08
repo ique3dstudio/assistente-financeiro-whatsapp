@@ -1,4 +1,5 @@
-import { $, abrirPainel, acaoApi, api, avisar, escapar, estado, navegar, numero, porcento, selecao } from "../ui.js";
+import { $, abrirPainel, acaoApi, api, avisar, escapar, estado, navegar, numero, plural, porcento, selecao, vazio } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/metas(?:\/(.+))?$/;
 export const aba = "metas";
@@ -13,14 +14,16 @@ export async function render(parametro) {
     .map(
       (h) => `<section class="secao">
         <h2>${escapar(h.nome)} · ${escapar(h.detalhe)}</h2>
-        ${h.metas.length ? h.metas.map(cartao).join("") : `<div class="vazio">Nada aqui ainda.</div>`}
+        ${h.metas.length ? h.metas.map(cartao).join("") : `<p class="sub">Nada aqui ainda.</p>`}
       </section>`
     )
     .join("");
 
   return `<header class="topo">
-      <div><h1>🎯 Metas</h1>
-        <p class="sub">${dados.total} metas · ${dados.concluidas} concluídas${dados.orfas ? ` · ${dados.orfas} órfãs` : ""}</p></div>
+      <div><h1>Metas</h1>
+        <p class="sub">${plural(dados.total, "meta", "metas")} · ${dados.concluidas} concluídas${
+          dados.orfas ? ` · ${plural(dados.orfas, "órfã", "órfãs")}` : ""
+        }</p></div>
     </header>
     ${secoes}
     <button class="botao" data-acao="ir:/metas/nova">Nova meta</button>`;
@@ -31,29 +34,38 @@ function cartao(meta) {
   const barra =
     meta.progresso === null
       ? ""
-      : `<div class="barra" style="margin-top:10px"><span style="width:${Math.round(meta.progresso * 100)}%"></span></div>`;
+      : `<div class="barra"><span style="width:${Math.round(meta.progresso * 100)}%"></span></div>`;
 
   const valores =
     meta.valor_alvo === null
       ? ""
       : `<span>${numero(meta.valor_atual)} / ${numero(meta.valor_alvo)}${meta.unidade ? ` ${escapar(meta.unidade)}` : ""}</span>`;
 
-  const ritmo = meta.ritmo ? `<span>faltam ${numero(Math.ceil(meta.ritmo.por_dia * 100) / 100)}/dia</span>` : "";
+  const ritmo = meta.ritmo
+    ? meta.ritmo.por_dia >= 1
+      ? `<span>faltam ${numero(Math.ceil(meta.ritmo.por_dia * 10) / 10)}/dia</span>`
+      : `<span>faltam ${numero(Math.ceil(meta.ritmo.por_semana * 10) / 10)}/semana</span>`
+    : "";
 
-  return `<button class="cartao" style="width:100%;text-align:left;display:block;margin-bottom:10px"
+  return `<button class="cartao" style="--acento:var(--c-metas);margin-bottom:10px"
             data-acao="meta-opcoes:${meta.id}">
-    <div class="item-nome">${escapar(area?.emoji || "🎯")} ${escapar(meta.titulo)}
-      ${meta.concluida_em ? "<span class='selo'>✓</span>" : ""}</div>
+    <div class="item-nome"><h3>${escapar(area?.emoji || "🎯")} ${escapar(meta.titulo)}</h3>
+      ${meta.concluida_em ? `<span class="selo">${icone("check", 14)}</span>` : ""}</div>
     <div class="item-info">
       ${valores}
       ${meta.progresso === null ? "" : `<span>${porcento(meta.progresso)}</span>`}
       <span>${escapar(meta.situacao.texto)}</span>
-      ${meta.automatica ? `<span>🔗 ${escapar(meta.metrica_nome)}</span>` : ""}
+      ${meta.automatica ? `<span style="color:var(--c-metas)">automática: ${escapar(meta.metrica_nome)}</span>` : ""}
       ${ritmo}
       ${meta.marcos.length ? `<span>${meta.marcos.filter((m) => m.concluido_em).length}/${meta.marcos.length} marcos</span>` : ""}
     </div>
     ${barra}
-    ${meta.orfa ? `<p class="sub" style="color:var(--alerta);margin-top:8px">⚠️ ${escapar(meta.situacao.texto)}</p>` : ""}
+    ${
+      meta.orfa
+        ? `<p class="sub" style="color:var(--atencao);margin-top:9px;display:flex;align-items:center;gap:5px">
+             ${icone("raio", 14)} ${escapar(meta.situacao.texto)}</p>`
+        : ""
+    }
   </button>`;
 }
 

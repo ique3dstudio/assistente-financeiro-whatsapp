@@ -1,9 +1,10 @@
 // Módulo Treino: painel (aba Corpo), execução do treino, rotinas, biblioteca
 // de exercícios com mapa corporal, gráficos e medidas corporais.
 import {
-  $, $$, abrirPainel, acaoApi, api, avisar, dataCurta, escapar, estado,
-  fecharPainel, iniciarDescanso, navegar, numero, pararDescanso, selecao,
+  $, abrirPainel, acaoApi, api, avisar, barras, dataCurta, escapar, estado,
+  fecharPainel, iniciarDescanso, linha, navegar, numero, pararDescanso, plural, selecao, vazio,
 } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/corpo$|^\/treino\/(.+)$/;
 export const aba = "corpo";
@@ -36,21 +37,21 @@ async function painel() {
   const { sessao_hoje: sessao, rotina_prevista: prevista, estatisticas: stats } = dados;
 
   const cartaoHoje = sessao?.concluida_em
-    ? `<div class="cartao">
-        <div class="item-nome">✓ Treino de hoje concluído</div>
+    ? `<div class="cartao cartao-destaque" style="--acento:var(--c-treino)">
+        <div class="item-nome" style="color:var(--c-treino)">${icone("check", 18)} Treino de hoje concluído</div>
         <p class="sub">${stats.series_totais ? `${stats.series_totais} séries nos últimos ${stats.dias} dias` : ""}</p>
         <button class="botao secundario" data-acao="ir:/treino/exec">Ver o que foi feito</button>
       </div>`
     : sessao
-      ? `<div class="cartao">
-          <div class="item-nome">▶ Treino em andamento</div>
+      ? `<div class="cartao cartao-destaque" style="--acento:var(--c-treino)">
+          <div class="item-nome">${icone("play", 16)} Treino em andamento</div>
           <button class="botao" data-acao="ir:/treino/exec">Continuar treino</button>
         </div>`
-      : `<div class="cartao">
-          <div class="item-nome">${prevista ? escapar(prevista.nome) : "Hoje é descanso"}</div>
+      : `<div class="cartao cartao-destaque" style="--acento:var(--c-treino)">
+          <div class="item-nome"><h3>${prevista ? escapar(prevista.nome) : "Hoje é descanso"}</h3></div>
           <p class="sub">${
             prevista
-              ? `${prevista.itens.length} exercícios · ${(prevista.dias_semana || []).map((d) => DIAS[d]).join(", ")}`
+              ? `${plural(prevista.itens.length, "exercício", "exercícios")} · ${(prevista.dias_semana || []).map((d) => DIAS[d]).join(", ")}`
               : "nenhuma rotina marcada para hoje"
           }</p>
           <button class="botao" data-acao="treino-iniciar">${prevista ? "Iniciar treino" : "Treinar de qualquer forma"}</button>
@@ -60,7 +61,7 @@ async function painel() {
   const deficit = stats.mapa_muscular.filter((m) => m.series < m.alvo * 0.5).slice(0, 4);
 
   return `<header class="topo">
-      <div><h1>💪 Corpo</h1><p class="sub">treino, progressão e medidas</p></div>
+      <div><h1>Corpo</h1><p class="sub">treino, progressão e medidas</p></div>
     </header>
 
     <div class="secao">${cartaoHoje}</div>
@@ -76,13 +77,22 @@ async function painel() {
         ? `<div class="secao"><h2>Esta semana, por músculo</h2>
             <div class="mapa">${semana
               .sort((a, b) => b.proporcao - a.proporcao)
-              .map(
-                (m) => `<div class="mapa-item">${escapar(m.nome)}
-                  <span class="sub"> ${numero(m.series)}/${m.alvo}</span>
+              .map((m) => {
+                // Cor de status nunca vem sozinha: o número de séries e o alvo
+                // ficam sempre escritos ao lado.
+                const situacao =
+                  m.proporcao >= 0.8
+                    ? { cor: "var(--ok)", rotulo: "no alvo" }
+                    : m.proporcao >= 0.5
+                      ? { cor: "var(--atencao)", rotulo: "abaixo" }
+                      : { cor: "var(--serio)", rotulo: "déficit" };
+
+                return `<div class="mapa-item">${escapar(m.nome)}
+                  <div class="mapa-valor">${numero(m.series)}/${m.alvo} séries · ${situacao.rotulo}</div>
                   <div class="mapa-barra"><span style="width:${Math.min(100, m.proporcao * 100)}%;
-                    background:${m.proporcao >= 0.8 ? "var(--ok)" : m.proporcao >= 0.5 ? "var(--marca)" : "var(--alerta)"}"></span></div>
-                </div>`
-              )
+                    background:${situacao.cor}"></span></div>
+                </div>`;
+              })
               .join("")}</div>
             ${deficit.length ? `<p class="sub">Em déficit: ${deficit.map((m) => escapar(m.nome)).join(", ")}.</p>` : ""}
           </div>`
@@ -123,7 +133,7 @@ async function execucao() {
 
   return `<header class="topo">
       <div><h1>${escapar(dados.rotina?.nome || "Treino livre")}</h1>
-        <p class="sub">${dados.total_series} séries · ${Math.round(dados.volume)} kg de volume</p></div>
+        <p class="sub">${plural(dados.total_series, "série", "séries")} · ${Math.round(dados.volume)} kg de volume</p></div>
       <button class="link" data-acao="ir:/corpo">sair</button>
     </header>
 
@@ -142,7 +152,7 @@ function cartaoExercicio(item) {
         .map(
           (serie) => `<div class="serie-feita">
             <span>${serie.serie}ª · ${numero(serie.peso)} kg × ${serie.reps}${serie.rir !== null ? ` · RIR ${numero(serie.rir)}` : ""}
-              ${serie.is_pr ? '<span class="pr">🏆 PR</span>' : ""}</span>
+              ${serie.is_pr ? '<span class="pr">PR 🏆</span>' : ""}</span>
             <button class="link" data-acao="serie-apagar:${serie.id}">apagar</button>
           </div>`
         )
@@ -153,7 +163,7 @@ function cartaoExercicio(item) {
   const alvo = item.config?.series_alvo || 3;
 
   return `<section class="cartao secao">
-    <div class="item-nome">${escapar(item.nome)}
+    <div class="item-nome"><h3>${escapar(item.nome)}</h3>
       <span class="sub"> ${item.series.length}/${alvo} séries</span></div>
 
     ${
@@ -179,7 +189,8 @@ function cartaoExercicio(item) {
              placeholder="reps" value="${s.reps || ""}" />
       <input id="i-${item.exercicio_id}" type="number" inputmode="numeric" step="1"
              placeholder="RIR" value="${item.config?.rir_alvo ?? ""}" />
-      <button class="serie-ok" data-acao="serie-salvar:${item.exercicio_id}:${item.config?.descanso_seg || 90}">✓</button>
+      <button class="serie-ok" data-acao="serie-salvar:${item.exercicio_id}:${item.config?.descanso_seg || 90}"
+              aria-label="registrar série">${icone("check", 18)}</button>
     </div>
 
     ${
@@ -191,7 +202,7 @@ function cartaoExercicio(item) {
 
     ${
       item.estagnacao?.estagnado
-        ? `<div class="aviso-estagnacao">⚠️ 3 sessões sem avanço aqui.<br />${item.estagnacao.sugestoes
+        ? `<div class="aviso-estagnacao"><strong>3 sessões sem avanço aqui.</strong><br />${item.estagnacao.sugestoes
             .map(escapar)
             .join("<br />")}</div>`
         : ""
@@ -207,17 +218,18 @@ async function rotinas() {
   const lista = dados.rotinas.length
     ? dados.rotinas
         .map(
-          (rotina) => `<button class="item" data-acao="ir:/treino/rotina/${rotina.id}">
-            <span class="caixa" style="border-color:var(--ok)">🏋️</span>
+          (rotina) => `<button class="item" data-acao="ir:/treino/rotina/${rotina.id}" style="--acento:var(--c-treino)">
+            <span class="caixa" style="border-color:color-mix(in oklab, var(--c-treino) 55%, var(--borda));
+                  color:var(--c-treino)">${icone("corpo", 15)}</span>
             <span class="item-corpo">
               <span class="item-nome">${escapar(rotina.nome)}</span>
-              <span class="item-info"><span>${rotina.itens.length} exercícios</span>
+              <span class="item-info"><span>${plural(rotina.itens.length, "exercício", "exercícios")}</span>
                 <span>${(rotina.dias_semana || []).map((d) => DIAS[d]).join(", ") || "sem dia fixo"}</span></span>
             </span>
           </button>`
         )
         .join("")
-    : `<div class="vazio">Nenhuma rotina ainda.<br />Crie "Treino A", "Push", "Full body" — como você chama de verdade.</div>`;
+    : vazio('Nenhuma rotina ainda.<br />Crie "Treino A", "Push", "Full body" — como você chama de verdade.', "corpo");
 
   return `<header class="topo"><h1>Rotinas</h1></header>
     <div class="secao">${lista}</div>
@@ -251,7 +263,7 @@ async function editarRotina(id) {
           </div>`
         )
         .join("")
-    : `<div class="vazio">Nenhum exercício nesta rotina.</div>`;
+    : vazio("Nenhum exercício nesta rotina.", "lista");
 
   return `<header class="topo"><h1>${escapar(rotina.nome)}</h1></header>
 
@@ -296,8 +308,8 @@ async function biblioteca(modo) {
         .map(
           (exercicio) => `<button class="item" data-acao="${
             escolhendo ? `exercicio-escolher:${exercicio.id}` : `exercicio-ver:${exercicio.id}`
-          }">
-            <span class="caixa" style="border-color:var(--borda)">${exercicio.tipo === "composto" ? "🏋️" : "🎯"}</span>
+          }" style="--acento:var(--c-treino)">
+            <span class="caixa" style="color:var(--tinta-3)">${icone(exercicio.tipo === "composto" ? "corpo" : "metas", 15)}</span>
             <span class="item-corpo">
               <span class="item-nome">${escapar(exercicio.nome)}</span>
               <span class="item-info"><span>${escapar(exercicio.musculo_primario)}</span>
@@ -306,7 +318,7 @@ async function biblioteca(modo) {
           </button>`
         )
         .join("")
-    : `<div class="vazio">Nenhum exercício com esses filtros.</div>`;
+    : vazio("Nenhum exercício com esses filtros.", "lista");
 
   return `<header class="topo">
       <div><h1>${escolhendo ? "Escolher exercício" : "Exercícios"}</h1>
@@ -342,39 +354,27 @@ async function biblioteca(modo) {
 async function estatisticas() {
   const stats = await api("/treino/estatisticas?dias=180");
 
-  const maiorVolume = Math.max(...stats.volume_por_semana.map((s) => s.total), 1);
-  const barras = stats.volume_por_semana
-    .slice(-16)
-    .map(
-      (semana) => `<div class="dia" title="${semana.semana}: ${Math.round(semana.total)} kg">
-        <div class="dia-barra bateu" style="height:${Math.max(2, Math.round((semana.total / maiorVolume) * 100))}%"></div>
-        <div class="dia-rotulo">${semana.semana.slice(8, 10)}/${semana.semana.slice(5, 7)}</div>
-      </div>`
-    )
-    .join("");
+  const grafico = barras(
+    stats.volume_por_semana.slice(-16).map((semana) => ({
+      rotulo: `${semana.semana.slice(8, 10)}/${semana.semana.slice(5, 7)}`,
+      valor: Math.round(semana.total),
+      destaque: true,
+    })),
+    { cor: "var(--c-treino)", formatar: (v) => `${(v / 1000).toFixed(1).replace(".", ",")} t`, acaoToque: "ver-ponto" }
+  );
 
   const curvas = stats.mais_treinados
     .filter((exercicio) => exercicio.curva.length > 1)
     .map((exercicio) => {
       const valores = exercicio.curva.map((p) => p.um_rm);
-      const menor = Math.min(...valores);
-      const maior = Math.max(...valores);
-      const largura = 300;
-      const altura = 60;
-      const pontos = exercicio.curva
-        .map((ponto, i) => {
-          const x = (i / Math.max(1, exercicio.curva.length - 1)) * largura;
-          const y = altura - ((ponto.um_rm - menor) / Math.max(0.1, maior - menor)) * altura;
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        })
-        .join(" ");
-
       return `<div class="cartao">
-        <div class="item-nome">${escapar(exercicio.nome)}</div>
-        <p class="sub">1RM estimado: ${numero(menor)} → ${numero(maior)} kg · ${exercicio.series} séries</p>
-        <svg viewBox="0 -4 ${largura} ${altura + 8}" style="width:100%;height:70px">
-          <polyline points="${pontos}" fill="none" stroke="var(--marca)" stroke-width="2.5" stroke-linejoin="round" />
-        </svg>
+        <div class="item-nome"><h3>${escapar(exercicio.nome)}</h3></div>
+        <p class="sub">1RM estimado: ${numero(Math.min(...valores))} → ${numero(Math.max(...valores))} kg ·
+          ${exercicio.series} séries</p>
+        ${linha(
+          exercicio.curva.map((ponto) => ({ rotulo: ponto.data, valor: ponto.um_rm })),
+          { cor: "var(--c-treino)", formatar: (v) => `${numero(v)} kg` }
+        )}
       </div>`;
     })
     .join("");
@@ -386,11 +386,11 @@ async function estatisticas() {
   return `<header class="topo"><h1>Progressão</h1></header>
 
     <div class="secao"><h2>Volume por semana (kg)</h2>
-      ${stats.volume_por_semana.length ? `<div class="historico">${barras}</div>` : `<div class="vazio">Sem treinos registrados ainda.</div>`}
+      ${stats.volume_por_semana.length ? `${grafico}<p class="sub">Toque numa barra para ver a semana.</p>` : vazio("Sem treinos registrados ainda.", "grafico")}
     </div>
 
     <div class="secao"><h2>Frequência (28 dias)</h2>
-      <div class="heat" style="grid-template-rows:repeat(7,13px)">${frequencia}</div></div>
+      <div class="heat" style="--acento:var(--c-treino)">${frequencia}</div></div>
 
     ${curvas ? `<div class="secao"><h2>1RM estimado</h2>${curvas}</div>` : ""}
 
@@ -426,7 +426,7 @@ async function medidas() {
           </div>`
         )
         .join("")
-    : `<div class="vazio">Nenhuma medida registrada.</div>`;
+    : vazio("Nenhuma medida registrada.", "balanca");
 
   return `<header class="topo"><h1>Medidas</h1></header>
 

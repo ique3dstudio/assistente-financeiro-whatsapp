@@ -1,4 +1,5 @@
-import { api, escapar, reais } from "../ui.js";
+import { api, escapar, reais, vazio } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/dinheiro$/;
 export const aba = "dinheiro";
@@ -18,19 +19,21 @@ export async function render() {
           </div>`
         )
         .join("")
-    : `<div class="vazio">Nenhum lançamento este mês.<br />Use o botão + para registrar um gasto.</div>`;
+    : vazio("Nenhum lançamento este mês.<br />Use o botão + para registrar um gasto.", "dinheiro");
 
   const categorias = dados.por_categoria
     .map((c) => `<div class="linha"><span>${escapar(c.categoria)}</span><strong>${reais(c.total)}</strong></div>`)
     .join("");
 
-  return `<header class="topo"><h1>💰 Dinheiro</h1></header>
+  return `<header class="topo">
+      <div><h1>Dinheiro</h1><p class="sub">mês de ${escapar(dados.mes)}</p></div>
+    </header>
 
-    <div class="cartao secao tres">
+    <div class="cartao secao tres cartao-destaque" style="--acento:var(--c-dinheiro)">
       <div><small>entra</small><span style="color:var(--ok)">${reais(dados.receitas)}</span></div>
       <div><small>sai</small><span>${reais(dados.despesas)}</span></div>
       <div><small>sobra</small>
-        <span style="color:${sobra >= 0 ? "var(--ok)" : "var(--erro)"}">${reais(sobra)}</span></div>
+        <span style="color:${sobra >= 0 ? "var(--ok)" : "var(--critico)"}">${reais(sobra)}</span></div>
     </div>
 
     ${categorias ? `<div class="secao"><h2>Por categoria</h2><div class="cartao">${categorias}</div></div>` : ""}

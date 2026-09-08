@@ -1,4 +1,5 @@
-import { $, abrirPainel, acaoApi, api, avisar, escapar, estado, fecharPainel, navegar } from "../ui.js";
+import { $, abrirPainel, acaoApi, api, avisar, escapar, estado, fecharPainel, navegar, vazio } from "../ui.js";
+import { icone } from "../icones.js";
 
 export const rota = /^\/habitos(?:\/(.+))?$/;
 export const aba = "hoje";
@@ -22,13 +23,13 @@ export async function render(parametro) {
               <span class="item-nome">${escapar(h.nome)}</span>
               <span class="item-info"><span>${escapar(h.frequencia_texto)}</span>
                 <span>${escapar(PERIODOS[h.periodo])}</span>
-                ${h.streak ? `<span>🔥 ${h.streak}</span>` : ""}
+                ${h.streak ? `<span style="color:var(--c-metas)">${icone("chama", 12)} ${h.streak}</span>` : ""}
                 ${h.nao_negociavel ? "<span>âncora</span>" : ""}</span>
             </span>
           </button>`
         )
         .join("")
-    : `<div class="vazio">Nenhum hábito ainda.</div>`;
+    : vazio("Nenhum hábito ainda.", "raio");
 
   return `<header class="topo"><h1>Hábitos</h1></header>
     <div class="secao">${lista}</div>
@@ -162,7 +163,7 @@ export const acoes = {
       .join("");
 
     abrirPainel(`<div class="titulo">${escapar(dados.habito.emoji)} ${escapar(dados.habito.nome)} · 🔥 ${dados.streak} dias</div>
-      <div style="padding:10px 14px"><div class="heat">${celulas}</div>
+      <div style="padding:10px 14px"><div class="heat" style="--acento:var(--c-rotina)">${celulas}</div>
         <p class="sub">verde = feito · amarelo = folga · vermelho = falhou · últimos 6 meses</p></div>
       <button data-acao="fechar-painel">Fechar</button>`);
   },
