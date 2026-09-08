@@ -206,6 +206,36 @@ export function bip(vezes = 2) {
   }
 }
 
+// O descanso entre séries continua contando mesmo se você navegar para outra
+// tela — por isso ele vive fora do #conteudo e tem intervalo próprio.
+export function iniciarDescanso(segundos) {
+  const botao = $("#descanso");
+  let restante = Number(segundos) || 90;
+
+  clearInterval(estado._descanso);
+  botao.hidden = false;
+
+  const desenhar = () => (botao.textContent = `⏱ descanso ${relogio(restante)} — toque para parar`);
+  desenhar();
+
+  estado._descanso = setInterval(() => {
+    restante--;
+    if (restante <= 0) {
+      pararDescanso();
+      bip(2);
+      avisar("Descanso acabou");
+      return;
+    }
+    desenhar();
+  }, 1000);
+}
+
+export function pararDescanso() {
+  clearInterval(estado._descanso);
+  estado._descanso = null;
+  $("#descanso").hidden = true;
+}
+
 export function relogio(segundos) {
   const minutos = Math.floor(Math.abs(segundos) / 60);
   const resto = Math.abs(segundos) % 60;

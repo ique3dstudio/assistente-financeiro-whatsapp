@@ -1,5 +1,5 @@
 // Life OS — montagem do app: abas, roteamento, botão + universal e boot.
-import { $, abrirPainel, acaoApi, api, atualizar, avisar, definirRender, escapar, estado, fecharPainel, limparTimer, navegar } from "./ui.js";
+import { $, abrirPainel, acaoApi, api, atualizar, avisar, definirRender, escapar, estado, fecharPainel, limparTimer, navegar, pararDescanso } from "./ui.js";
 
 import * as hoje from "./telas/hoje.js";
 import * as habitos from "./telas/habitos.js";
@@ -9,22 +9,14 @@ import * as metas from "./telas/metas.js";
 import * as dinheiro from "./telas/dinheiro.js";
 import * as eu from "./telas/eu.js";
 import * as foco from "./telas/foco.js";
+import * as treino from "./telas/treino.js";
 import { pendentes, sincronizar } from "./sync.js";
 
-const TELAS = [hoje, habitos, agua, agenda, metas, dinheiro, eu, foco];
+const TELAS = [hoje, habitos, agua, agenda, treino, metas, dinheiro, eu, foco];
 
-const corpo = {
-  rota: /^\/corpo$/,
-  aba: "corpo",
-  async render() {
-    return `<header class="topo"><h1>💪 Corpo</h1></header>
-      <div class="vazio">Treino com progressão de carga, dieta e saúde entram nas fases 2, 4 e 5 do roadmap.<br /><br />
-        Por enquanto, o que existe de corpo aqui é a Água, na aba Hoje.</div>`;
-  },
-  acoes: {},
-};
+const TODAS = TELAS;
 
-const TODAS = [...TELAS, corpo];
+
 
 // ---------- ações comuns a todas as telas ----------
 
@@ -33,6 +25,7 @@ const ACOES = {
   "fechar-painel": fecharPainel,
   recarregar: () => atualizar(),
   "em-breve": () => avisar("Esse módulo chega nas próximas fases do roadmap."),
+  "rapido-treino": () => navegar("/treino/exec"),
 
   // Botão + universal (E1.4): os registros mais usados a um ou dois toques.
   mais() {
@@ -45,7 +38,7 @@ const ACOES = {
         <button class="copo" data-acao="fechamento">🙂<small>Humor</small></button>
         <button class="copo" data-acao="rapido-nota">📝<small>Nota</small></button>
         <button class="copo" data-acao="ir:/habitos/novo">🔁<small>Hábito</small></button>
-        <button class="copo" data-acao="em-breve">🏋️<small>Treino</small></button>
+        <button class="copo" data-acao="rapido-treino">🏋️<small>Treino</small></button>
       </div>
       <button data-acao="fechar-painel">Cancelar</button>`);
   },
@@ -193,6 +186,7 @@ document.addEventListener("change", (evento) => {
 });
 
 $("#sombra").addEventListener("click", fecharPainel);
+$("#descanso").addEventListener("click", pararDescanso);
 window.addEventListener("hashchange", render);
 window.addEventListener("online", aoVoltarRede);
 window.addEventListener("offline", () => desenharEstadoRede());

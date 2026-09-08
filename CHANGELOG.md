@@ -94,9 +94,30 @@ Registro do que entrou em cada etapa do `ROADMAP.md`.
   processou (`sync_idempotencia`), devolvendo a mesma resposta se o mesmo registro chegar duas vezes — o padrão
   de chave de idempotência usado em API de pagamento, aplicado a copos de água e séries de treino.
 
+## Fase 2 — Treino e progressão de carga (E2.1 a E2.6 e E2.8)
+- **Biblioteca com 73 exercícios** em 17 grupos musculares, cada um com músculo primário e secundários,
+  equipamento, nível, como fazer e o erro mais comum. Você pode criar os seus.
+- **Mapa corporal por região**: frente e costas, cada músculo mostrando quantos exercícios o recrutam.
+- **Rotinas** (A/B, ABC, push-pull-legs, full body, upper/lower ou livre) com dia da semana; por exercício
+  você define séries, faixa de repetições, RIR alvo, descanso, incremento e a regra de progressão.
+- **Tela de execução**: cada exercício mostra **o que você fez da última vez** e **a sugestão de hoje**,
+  registro de série com teclado numérico, "repetir última série", PR detectado na hora e **cronômetro de
+  descanso que continua rodando mesmo se você trocar de tela**.
+- **Motor de progressão** com as quatro regras da especificação: linear, dupla progressão, por RIR e por
+  percentual do 1RM (estimado por Epley). Cada sugestão vem com o motivo em uma linha.
+- **Detecção de estagnação**: 3 sessões sem melhorar nem carga nem volume → propõe deload calculado, troca de
+  variação e checagem de sono/comida. Subir uma repetição conta como progresso, não como estagnação.
+- **Gráficos**: volume por semana, frequência de 28 dias, curva do 1RM estimado por exercício e **mapa de calor
+  muscular** com alvo semanal de séries, apontando os grupos em déficit.
+- **Medidas corporais** (peso, gordura, braço, peito, cintura, quadril, coxa, panturrilha) com a última medida
+  como referência no campo. Fotos de progresso ficam esperando o bucket do Storage.
+- O treino do dia entra no checklist da tela Hoje, e o módulo publica métricas (1RM por exercício, volume,
+  número de treinos) que as metas podem acompanhar sozinhas.
+- 16 testes cobrem só o motor de progressão — é o cálculo que decide o peso que você levanta.
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
-- `npm test` roda 50 testes: as regras de cálculo (hábitos, água, metas, agenda), **as 14 telas renderizadas
+- `npm test` roda 72 testes: as regras de cálculo (hábitos, água, metas, agenda), **as 20 telas renderizadas
   num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL num Postgres
   real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as tabelas
   aceitam exatamente os inserts do app, barrando os inválidos.

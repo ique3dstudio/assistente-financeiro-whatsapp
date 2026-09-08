@@ -165,6 +165,76 @@ const RESPOSTAS = {
   },
 
   "/diario?dias=1": { emocoes_opcoes: ["calmo", "grato"], fatores_opcoes: ["sono", "treino"], linha: [], anotacoes: [], humores: [], media_humor: null, dias_registrados: 0 },
+  "/treino": {
+    data: HOJE,
+    rotinas: [
+      {
+        id: "r1", nome: "Treino A — Peito e tríceps", tipo: "abc", dias_semana: [1, 4], ativo: true,
+        itens: [
+          {
+            id: "i1", rotina_id: "r1", exercicio_id: "x1", series_alvo: 3, reps_min: 8, reps_max: 12,
+            rir_alvo: 2, descanso_seg: 90, regra_progressao: "dupla", incremento_kg: 2.5, ordem: 1,
+            exercicio: { id: "x1", nome: "Supino reto com barra", musculo_primario: "peito", equipamento: "barra", tipo: "composto" },
+          },
+        ],
+      },
+    ],
+    sessao_hoje: null,
+    rotina_prevista: { id: "r1", nome: "Treino A — Peito e tríceps", dias_semana: [1, 4], itens: [{ id: "i1" }] },
+    estatisticas: {
+      dias: 90, sessoes: 12, series_totais: 210, volume_total: 84000,
+      volume_por_semana: [{ semana: "2026-08-30", total: 12000 }, { semana: "2026-09-06", total: 15000 }],
+      mapa_muscular: [
+        { id: "peito", nome: "Peito", regiao: "frente", series: 12, alvo: 12, proporcao: 1 },
+        { id: "dorsal", nome: "Dorsal", regiao: "costas", series: 4, alvo: 14, proporcao: 0.28 },
+        { id: "quadriceps", nome: "Quadríceps", regiao: "frente", series: 0, alvo: 12, proporcao: 0 },
+      ],
+      mais_treinados: [
+        { exercicio_id: "x1", nome: "Supino reto com barra", series: 40, curva: [{ data: "2026-07-01", um_rm: 80 }, { data: "2026-09-01", um_rm: 92.5 }] },
+      ],
+      prs: [{ exercicio: "Supino reto com barra", peso: 75, reps: 8, data: "2026-09-01" }],
+      frequencia: [{ data: HOJE, treinou: true }, { data: "2026-09-07", treinou: false }],
+    },
+    medidas: [{ data: HOJE, peso_kg: 80.5, gordura_pct: 18, braco_cm: 36, peito_cm: null, cintura_cm: 84, quadril_cm: null, coxa_cm: null, panturrilha_cm: null }],
+    musculos: [{ id: "peito", nome: "Peito", regiao: "frente" }],
+    equipamentos: [{ id: "barra", nome: "Barra" }, { id: "halter", nome: "Halteres" }],
+    regras: [{ id: "dupla", nome: "Dupla progressão", detalhe: "sobe reps, depois o peso" }, { id: "linear", nome: "Linear", detalhe: "bateu o alvo, sobe" }],
+  },
+
+  "/treino/sessoes": {
+    sessao: { id: "s1", data: HOJE, rotina_id: "r1", concluida_em: null },
+    rotina: { id: "r1", nome: "Treino A — Peito e tríceps", tipo: "abc" },
+    total_series: 2,
+    volume: 1080,
+    regras: [{ id: "dupla", nome: "Dupla progressão", detalhe: "sobe reps, depois o peso" }],
+    plano: [
+      {
+        exercicio_id: "x1", item_id: "i1", nome: "Supino reto com barra", musculo_primario: "peito", equipamento: "barra",
+        config: { series_alvo: 3, reps_min: 8, reps_max: 12, rir_alvo: 2, descanso_seg: 90, regra_progressao: "dupla", incremento_kg: 2.5, percentual_1rm: null, agrupamento: null },
+        ultima_vez: { data: "2026-09-01", series: [{ peso: 60, reps: 10 }, { peso: 60, reps: 9 }], um_rm: 80 },
+        sugestao: { peso: 60, reps: 10, series: 3, motivo: "mesmo peso, tentando 10 repetições" },
+        estagnacao: { estagnado: true, sessoes_sem_avanco: 3, sugestoes: ["Deload: volte para 55 kg por uma semana e suba de novo.", "Trocar a variação."] },
+        series: [{ id: "sr1", serie: 1, peso: 60, reps: 10, rir: 2, tipo: "normal", is_pr: true }],
+      },
+    ],
+  },
+
+  "/treino/exercicios": {
+    exercicios: [
+      { id: "x1", nome: "Supino reto com barra", musculo_primario: "peito", musculos_secundarios: ["triceps"], equipamento: "barra", tipo: "composto", nivel: "iniciante", instrucoes: "Desça até o meio do peito.", erros_comuns: "Soltar o quadril do banco." },
+    ],
+  },
+
+  "/treino/mapa": {
+    mapa: [
+      { id: "peito", nome: "Peito", regiao: "frente", exercicios: 10 },
+      { id: "dorsal", nome: "Dorsal", regiao: "costas", exercicios: 9 },
+    ],
+  },
+
+  "/treino/estatisticas?dias=180": null, // preenchido abaixo
+  "/treino/medidas": { medidas: [{ data: HOJE, peso_kg: 80.5, gordura_pct: 18, braco_cm: 36, peito_cm: null, cintura_cm: 84, quadril_cm: null, coxa_cm: null, panturrilha_cm: null }] },
+
   "/diagnostico": { configurado: { url_usada: "https://x.supabase.co" }, tabelas: { perfil: "ok" } },
   "/abas": {
     abas: [
@@ -177,6 +247,8 @@ const RESPOSTAS = {
     modulos: [{ id: "habitos", nome: "Rotina", emoji: "🔁", aba: "hoje" }, { id: "agua", nome: "Água", emoji: "💧", aba: "hoje" }],
   },
 };
+
+RESPOSTAS["/treino/estatisticas?dias=180"] = RESPOSTAS["/treino"].estatisticas;
 
 const pedidos = [];
 
@@ -211,6 +283,7 @@ const telas = {
   dinheiro: await import("../public/telas/dinheiro.js"),
   eu: await import("../public/telas/eu.js"),
   foco: await import("../public/telas/foco.js"),
+  treino: await import("../public/telas/treino.js"),
 };
 
 let passou = 0;
@@ -305,6 +378,43 @@ await teste("pomodoro", async () => {
   contem(html, "25:00", "Começar", "25 minutos, uma coisa só");
 });
 
+await teste("painel do Corpo: treino previsto, mapa muscular e PRs", async () => {
+  const html = await telas.treino.render();
+  contem(html, "Treino A — Peito e tríceps", "Iniciar treino", "seg, qui", "Esta semana, por músculo",
+    "Peito", "Em déficit", "Últimos recordes", "75 kg × 8", "Minhas rotinas (1)");
+});
+
+await teste("execução: última vez, sugestão, série feita, PR e estagnação", async () => {
+  const html = await telas.treino.render("exec");
+  contem(html, "Supino reto com barra", "última vez", "60×10", "hoje: 60 kg × 10",
+    "mesmo peso, tentando 10 repetições", "🏆 PR", "repetir última série", "3 sessões sem avanço",
+    "Deload: volte para 55 kg", "Concluir treino");
+  assert.ok(html.includes('data-acao="serie-salvar:x1:90"'), "botão de salvar série precisa levar o descanso");
+});
+
+await teste("rotinas e edição de rotina", async () => {
+  const lista = await telas.treino.render("rotinas");
+  contem(lista, "Rotinas", "Treino A — Peito e tríceps", "1 exercícios", "Nova rotina");
+
+  const edicao = await telas.treino.render("rotina/r1");
+  contem(edicao, "Dias da semana", "Supino reto com barra", "3×8-12", "RIR 2", "dupla", "90s", "+ Adicionar exercício");
+});
+
+await teste("biblioteca de exercícios com mapa corporal", async () => {
+  const html = await telas.treino.render("biblioteca");
+  contem(html, "Exercícios", "Frente do corpo", "Costas do corpo", "Peito", "Supino reto com barra", "barra");
+});
+
+await teste("gráficos: volume por semana, frequência e 1RM", async () => {
+  const html = await telas.treino.render("stats");
+  contem(html, "Volume por semana", "Frequência", "1RM estimado", "Supino reto com barra", "80 → 92,5 kg", "polyline");
+});
+
+await teste("medidas mostram a última como referência", async () => {
+  const html = await telas.treino.render("medidas");
+  contem(html, "Medidas", "Peso (kg)", "Cintura (cm)", 'placeholder="80,5"', "Histórico", "Salvar medidas");
+});
+
 await teste("trocar de tela mata o cronômetro anterior", async () => {
   await telas.foco.render("manha"); // inicia rotina guiada (timer via setTimeout)
   await telas.foco.render("pomodoro"); // troca de tela antes do timer começar
@@ -315,11 +425,19 @@ await teste("trocar de tela mata o cronômetro anterior", async () => {
 await teste("toda ação usada nas telas tem função registrada", async () => {
   const acoes = {
     ir: 1, "fechar-painel": 1, recarregar: 1, "em-breve": 1, mais: 1, "rapido-agua": 1,
-    "rapido-gasto": 1, "salvar-gasto": 1, "rapido-nota": 1, avisar: 1,
+    "rapido-gasto": 1, "salvar-gasto": 1, "rapido-nota": 1, avisar: 1, "rapido-treino": 1,
   };
   for (const tela of Object.values(telas)) Object.assign(acoes, tela.acoes || {});
 
   const htmls = [
+    await telas.treino.render(),
+    await telas.treino.render("exec"),
+    await telas.treino.render("rotinas"),
+    await telas.treino.render("rotina/r1"),
+    await telas.treino.render("biblioteca"),
+    await telas.treino.render("biblioteca/escolher"),
+    await telas.treino.render("stats"),
+    await telas.treino.render("medidas"),
     await telas.hoje.render(),
     await telas.habitos.render(),
     await telas.habitos.render("novo"),

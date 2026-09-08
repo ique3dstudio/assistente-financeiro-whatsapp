@@ -13,6 +13,8 @@ const PARTES = [
   ["MÓDULO: METAS", "src/modules/metas/schema.sql"],
   ["MÓDULO: AGENDA E TAREFAS", "src/modules/agenda/schema.sql"],
   ["MÓDULO: DIÁRIO E HUMOR", "src/modules/diario/schema.sql"],
+  ["MÓDULO: TREINO", "src/modules/treino/schema.sql"],
+  ["MÓDULO: TREINO — BIBLIOTECA DE EXERCÍCIOS", "src/modules/treino/seed-exercicios.sql"],
   ["MÓDULO: FINANÇAS", "src/modules/financas/schema.sql"],
 ];
 

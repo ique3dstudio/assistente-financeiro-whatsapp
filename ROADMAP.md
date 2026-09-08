@@ -59,7 +59,14 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E1.9 Fechamento do dia | ✅ feito |
 | E0.5 Offline-first | ✅ feito |
 | E1.10 Rotina guiada e foco | ✅ feito |
-| E0.6 Bloqueio biométrico · E1.11 Notificações | ⬜ a fazer (E1.11 precisa de chaves que você gera) |
+| E2.1 Biblioteca de exercícios (73 exercícios) | ✅ feito |
+| E2.2 Mapa corporal | ✅ feito (lista por região; silhueta em SVG fica para o polimento) |
+| E2.3 Rotinas e programação | ✅ feito |
+| E2.4 Tela de execução do treino | ✅ feito |
+| E2.5 Motor de progressão de carga | ✅ feito |
+| E2.6 Gráficos e mapa de calor muscular | ✅ feito |
+| E2.8 Medidas corporais | ✅ feito (fotos dependem do bucket do Storage) |
+| E0.6 Bloqueio biométrico · E1.11 Notificações · E2.7 Programas periodizados | ⬜ dependem de você (ver `PENDENTE-VOCE.md`) |
 | E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de

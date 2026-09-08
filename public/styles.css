@@ -187,6 +187,35 @@ h3 { font-size: 17px; margin: 0; }
 .painel button:active { background: var(--cartao-alto); }
 .painel .titulo { color: var(--apagado); font-size: 13px; padding: 12px 14px 6px; }
 
+/* Cronômetro de descanso entre séries — fica fixo e sobrevive a trocar de tela */
+.descanso {
+  position: fixed; z-index: 26; left: 16px; right: 16px;
+  bottom: calc(var(--altura-abas) + 80px + env(safe-area-inset-bottom));
+  max-width: 608px; margin: 0 auto;
+  background: var(--marca); color: #06121c; border: 0; border-radius: 12px;
+  padding: 12px; font-size: 16px; font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+}
+
+/* Tela de execução do treino */
+.serie-linha { display: grid; grid-template-columns: 28px 1fr 1fr 1fr 44px; gap: 6px; align-items: center; margin-top: 8px; }
+.serie-linha input {
+  background: var(--cartao-alto); border: 1px solid var(--borda); border-radius: 10px;
+  padding: 12px 6px; text-align: center; font-size: 17px; width: 100%;
+}
+.serie-num { color: var(--apagado); font-size: 13px; text-align: center; }
+.serie-ok { background: var(--marca); color: #06121c; border: 0; border-radius: 10px; font-size: 18px; padding: 12px 0; }
+.serie-feita { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--borda); font-size: 15px; }
+.pr { color: var(--alerta); font-weight: 600; }
+.sugestao { background: var(--cartao-alto); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-top: 10px; }
+.aviso-estagnacao { border-left: 3px solid var(--alerta); padding-left: 10px; font-size: 13px; color: var(--apagado); margin-top: 10px; }
+
+/* Mapa de calor muscular */
+.mapa { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mapa-item { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 11px; font-size: 14px; }
+.mapa-barra { height: 5px; border-radius: 99px; background: var(--borda); margin-top: 6px; overflow: hidden; }
+.mapa-barra span { display: block; height: 100%; border-radius: 99px; }
+
 /* Aviso de offline / fila de envio */
 .barra-offline {
   position: sticky; top: 0; z-index: 15;
