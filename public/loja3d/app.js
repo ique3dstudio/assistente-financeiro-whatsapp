@@ -562,7 +562,10 @@ async function handleLogin(e) {
   const password = document.getElementById("login-password").value;
   const { error } = await db.auth.signInWithPassword({ email, password });
   if (error) {
-    loginError.textContent = "Não foi possível entrar. Confira e-mail e senha.";
+    // Mostra o motivo técnico junto (ex: "Invalid login credentials", erro de rede, projeto
+    // ainda acordando do modo pausado) — temporário, pra diagnosticar o problema de login sem
+    // precisar caçar isso nos logs do Supabase.
+    loginError.textContent = `Não foi possível entrar: ${error.message} (status ${error.status ?? "?"})`;
     loginError.hidden = false;
     return;
   }
