@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import { supabaseUrl } from "./supabase-url.js";
 
 let client;
 function getClient() {
   if (!client) {
-    client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    client = createClient(supabaseUrl(), process.env.SUPABASE_SERVICE_KEY);
   }
   return client;
 }

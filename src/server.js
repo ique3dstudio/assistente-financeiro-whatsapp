@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import webhookRouter from "./routes/webhook.js";
 import loja3dIaRouter from "./routes/loja3d-ia.js";
+import { supabaseUrl } from "./services/supabase-url.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -28,7 +29,7 @@ app.get("/loja3d/config.js", (req, res) => {
   res.type("application/javascript");
   res.send(
     `window.SUPABASE_CONFIG = ${JSON.stringify({
-      url: process.env.SUPABASE_URL || "",
+      url: supabaseUrl(),
       anonKey: process.env.SUPABASE_ANON_KEY || "",
     })};`
   );
@@ -40,12 +41,12 @@ let supabaseLogoClient;
 app.get("/loja3d/logo-icon", async (req, res) => {
   try {
     if (!supabaseLogoClient) {
-      supabaseLogoClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+      supabaseLogoClient = createClient(supabaseUrl(), process.env.SUPABASE_ANON_KEY);
     }
     const { data } = await supabaseLogoClient.rpc("obter_configuracoes_publicas");
     const logoPath = data?.[0]?.logo_path;
     if (logoPath) {
-      return res.redirect(302, `${process.env.SUPABASE_URL}/storage/v1/object/public/loja3d-branding/${logoPath}`);
+      return res.redirect(302, `${supabaseUrl()}/storage/v1/object/public/loja3d-branding/${logoPath}`);
     }
   } catch {
     // segue pro ícone padrão

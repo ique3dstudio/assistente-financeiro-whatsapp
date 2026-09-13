@@ -1,6 +1,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseUrl } from "../services/supabase-url.js";
 
 // Entrada rápida por IA da Loja 3D: transforma um texto curto, foto de recibo ou áudio em um
 // lançamento financeiro pré-preenchido (o operador sempre confere e confirma antes de salvar —
@@ -26,7 +27,7 @@ function getNvidiaClient() {
 let supabaseAuthClient;
 function getSupabaseAuthClient() {
   if (!supabaseAuthClient) {
-    supabaseAuthClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    supabaseAuthClient = createClient(supabaseUrl(), process.env.SUPABASE_ANON_KEY);
   }
   return supabaseAuthClient;
 }
