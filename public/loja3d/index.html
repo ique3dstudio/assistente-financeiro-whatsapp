@@ -48,6 +48,7 @@
         <button type="button" class="tab-btn" data-tab="painel">Painel</button>
         <button type="button" class="tab-btn" data-tab="financeiro">Financeiro</button>
         <button type="button" class="tab-btn" data-tab="estoque">Estoque</button>
+        <button type="button" class="tab-btn" data-tab="orcamento">Orçamento</button>
       </nav>
       <div class="topbar-actions">
         <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
@@ -292,6 +293,21 @@
       </div>
       </div>
     </main>
+
+    <main id="tab-orcamento" class="tab-panel" hidden>
+      <div class="financeiro-toolbar">
+        <input id="orcamento-busca" type="search" placeholder="Buscar cliente…" />
+        <select id="orcamento-filtro-status">
+          <option value="">Todos os status</option>
+          <option value="enviado">Enviado</option>
+          <option value="aceito">Aceito</option>
+          <option value="recusado">Recusado</option>
+        </select>
+        <span class="spacer"></span>
+        <button type="button" id="novo-orcamento-btn" class="primary">+ Novo orçamento</button>
+      </div>
+      <ul id="orcamentos-list" class="materiais-list orcamentos-list"></ul>
+    </main>
   </section>
 
   <!-- Modal de pedido (criar/editar) -->
@@ -439,6 +455,20 @@
           <label>
             Cidade (exigida pelo padrão do Pix)
             <input name="cidade" maxlength="60" placeholder="Ex: São Paulo" />
+          </label>
+        </div>
+        <div class="grid grid-4">
+          <label>
+            CNPJ (aparece na proposta em PDF)
+            <input name="cnpj" maxlength="30" placeholder="00.000.000/0001-00" />
+          </label>
+          <label>
+            Telefone
+            <input name="telefone" maxlength="30" placeholder="(19) 99999-9999" />
+          </label>
+          <label class="grid-span-2">
+            Endereço
+            <input name="endereco" maxlength="200" placeholder="Rua, número - Bairro, Cidade - UF, CEP" />
           </label>
         </div>
       </fieldset>
@@ -1089,6 +1119,92 @@
     </div>
   </dialog>
 
+  <!-- Modal de orçamento (proposta comercial, separada do pedido) -->
+  <dialog id="orcamento-dialog">
+    <button type="button" id="close-orcamento-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+    <form id="orcamento-form">
+      <h2 id="orcamento-dialog-title">Novo orçamento</h2>
+
+      <fieldset>
+        <legend>Cliente</legend>
+        <div class="grid">
+          <label>
+            Nome / Razão social *
+            <input name="cliente_nome" required maxlength="150" />
+          </label>
+          <label>
+            CPF/CNPJ
+            <input name="cliente_documento" maxlength="30" />
+          </label>
+        </div>
+        <div class="grid">
+          <label>
+            Endereço
+            <input name="cliente_endereco" maxlength="200" />
+          </label>
+          <label>
+            Contato (telefone/e-mail)
+            <input name="cliente_contato" maxlength="120" />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Condições da proposta</legend>
+        <div class="grid grid-4">
+          <label>
+            Vendedor responsável
+            <select name="responsavel">
+              <option value="">—</option>
+              <option value="Tamires">Tamires</option>
+              <option value="Gustavo">Gustavo</option>
+            </select>
+          </label>
+          <label>
+            Condição de pagamento
+            <input name="condicao_pagamento" maxlength="80" placeholder="Ex: Pix à vista" />
+          </label>
+          <label>
+            Prazo de entrega
+            <input name="prazo_entrega" maxlength="80" placeholder="Ex: 10 dias úteis" />
+          </label>
+          <label>
+            Frete
+            <input name="frete" maxlength="80" placeholder="Ex: Grátis, A combinar" />
+          </label>
+        </div>
+        <label>
+          Validade da proposta (dias)
+          <input name="validade_dias" type="number" min="1" step="1" value="15" required />
+        </label>
+        <label>
+          Observações
+          <textarea name="observacoes" rows="2" maxlength="500"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Itens da proposta</legend>
+        <div id="orcamento-itens-list"></div>
+        <button type="button" id="add-orcamento-item-btn" class="ghost">+ Adicionar item</button>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button type="button" id="delete-orcamento-btn" class="danger" hidden>Excluir</button>
+        <button type="button" id="pdf-orcamento-btn" class="ghost" hidden>📄 Baixar PDF</button>
+        <button type="button" id="recusar-orcamento-btn" class="ghost" hidden>✖ Marcar recusado</button>
+        <button type="button" id="aceitar-orcamento-btn" class="ghost" hidden>✔ Marcar aceito</button>
+        <button type="button" id="converter-orcamento-btn" class="ghost" hidden>➡ Converter em pedido</button>
+        <span class="spacer"></span>
+        <button type="button" id="cancel-orcamento-btn" class="ghost">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+      <p id="orcamento-error" class="error" hidden></p>
+    </form>
+    </div>
+  </dialog>
+
   <!-- Template de uma linha de item (clonado via JS) -->
   <template id="item-row-template">
     <div class="item-row">
@@ -1179,6 +1295,27 @@
         Observações do item
         <input data-field="observacoes" maxlength="300" placeholder="Suporte, infill, acabamento…" />
       </label>
+    </div>
+  </template>
+
+  <!-- Template de uma linha de item do orçamento (mais simples: sem produção/material) -->
+  <template id="orcamento-item-row-template">
+    <div class="item-row orcamento-item-row">
+      <button type="button" class="remove-item-btn" title="Remover item">×</button>
+      <div class="grid grid-4">
+        <label class="grid-span-2">
+          Produto/serviço *
+          <input data-field="descricao" required maxlength="200" placeholder="Ex: Vaso geométrico 15cm" />
+        </label>
+        <label>
+          Quantidade
+          <input data-field="quantidade" type="number" min="0.01" step="0.01" value="1" required />
+        </label>
+        <label>
+          Preço unitário (R$)
+          <input data-field="valor_unitario" type="number" min="0" step="0.01" value="0" required />
+        </label>
+      </div>
     </div>
   </template>
 

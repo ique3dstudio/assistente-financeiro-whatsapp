@@ -48,6 +48,7 @@ let insumos = [];
 let rolos = [];
 let movimentosEstoque = [];
 let movimentosProduto = [];
+let orcamentos = [];
 let configuracoes = null;
 let filtroAtrasados = false;
 let filtroTexto = "";
@@ -206,6 +207,25 @@ const movimentoProdutoProdutoSelect = document.getElementById("movimento-produto
 const movimentoProdutoQuantidadeAjuda = document.getElementById("movimento-produto-quantidade-ajuda");
 const closeMovimentoProdutoBtn = document.getElementById("close-movimento-produto-btn");
 const cancelMovimentoProdutoBtn = document.getElementById("cancel-movimento-produto-btn");
+
+const orcamentosListEl = document.getElementById("orcamentos-list");
+const orcamentoBuscaInput = document.getElementById("orcamento-busca");
+const orcamentoFiltroStatus = document.getElementById("orcamento-filtro-status");
+const novoOrcamentoBtn = document.getElementById("novo-orcamento-btn");
+const orcamentoDialog = document.getElementById("orcamento-dialog");
+const orcamentoForm = document.getElementById("orcamento-form");
+const orcamentoDialogTitle = document.getElementById("orcamento-dialog-title");
+const orcamentoError = document.getElementById("orcamento-error");
+const orcamentoItensList = document.getElementById("orcamento-itens-list");
+const addOrcamentoItemBtn = document.getElementById("add-orcamento-item-btn");
+const orcamentoItemRowTemplate = document.getElementById("orcamento-item-row-template");
+const closeOrcamentoBtn = document.getElementById("close-orcamento-btn");
+const cancelOrcamentoBtn = document.getElementById("cancel-orcamento-btn");
+const deleteOrcamentoBtn = document.getElementById("delete-orcamento-btn");
+const pdfOrcamentoBtn = document.getElementById("pdf-orcamento-btn");
+const aceitarOrcamentoBtn = document.getElementById("aceitar-orcamento-btn");
+const recusarOrcamentoBtn = document.getElementById("recusar-orcamento-btn");
+const converterOrcamentoBtn = document.getElementById("converter-orcamento-btn");
 
 const movimentoDialog = document.getElementById("movimento-dialog");
 const movimentoForm = document.getElementById("movimento-form");
@@ -415,6 +435,25 @@ async function init() {
     console.error("Falha ao montar os botões de Estoque (produto acabado):", err);
   }
 
+  // Isolado em try/catch pelo mesmo motivo das seções de Estoque acima: aba nova, não pode
+  // derrubar a montagem dos botões mais antigos (Configurações, Pedido) se algo faltar.
+  try {
+    novoOrcamentoBtn.addEventListener("click", () => openOrcamentoDialog(null));
+    cancelOrcamentoBtn.addEventListener("click", () => orcamentoDialog.close());
+    closeOrcamentoBtn.addEventListener("click", () => orcamentoDialog.close());
+    orcamentoForm.addEventListener("submit", handleSaveOrcamento);
+    deleteOrcamentoBtn.addEventListener("click", handleDeleteOrcamento);
+    pdfOrcamentoBtn.addEventListener("click", () => gerarPropostaPdf(orcamentoForm.dataset.id));
+    aceitarOrcamentoBtn.addEventListener("click", () => handleMudarStatusOrcamento("aceito"));
+    recusarOrcamentoBtn.addEventListener("click", () => handleMudarStatusOrcamento("recusado"));
+    converterOrcamentoBtn.addEventListener("click", handleConverterOrcamentoEmPedido);
+    addOrcamentoItemBtn.addEventListener("click", () => addOrcamentoItemRow(null));
+    orcamentoBuscaInput.addEventListener("input", renderOrcamentosList);
+    orcamentoFiltroStatus.addEventListener("change", renderOrcamentosList);
+  } catch (err) {
+    console.error("Falha ao montar os botões de Orçamento:", err);
+  }
+
   addItemBtn.addEventListener("click", () => addItemRow(null));
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
@@ -498,6 +537,7 @@ async function init() {
       if (btn.dataset.tab === "painel") renderDashboard();
       if (btn.dataset.tab === "financeiro") renderFinanceiroAtivo();
       if (btn.dataset.tab === "estoque") renderEstoqueAtivo();
+      if (btn.dataset.tab === "orcamento") renderOrcamentosList();
       if (btn.dataset.tab === "calculadora") {
         populateMaterialSelect(calcMaterial);
         populateCanalSelect();
@@ -612,6 +652,7 @@ async function loadData() {
     { data: rolosData, error: eRolos },
     { data: movimentosEstoqueData, error: eMovEstoque },
     { data: movimentosProdutoData, error: eMovProduto },
+    { data: orcamentosData, error: eOrcamentos },
   ] = await Promise.all([
     db.from("clientes").select("*").order("nome"),
     db
@@ -633,9 +674,10 @@ async function loadData() {
     db.from("rolos").select("*").order("created_at", { ascending: false }),
     db.from("movimentos_estoque").select("*").order("data_movimento", { ascending: false }),
     db.from("movimentos_produto").select("*").order("data_movimento", { ascending: false }),
+    db.from("orcamentos").select("*, itens:itens_orcamento(*)").order("created_at", { ascending: false }),
   ]);
 
-  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas, eIns, eRolos, eMovEstoque, eMovProduto])
+  for (const e of [eCli, ePed, eMat, eProd, eCfg, eMaq, eFal, eCanal, eCons, eContas, eCategorias, eMov, eDespesas, eIns, eRolos, eMovEstoque, eMovProduto, eOrcamentos])
     if (e) console.error(e);
 
   clientes = clientesData || [];
@@ -655,6 +697,7 @@ async function loadData() {
   rolos = rolosData || [];
   movimentosEstoque = movimentosEstoqueData || [];
   movimentosProduto = movimentosProdutoData || [];
+  orcamentos = orcamentosData || [];
 
   clientesOptions.innerHTML = clientes.map((c) => `<option value="${escapeHtml(c.nome)}"></option>`).join("");
   atualizarBrandMarks();
@@ -664,6 +707,7 @@ async function loadData() {
   if (!document.getElementById("tab-painel").hidden) renderDashboard();
   if (!document.getElementById("tab-financeiro").hidden) renderFinanceiroAtivo();
   if (!document.getElementById("tab-estoque").hidden) renderEstoqueAtivo();
+  if (!document.getElementById("tab-orcamento").hidden) renderOrcamentosList();
   if (!document.getElementById("tab-calculadora").hidden) {
     const materialSelecionado = calcMaterial.value;
     populateMaterialSelect(calcMaterial, materialSelecionado);
@@ -711,6 +755,8 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "rolos" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "movimentos_estoque" }, scheduleRefetch)
     .on("postgres_changes", { event: "*", schema: "public", table: "movimentos_produto" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "orcamentos" }, scheduleRefetch)
+    .on("postgres_changes", { event: "*", schema: "public", table: "itens_orcamento" }, scheduleRefetch)
     .subscribe();
 }
 
@@ -2286,6 +2332,9 @@ async function handleSaveConfig(e) {
     margem_padrao_percentual: Number(fd.get("margem_padrao_percentual")),
     chave_pix: fd.get("chave_pix").trim() || null,
     cidade: fd.get("cidade").trim() || null,
+    cnpj: fd.get("cnpj").trim() || null,
+    telefone: fd.get("telefone").trim() || null,
+    endereco: fd.get("endereco").trim() || null,
     teto_mei_anual: Number(fd.get("teto_mei_anual")) || 81000,
     percentual_provisao_fiscal: Number(fd.get("percentual_provisao_fiscal")) || 0,
   };
@@ -4438,4 +4487,511 @@ async function handleSaveMovimentoProduto(e) {
 
   movimentoProdutoDialog.close();
   await loadData();
+}
+
+/* ---------- Orçamento (proposta comercial, aba própria) ---------- */
+
+const ORCAMENTO_STATUS_LABELS = { enviado: "📤 Enviado", aceito: "✅ Aceito", recusado: "❌ Recusado" };
+
+function orcamentoTotal(orcamento) {
+  return (orcamento.itens || []).reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_unitario), 0);
+}
+
+function renderOrcamentosList() {
+  const busca = orcamentoBuscaInput.value.trim().toLowerCase();
+  const statusFiltro = orcamentoFiltroStatus.value;
+  const filtrados = orcamentos.filter((o) => {
+    if (statusFiltro && o.status !== statusFiltro) return false;
+    if (busca && !o.cliente_nome.toLowerCase().includes(busca)) return false;
+    return true;
+  });
+
+  if (filtrados.length === 0) {
+    orcamentosListEl.innerHTML = `<li class="column-empty">Nenhum orçamento ainda.</li>`;
+    return;
+  }
+
+  orcamentosListEl.innerHTML = filtrados
+    .map((o) => {
+      return `<li>
+        <span>
+          ${escapeHtml(o.cliente_nome)} — ${formatMoney(orcamentoTotal(o))}
+          <span class="badge-status badge-status-${o.status}">${ORCAMENTO_STATUS_LABELS[o.status] || o.status}</span>
+          ${o.pedido_id ? '<span class="badge-alerta">🔗 virou pedido</span>' : ""}
+        </span>
+        <button type="button" data-id="${o.id}" class="edit-orcamento-btn">✏️</button>
+      </li>`;
+    })
+    .join("");
+
+  orcamentosListEl.querySelectorAll(".edit-orcamento-btn").forEach((btn) =>
+    btn.addEventListener("click", () => openOrcamentoDialog(orcamentos.find((o) => o.id === btn.dataset.id)))
+  );
+}
+
+function addOrcamentoItemRow(item) {
+  const fragment = orcamentoItemRowTemplate.content.cloneNode(true);
+  const row = fragment.querySelector(".item-row");
+  row.dataset.id = item?.id || "";
+
+  if (item) {
+    for (const [key, value] of Object.entries(item)) {
+      const field = row.querySelector(`[data-field="${key}"]`);
+      if (field && value !== null && value !== undefined) field.value = value;
+    }
+  }
+
+  row.querySelector(".remove-item-btn").addEventListener("click", () => row.remove());
+  orcamentoItensList.appendChild(row);
+}
+
+function openOrcamentoDialog(orcamento) {
+  orcamentoForm.reset();
+  orcamentoError.hidden = true;
+  orcamentoForm.dataset.id = orcamento ? orcamento.id : "";
+  orcamentoDialogTitle.textContent = orcamento ? "Editar orçamento" : "Novo orçamento";
+  deleteOrcamentoBtn.hidden = !orcamento;
+  pdfOrcamentoBtn.hidden = !orcamento;
+  aceitarOrcamentoBtn.hidden = !orcamento || orcamento.status === "aceito";
+  recusarOrcamentoBtn.hidden = !orcamento || orcamento.status === "recusado";
+  converterOrcamentoBtn.hidden = !orcamento || orcamento.status !== "aceito" || !!orcamento.pedido_id;
+
+  orcamentoItensList.innerHTML = "";
+
+  if (orcamento) {
+    for (const key of [
+      "cliente_nome",
+      "cliente_documento",
+      "cliente_endereco",
+      "cliente_contato",
+      "responsavel",
+      "condicao_pagamento",
+      "prazo_entrega",
+      "frete",
+      "validade_dias",
+      "observacoes",
+    ]) {
+      const field = orcamentoForm.elements.namedItem(key);
+      if (field && orcamento[key] !== null && orcamento[key] !== undefined) field.value = orcamento[key];
+    }
+    for (const item of orcamento.itens || []) addOrcamentoItemRow(item);
+  } else {
+    addOrcamentoItemRow(null);
+  }
+
+  orcamentoDialog.showModal();
+}
+
+async function handleSaveOrcamento(e) {
+  e.preventDefault();
+  orcamentoError.hidden = true;
+
+  const itemRows = [...orcamentoItensList.querySelectorAll(".item-row")];
+  if (itemRows.length === 0) {
+    orcamentoError.textContent = "Adicione pelo menos um item.";
+    orcamentoError.hidden = false;
+    return;
+  }
+
+  try {
+    const fd = new FormData(orcamentoForm);
+    const clienteNome = fd.get("cliente_nome").trim();
+    if (!clienteNome) {
+      orcamentoError.textContent = "Informe o nome do cliente.";
+      orcamentoError.hidden = false;
+      return;
+    }
+
+    const payload = {
+      cliente_nome: clienteNome,
+      cliente_documento: fd.get("cliente_documento").trim() || null,
+      cliente_endereco: fd.get("cliente_endereco").trim() || null,
+      cliente_contato: fd.get("cliente_contato").trim() || null,
+      responsavel: fd.get("responsavel") || null,
+      condicao_pagamento: fd.get("condicao_pagamento").trim() || null,
+      prazo_entrega: fd.get("prazo_entrega").trim() || null,
+      frete: fd.get("frete").trim() || null,
+      validade_dias: Number(fd.get("validade_dias")) || 15,
+      observacoes: fd.get("observacoes").trim() || null,
+    };
+
+    const orcamentoId = orcamentoForm.dataset.id;
+    let novoId = orcamentoId;
+
+    if (orcamentoId) {
+      const { error } = await db.from("orcamentos").update(payload).eq("id", orcamentoId);
+      if (error) throw error;
+    } else {
+      const { data, error } = await db.from("orcamentos").insert({ ...payload, status: "enviado" }).select().single();
+      if (error) throw error;
+      novoId = data.id;
+    }
+
+    const idsAtuais = [];
+    for (const row of itemRows) {
+      const itemPayload = {
+        orcamento_id: novoId,
+        descricao: row.querySelector('[data-field="descricao"]').value.trim(),
+        quantidade: Number(row.querySelector('[data-field="quantidade"]').value) || 1,
+        valor_unitario: Number(row.querySelector('[data-field="valor_unitario"]').value) || 0,
+      };
+      if (row.dataset.id) {
+        const { error } = await db.from("itens_orcamento").update(itemPayload).eq("id", row.dataset.id);
+        if (error) throw error;
+        idsAtuais.push(row.dataset.id);
+      } else {
+        const { data, error } = await db.from("itens_orcamento").insert(itemPayload).select().single();
+        if (error) throw error;
+        idsAtuais.push(data.id);
+      }
+    }
+
+    if (orcamentoId) {
+      const orcamentoOriginal = orcamentos.find((o) => o.id === orcamentoId);
+      const idsRemovidos = (orcamentoOriginal?.itens || [])
+        .map((i) => i.id)
+        .filter((id) => !idsAtuais.includes(id));
+      if (idsRemovidos.length > 0) {
+        await db.from("itens_orcamento").delete().in("id", idsRemovidos);
+      }
+    }
+
+    orcamentoDialog.close();
+    await loadData();
+  } catch (err) {
+    orcamentoError.textContent = "Erro ao salvar: " + err.message;
+    orcamentoError.hidden = false;
+  }
+}
+
+async function handleDeleteOrcamento() {
+  const id = orcamentoForm.dataset.id;
+  if (!id) return;
+  if (!confirm("Excluir este orçamento? Essa ação não pode ser desfeita.")) return;
+  const { error } = await db.from("orcamentos").delete().eq("id", id);
+  if (error) {
+    orcamentoError.textContent = "Erro ao excluir: " + error.message;
+    orcamentoError.hidden = false;
+    return;
+  }
+  orcamentoDialog.close();
+  await loadData();
+}
+
+async function handleMudarStatusOrcamento(novoStatus) {
+  const id = orcamentoForm.dataset.id;
+  if (!id) return;
+  const { error } = await db.from("orcamentos").update({ status: novoStatus }).eq("id", id);
+  if (error) {
+    orcamentoError.textContent = "Erro ao atualizar status: " + error.message;
+    orcamentoError.hidden = false;
+    return;
+  }
+  await loadData();
+  const atualizado = orcamentos.find((o) => o.id === id);
+  if (atualizado) openOrcamentoDialog(atualizado);
+}
+
+// Não redigita nada: reaproveita/cria o cliente (mesma lógica do pedido manual) e transforma
+// cada item do orçamento num item de produção — o orçamento fica marcado como convertido
+// (pedido_id) pra não duplicar se alguém clicar de novo.
+async function handleConverterOrcamentoEmPedido() {
+  const id = orcamentoForm.dataset.id;
+  const orc = orcamentos.find((o) => o.id === id);
+  if (!orc) return;
+  if (orc.status !== "aceito") {
+    alert("Marque o orçamento como aceito antes de converter em pedido.");
+    return;
+  }
+  if (orc.pedido_id) {
+    alert("Esse orçamento já foi convertido em pedido.");
+    return;
+  }
+  if (!confirm(`Converter o orçamento de ${orc.cliente_nome} em um pedido real?`)) return;
+
+  try {
+    const clienteId = await resolverCliente(orc.cliente_nome, orc.cliente_contato);
+
+    const { data: pedido, error: erroPedido } = await db
+      .from("pedidos")
+      .insert({
+        cliente_id: clienteId,
+        prioridade: "normal",
+        origem: "Orçamento",
+        pagamento: "pendente",
+        observacoes: orc.observacoes || null,
+        criado_por: currentUser.email,
+      })
+      .select()
+      .single();
+    if (erroPedido) throw erroPedido;
+
+    for (const item of orc.itens || []) {
+      const { error: erroItem } = await db.from("itens_pedido").insert({
+        pedido_id: pedido.id,
+        descricao: item.descricao,
+        quantidade: Number(item.quantidade),
+        valor: Number(item.quantidade) * Number(item.valor_unitario),
+        status: "recebido",
+      });
+      if (erroItem) throw erroItem;
+    }
+
+    await db.from("orcamentos").update({ pedido_id: pedido.id }).eq("id", id);
+
+    orcamentoDialog.close();
+    await loadData();
+    alert("Orçamento convertido em pedido! Confira na aba Quadro.");
+  } catch (err) {
+    orcamentoError.textContent = "Erro ao converter em pedido: " + err.message;
+    orcamentoError.hidden = false;
+  }
+}
+
+// PDF no estilo "proposta comercial" (cabeçalho com dados da empresa, cards de cliente/vendedor,
+// tabela de itens, caixa de total e cards de condições) — desenhado com as primitivas do jsPDF
+// (retângulos/linhas), não tem suporte a gradiente CSS de verdade, então a barra do topo é
+// simulada com várias faixas finas interpolando a cor.
+function gerarPropostaPdf(orcamentoId) {
+  const orc = orcamentos.find((o) => o.id === orcamentoId);
+  if (!orc) {
+    alert("Salve o orçamento antes de gerar o PDF.");
+    return;
+  }
+  const itens = orc.itens || [];
+  if (itens.length === 0) {
+    alert("Adicione pelo menos um item antes de gerar o PDF.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageWidth = 210;
+  const marginX = 14;
+  const contentWidth = pageWidth - marginX * 2;
+
+  const AZUL = [37, 99, 235];
+  const TEAL = [13, 148, 136];
+  const TEXTO = [30, 41, 59];
+  const MUTED = [100, 116, 139];
+  const BORDA = [226, 232, 240];
+  const FUNDO_CLARO = [248, 250, 252];
+
+  const faixas = 40;
+  for (let i = 0; i < faixas; i++) {
+    const t = i / (faixas - 1);
+    const r = Math.round(AZUL[0] + (TEAL[0] - AZUL[0]) * t);
+    const g = Math.round(AZUL[1] + (TEAL[1] - AZUL[1]) * t);
+    const b = Math.round(AZUL[2] + (TEAL[2] - AZUL[2]) * t);
+    doc.setFillColor(r, g, b);
+    doc.rect((pageWidth / faixas) * i, 0, pageWidth / faixas + 0.5, 3, "F");
+  }
+
+  let y = 16;
+  doc.setTextColor(...TEXTO);
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(15);
+  doc.text(configuracoes?.nome_loja || "IQUE 3D Studio", marginX, y);
+
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...MUTED);
+  y += 6;
+  if (configuracoes?.cnpj) {
+    doc.text(`CNPJ ${configuracoes.cnpj}`, marginX, y);
+    y += 4.5;
+  }
+  if (configuracoes?.endereco) {
+    const linhasEnd = doc.splitTextToSize(configuracoes.endereco, 100);
+    doc.text(linhasEnd, marginX, y);
+    y += 4.5 * linhasEnd.length;
+  }
+  if (configuracoes?.telefone) doc.text(configuracoes.telefone, marginX, y);
+
+  doc.setTextColor(...AZUL);
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(18);
+  doc.text("PROPOSTA", pageWidth - marginX, 20, { align: "right" });
+  doc.text("COMERCIAL", pageWidth - marginX, 27, { align: "right" });
+
+  doc.setFillColor(...FUNDO_CLARO);
+  doc.roundedRect(pageWidth - marginX - 55, 31, 55, 8, 2, 2, "F");
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...TEXTO);
+  doc.text(`Emitida em ${new Date(orc.created_at).toLocaleDateString("pt-BR")}`, pageWidth - marginX - 27.5, 36, {
+    align: "center",
+  });
+
+  y = 46;
+  doc.setDrawColor(...BORDA);
+  doc.line(marginX, y, pageWidth - marginX, y);
+  y += 8;
+
+  const cardY = y;
+  const cardH = 34;
+  const cardGap = 6;
+  const cardW = (contentWidth - cardGap) / 2;
+  const clienteX = marginX;
+  const vendedorX = marginX + cardW + cardGap;
+
+  doc.setDrawColor(...BORDA);
+  doc.roundedRect(clienteX, cardY, cardW, cardH, 2, 2, "S");
+  doc.setFillColor(...AZUL);
+  doc.rect(clienteX, cardY, 2.2, cardH, "F");
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...AZUL);
+  doc.text("CLIENTE", clienteX + 6, cardY + 6);
+  doc.setFontSize(11);
+  doc.setTextColor(...TEXTO);
+  doc.text(orc.cliente_nome || "-", clienteX + 6, cardY + 12.5);
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  let cy = cardY + 17.5;
+  if (orc.cliente_documento) {
+    doc.text(orc.cliente_documento, clienteX + 6, cy);
+    cy += 4.2;
+  }
+  if (orc.cliente_endereco) {
+    const linhasCli = doc.splitTextToSize(orc.cliente_endereco, cardW - 10).slice(0, 2);
+    doc.text(linhasCli, clienteX + 6, cy);
+    cy += 4.2 * linhasCli.length;
+  }
+  if (orc.cliente_contato) doc.text(orc.cliente_contato, clienteX + 6, cy);
+
+  doc.setDrawColor(...BORDA);
+  doc.roundedRect(vendedorX, cardY, cardW, cardH, 2, 2, "S");
+  doc.setFillColor(...TEAL);
+  doc.rect(vendedorX, cardY, 2.2, cardH, "F");
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...TEAL);
+  doc.text("VENDEDOR RESPONSÁVEL", vendedorX + 6, cardY + 6);
+  doc.setFontSize(11);
+  doc.setTextColor(...TEXTO);
+  doc.text(orc.responsavel || "-", vendedorX + 6, cardY + 12.5);
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  cy = cardY + 17.5;
+  doc.text(configuracoes?.nome_loja || "IQUE 3D Studio", vendedorX + 6, cy);
+  cy += 4.2;
+  if (configuracoes?.telefone) doc.text(configuracoes.telefone, vendedorX + 6, cy);
+
+  y = cardY + cardH + 10;
+
+  doc.setFillColor(...AZUL);
+  doc.rect(marginX, y, contentWidth, 8, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(8.5);
+  doc.text("PRODUTO/SERVIÇO", marginX + 3, y + 5.5);
+  doc.text("QTD", marginX + contentWidth - 70, y + 5.5, { align: "center" });
+  doc.text("PREÇO UNIT.", marginX + contentWidth - 42, y + 5.5, { align: "center" });
+  doc.text("TOTAL", marginX + contentWidth - 3, y + 5.5, { align: "right" });
+  y += 8;
+
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(9);
+  let total = 0;
+  itens.forEach((item, i) => {
+    const linhaTotal = Number(item.quantidade) * Number(item.valor_unitario);
+    total += linhaTotal;
+    const alturaLinha = 7;
+    if (i % 2 === 1) {
+      doc.setFillColor(...FUNDO_CLARO);
+      doc.rect(marginX, y, contentWidth, alturaLinha, "F");
+    }
+    doc.setTextColor(...TEXTO);
+    doc.text(String(item.descricao).slice(0, 55), marginX + 3, y + 5);
+    doc.text(String(item.quantidade), marginX + contentWidth - 70, y + 5, { align: "center" });
+    doc.text(formatMoney(item.valor_unitario), marginX + contentWidth - 42, y + 5, { align: "center" });
+    doc.text(formatMoney(linhaTotal), marginX + contentWidth - 3, y + 5, { align: "right" });
+    y += alturaLinha;
+  });
+  doc.setDrawColor(...BORDA);
+  doc.line(marginX, y, marginX + contentWidth, y);
+  y += 8;
+
+  const obsW = contentWidth * 0.55;
+  const boxX = marginX + obsW + 6;
+  const boxW = contentWidth - obsW - 6;
+  const boxY = y;
+
+  if (orc.observacoes) {
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    const linhasObs = doc.splitTextToSize(orc.observacoes, obsW);
+    doc.text(linhasObs, marginX, y + 4);
+  }
+
+  doc.setDrawColor(...BORDA);
+  doc.roundedRect(boxX, boxY, boxW, 22, 2, 2, "S");
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXTO);
+  doc.text("Subtotal", boxX + 4, boxY + 6);
+  doc.text(formatMoney(total), boxX + boxW - 4, boxY + 6, { align: "right" });
+  doc.setDrawColor(...BORDA);
+  doc.line(boxX + 2, boxY + 9, boxX + boxW - 2, boxY + 9);
+  doc.setFillColor(...AZUL);
+  doc.rect(boxX, boxY + 11, boxW, 11, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(11);
+  doc.text("Total", boxX + 4, boxY + 18);
+  doc.text(formatMoney(total), boxX + boxW - 4, boxY + 18, { align: "right" });
+
+  y = boxY + 22 + 10;
+
+  const infoGap = 4;
+  const infoW = (contentWidth - infoGap * 3) / 4;
+  const infoH = 18;
+  const infos = [
+    ["CONDIÇÃO DE PAGAMENTO", orc.condicao_pagamento || "-"],
+    ["PRAZO DE ENTREGA", orc.prazo_entrega || "-"],
+    ["FRETE", orc.frete || "-"],
+    ["VALIDADE DA PROPOSTA", `${orc.validade_dias} dias`],
+  ];
+  infos.forEach(([label, valor], i) => {
+    const x = marginX + i * (infoW + infoGap);
+    doc.setDrawColor(...BORDA);
+    doc.setFillColor(...FUNDO_CLARO);
+    doc.roundedRect(x, y, infoW, infoH, 2, 2, "FD");
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...MUTED);
+    doc.text(doc.splitTextToSize(label, infoW - 6), x + 3, y + 5);
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...TEXTO);
+    doc.text(String(valor), x + 3, y + infoH - 4);
+  });
+
+  const dataValidade = new Date(orc.created_at);
+  dataValidade.setDate(dataValidade.getDate() + Number(orc.validade_dias || 15));
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...MUTED);
+  doc.text(`(até ${dataValidade.toLocaleDateString("pt-BR")})`, marginX + 3 * (infoW + infoGap) + 3, y + infoH - 1);
+
+  y += infoH + 12;
+
+  doc.setDrawColor(...BORDA);
+  doc.line(marginX, y, marginX + contentWidth, y);
+  y += 5;
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...MUTED);
+  doc.text(
+    `${configuracoes?.nome_loja || "IQUE 3D Studio"}${configuracoes?.cnpj ? " · CNPJ " + configuracoes.cnpj : ""}`,
+    marginX,
+    y
+  );
+  doc.text(`Vendedor · ${configuracoes?.telefone || ""}`, marginX + contentWidth, y, { align: "right" });
+
+  doc.save(`proposta-${(orc.cliente_nome || "orcamento").replace(/\s+/g, "-")}.pdf`);
 }
