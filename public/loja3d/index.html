@@ -536,19 +536,178 @@
     </main>
 
     <main id="tab-financeiro" class="tab-panel" hidden>
+      <div class="inicio-hero">
+        <div class="inicio-hero-left">
+          <h1 class="inicio-title">Financeiro da <span class="inicio-title-name">empresa</span></h1>
+          <p class="inicio-subtitle">Acompanhe o fluxo financeiro e tenha mais controle do seu negócio.</p>
+        </div>
+        <div class="inicio-hero-right">
+          <div class="inicio-date">
+            <i data-lucide="calendar-days"></i>
+            <span class="inicio-date-text-wrap">
+              <span id="financeiro-date-text" class="inicio-date-text"></span>
+              <span class="inicio-date-sub">Tenha um excelente dia!</span>
+            </span>
+          </div>
+          <button type="button" id="financeiro-novo-pedido-btn" class="btn-hero-primary btn-hero-primary--md">
+            <i data-lucide="plus"></i>NOVO PEDIDO
+          </button>
+        </div>
+      </div>
+
       <nav class="subtabs">
         <button type="button" class="subtab-btn active" data-subtab="visao-geral">Visão geral</button>
         <button type="button" class="subtab-btn" data-subtab="a-receber">Contas a receber</button>
+        <button type="button" class="subtab-btn" data-subtab="a-pagar">Contas a pagar</button>
         <button type="button" class="subtab-btn" data-subtab="lancamentos">Lançamentos</button>
         <button type="button" class="subtab-btn" data-subtab="indicadores">Indicadores</button>
       </nav>
 
       <div id="subtab-visao-geral" class="financeiro-subpanel">
-        <div id="financeiro-dashboard" class="dashboard"></div>
+        <div class="kpi-grid financeiro-kpi-grid">
+          <div class="kpi-card kpi-card--success">
+            <div class="kpi-card-head">
+              <span class="kpi-icon"><i data-lucide="wallet-cards"></i></span>
+              <span class="kpi-trend" id="fin-kpi-saldo-trend"></span>
+            </div>
+            <div class="kpi-value" id="fin-kpi-saldo-value">R$ 0,00</div>
+            <div class="kpi-label">Saldo hoje</div>
+            <div class="kpi-sub">em relação ao mês anterior</div>
+            <canvas class="kpi-sparkline" id="fin-spark-saldo"></canvas>
+          </div>
+
+          <div class="kpi-card kpi-card--blue">
+            <div class="kpi-card-head">
+              <span class="kpi-icon"><i data-lucide="arrow-up-right"></i></span>
+              <span class="kpi-trend" id="fin-kpi-receber-trend"></span>
+            </div>
+            <div class="kpi-value" id="fin-kpi-receber-value">R$ 0,00</div>
+            <div class="kpi-label" id="fin-kpi-receber-label">A receber</div>
+            <div class="kpi-sub">em relação ao mês anterior</div>
+            <canvas class="kpi-sparkline" id="fin-spark-receber"></canvas>
+          </div>
+
+          <div class="kpi-card kpi-card--danger">
+            <div class="kpi-card-head">
+              <span class="kpi-icon"><i data-lucide="arrow-down"></i></span>
+              <span class="kpi-trend" id="fin-kpi-pagar-trend"></span>
+            </div>
+            <div class="kpi-value" id="fin-kpi-pagar-value">R$ 0,00</div>
+            <div class="kpi-label">A pagar</div>
+            <div class="kpi-sub">em relação ao mês anterior</div>
+            <canvas class="kpi-sparkline" id="fin-spark-pagar"></canvas>
+          </div>
+
+          <div class="kpi-card kpi-card--purple">
+            <div class="kpi-card-head">
+              <span class="kpi-icon"><i data-lucide="chart-no-axes-column-increasing"></i></span>
+              <span class="kpi-trend" id="fin-kpi-projmes-trend"></span>
+            </div>
+            <div class="kpi-value" id="fin-kpi-projmes-value">R$ 0,00</div>
+            <div class="kpi-label">Saldo projetado <small>do mês</small></div>
+            <div class="kpi-sub">em relação ao mês anterior</div>
+            <canvas class="kpi-sparkline" id="fin-spark-projmes"></canvas>
+          </div>
+
+          <div class="kpi-card kpi-card--yellow">
+            <div class="kpi-card-head">
+              <span class="kpi-icon"><i data-lucide="calendar-days"></i></span>
+              <span class="kpi-trend" id="fin-kpi-proj30-trend"></span>
+            </div>
+            <div class="kpi-value" id="fin-kpi-proj30-value">R$ 0,00</div>
+            <div class="kpi-label">Saldo projetado <small>(30 dias)</small></div>
+            <div class="kpi-sub">em relação ao período</div>
+            <canvas class="kpi-sparkline" id="fin-spark-proj30"></canvas>
+          </div>
+
+          <div class="panel-card financeiro-contas-card">
+            <div class="kpi-label">Saldo por conta</div>
+            <div id="financeiro-saldo-contas"></div>
+          </div>
+        </div>
+
+        <div id="financeiro-saldo-alerta"></div>
+
+        <div class="financeiro-row-2">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <div class="chart-card-heading">
+                <span class="chart-card-icon"><i data-lucide="users"></i></span>
+                <div><h3>Gasto por pessoa</h3><span class="subtitle">Últimos 30 dias</span></div>
+              </div>
+            </div>
+            <div id="financeiro-gasto-pessoa"></div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <div class="chart-card-heading">
+                <span class="chart-card-icon"><i data-lucide="chart-pie"></i></span>
+                <div><h3>Comprometimento do teto MEI</h3></div>
+              </div>
+            </div>
+            <div class="financeiro-mei-body">
+              <div class="painel-donut-wrap financeiro-mei-donut-wrap">
+                <canvas id="financeiro-mei-donut"></canvas>
+                <div class="painel-donut-center">
+                  <strong id="financeiro-mei-pct">0.0%</strong>
+                  <span>do teto anual</span>
+                </div>
+              </div>
+              <div class="financeiro-mei-info">
+                <span class="kpi-label">Do teto MEI no ano</span>
+                <span id="financeiro-mei-valores" class="financeiro-mei-valores"></span>
+                <div id="financeiro-mei-alerta"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <div class="chart-card-heading">
+                <span class="chart-card-icon"><i data-lucide="file-text"></i></span>
+                <div><h3>Provisão fiscal</h3><span class="subtitle">Sugestão de reserva do mês</span></div>
+              </div>
+            </div>
+            <div class="financeiro-provisao-valor" id="financeiro-provisao-valor">R$ 0,00</div>
+            <div class="financeiro-provisao-sub" id="financeiro-provisao-sub"></div>
+          </div>
+        </div>
+
+        <div class="financeiro-row-3">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-heading">
+                <span class="chart-card-icon"><i data-lucide="chart-no-axes-combined"></i></span>
+                <div><h3>Entradas x Saídas</h3><span class="subtitle">Últimos 6 meses</span></div>
+              </div>
+              <div class="financeiro-legenda">
+                <span><i class="financeiro-legenda-dot" style="background:var(--ok)"></i>Entradas</span>
+                <span><i class="financeiro-legenda-dot" style="background:var(--danger)"></i>Saídas</span>
+              </div>
+            </div>
+            <div class="chart-card-body"><canvas id="financeiro-chart-entradas-saidas"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-heading">
+                <span class="chart-card-icon"><i data-lucide="trending-up"></i></span>
+                <div><h3>Evolução do saldo</h3><span class="subtitle">Últimos 6 meses</span></div>
+              </div>
+              <span class="chart-card-period"><span>Últimos 6 meses</span><i data-lucide="chevron-down"></i></span>
+            </div>
+            <div class="chart-card-body"><canvas id="financeiro-chart-evolucao-saldo"></canvas></div>
+          </div>
+        </div>
       </div>
 
       <div id="subtab-a-receber" class="financeiro-subpanel" hidden>
         <div id="financeiro" class="financeiro"></div>
+      </div>
+
+      <div id="subtab-a-pagar" class="financeiro-subpanel" hidden>
+        <div id="financeiro-a-pagar" class="financeiro"></div>
       </div>
 
       <div id="subtab-lancamentos" class="financeiro-subpanel" hidden>

@@ -1152,22 +1152,45 @@ legend {
 .subtabs {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  padding: 12px 16px 0;
+  height: 48px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 18px;
+  overflow-x: auto;
 }
 
 .subtab-btn {
   background: transparent;
-  border-color: transparent;
+  border: none;
   color: var(--muted);
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-btn) var(--radius-btn) 0 0;
+  position: relative;
+  white-space: nowrap;
+}
+
+.subtab-btn:hover {
+  color: var(--text);
+  transform: none;
 }
 
 .subtab-btn.active {
-  background: var(--panel-2);
-  border-color: var(--border);
-  color: var(--text);
+  background: rgba(255, 138, 0, 0.05);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.subtab-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
 }
 
 .financeiro-subpanel[hidden] {
@@ -2971,6 +2994,203 @@ legend {
 
 @media (max-width: 767px) {
   .kpi-grid--6 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Financeiro: visão geral ---------- */
+.financeiro-kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) 1.15fr;
+  padding-bottom: 0;
+}
+
+.financeiro-kpi-grid .kpi-card {
+  min-height: 196px;
+}
+
+.financeiro-contas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.financeiro-conta-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.financeiro-conta-nome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.financeiro-conta-nome svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.financeiro-row-2 {
+  display: grid;
+  grid-template-columns: 1.05fr 1.1fr 0.95fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.financeiro-gasto-linha {
+  margin-bottom: 14px;
+}
+
+.financeiro-gasto-linha:last-child {
+  margin-bottom: 0;
+}
+
+.financeiro-gasto-linha-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.financeiro-gasto-track {
+  height: 8px;
+  background: #1d2835;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.financeiro-gasto-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  border-radius: 999px;
+}
+
+.financeiro-mei-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.financeiro-mei-donut-wrap {
+  width: 120px;
+  height: 120px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.financeiro-mei-donut-wrap .painel-donut-center strong {
+  font-size: 18px;
+}
+
+.financeiro-mei-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.financeiro-mei-valores {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.financeiro-mei-aviso {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.financeiro-mei-aviso--warn {
+  color: var(--yellow);
+}
+
+.financeiro-mei-aviso--danger {
+  color: var(--danger);
+}
+
+.financeiro-provisao-valor {
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 8px;
+}
+
+.financeiro-provisao-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.financeiro-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.financeiro-row-3 .chart-card-body {
+  height: 265px;
+}
+
+.financeiro-legenda {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.financeiro-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.financeiro-legenda-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+@media (max-width: 1399px) {
+  .financeiro-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1279px) {
+  .financeiro-row-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  .financeiro-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .financeiro-row-2,
+  .financeiro-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .financeiro-kpi-grid {
     grid-template-columns: 1fr;
   }
 }

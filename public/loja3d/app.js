@@ -82,6 +82,17 @@ const painelAlertasEl = document.getElementById("painel-alertas");
 const chartFaturamentoCanvas = document.getElementById("chart-faturamento-mensal");
 const chartDespesasCanvas = document.getElementById("chart-despesas-categoria");
 const financeiroEl = document.getElementById("financeiro");
+const financeiroAPagarEl = document.getElementById("financeiro-a-pagar");
+const financeiroDateText = document.getElementById("financeiro-date-text");
+const financeiroNovoPedidoBtn = document.getElementById("financeiro-novo-pedido-btn");
+const financeiroSaldoContasEl = document.getElementById("financeiro-saldo-contas");
+const financeiroSaldoAlertaEl = document.getElementById("financeiro-saldo-alerta");
+const financeiroGastoPessoaEl = document.getElementById("financeiro-gasto-pessoa");
+const financeiroMeiPctEl = document.getElementById("financeiro-mei-pct");
+const financeiroMeiValoresEl = document.getElementById("financeiro-mei-valores");
+const financeiroMeiAlertaEl = document.getElementById("financeiro-mei-alerta");
+const financeiroProvisaoValorEl = document.getElementById("financeiro-provisao-valor");
+const financeiroProvisaoSubEl = document.getElementById("financeiro-provisao-sub");
 const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
 const indicadoresDashboardEl = document.getElementById("indicadores-dashboard");
 const indicadoresTabelasEl = document.getElementById("indicadores-tabelas");
@@ -632,6 +643,12 @@ async function init() {
     console.error("Falha ao montar o botão do cabeçalho do Painel:", err);
   }
 
+  try {
+    financeiroNovoPedidoBtn.addEventListener("click", () => openOrderDialog(null));
+  } catch (err) {
+    console.error("Falha ao montar o botão do cabeçalho do Financeiro:", err);
+  }
+
   estoqueSubtabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       estoqueSubtabButtons.forEach((b) => b.classList.remove("active"));
@@ -718,6 +735,7 @@ function atualizarUsuarioHeader() {
   }).replace(/^\w/, (c) => c.toUpperCase());
   inicioDateText.textContent = dataFormatada;
   if (painelDateText) painelDateText.textContent = dataFormatada;
+  if (financeiroDateText) financeiroDateText.textContent = dataFormatada;
 }
 
 // Alertas reais (não inventados): pedidos atrasados + itens de estoque abaixo do mínimo —
@@ -777,6 +795,7 @@ function renderFinanceiroAtivo() {
   const subtabAtiva = document.querySelector(".subtab-btn.active")?.dataset.subtab || "visao-geral";
   if (subtabAtiva === "visao-geral") renderFinanceiroDashboard();
   if (subtabAtiva === "a-receber") renderContasAReceber();
+  if (subtabAtiva === "a-pagar") renderContasAPagar();
   if (subtabAtiva === "lancamentos") {
     populateFiltroSelects();
     renderMovimentosList();
@@ -2141,6 +2160,24 @@ function calcularProjecao30Dias() {
   return { saldoProjetado30Dias: saldoCorrente, dataRuptura };
 }
 
+// Proxies mensais pra sparkline/tendência das 5 métricas — "Saldo hoje" reaproveita o mesmo
+// fluxo acumulado da Início/Painel; "A receber"/"A pagar" usam o previsto com vencimento
+// naquele mês; as duas projeções (que são "olhando pra frente", não têm histórico de verdade)
+// usam o mesmo saldo previsto líquido do mês como proxy razoável.
+function aReceberDoMes(chave) {
+  return movimentos
+    .filter((m) => m.status === "previsto" && m.tipo === "entrada" && (m.data_movimento || "").startsWith(chave))
+    .reduce((s, m) => s + Number(m.valor), 0);
+}
+function aPagarDoMes(chave) {
+  return movimentos
+    .filter((m) => m.status === "previsto" && m.tipo === "saida" && (m.data_movimento || "").startsWith(chave))
+    .reduce((s, m) => s + Number(m.valor), 0);
+}
+function saldoLiquidoPrevistoDoMes(chave) {
+  return aReceberDoMes(chave) - aPagarDoMes(chave);
+}
+
 function renderFinanceiroDashboard() {
   const saldos = calcularSaldosContas();
   const saldoHoje = Object.values(saldos).reduce((s, v) => s + v, 0);
@@ -2157,32 +2194,51 @@ function renderFinanceiroDashboard() {
   const saldoProjetadoMes = saldoHoje + aReceberMes - aPagarMes;
   const { saldoProjetado30Dias, dataRuptura } = calcularProjecao30Dias();
 
-  const stats = [
-    { label: "Saldo hoje", value: formatMoney(saldoHoje) },
-    { label: `A receber${atrasados > 0 ? ` (${atrasados} atrasado${atrasados > 1 ? "s" : ""})` : ""}`, value: formatMoney(aReceber) },
-    { label: "A pagar", value: formatMoney(aPagar) },
-    { label: "Saldo projetado do mês", value: formatMoney(saldoProjetadoMes) },
-    { label: "Saldo projetado (30 dias)", value: formatMoney(saldoProjetado30Dias) },
-  ];
+  document.getElementById("fin-kpi-saldo-value").textContent = formatMoney(saldoHoje);
+  document.getElementById("fin-kpi-receber-value").textContent = formatMoney(aReceber);
+  document.getElementById("fin-kpi-receber-label").textContent =
+    `A receber${atrasados > 0 ? ` (${atrasados} atrasado${atrasados > 1 ? "s" : ""})` : ""}`;
+  document.getElementById("fin-kpi-pagar-value").textContent = formatMoney(aPagar);
+  document.getElementById("fin-kpi-projmes-value").textContent = formatMoney(saldoProjetadoMes);
+  document.getElementById("fin-kpi-proj30-value").textContent = formatMoney(saldoProjetado30Dias);
 
-  let html = stats
-    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
-    .join("");
+  const serieSaldo = serieFluxoDeCaixaCumulativo(6);
+  const serieReceber = serieMensal(aReceberDoMes, 6);
+  const seriePagar = serieMensal(aPagarDoMes, 6);
+  const serieProjetado = serieMensal(saldoLiquidoPrevistoDoMes, 6);
 
-  if (dataRuptura) {
-    html += `<div class="saldo-alerta">
-      <h3>⚠️ Saldo pode ficar negativo</h3>
-      <p>Pelos lançamentos previstos, o saldo deve ficar negativo a partir de <strong>${formatDate(dataRuptura)}</strong> se nada mudar até lá.</p>
-    </div>`;
-  }
+  renderTrendBadge("fin-kpi-saldo-trend", calcularTrendPercentual(serieSaldo));
+  renderTrendBadge("fin-kpi-receber-trend", calcularTrendPercentual(serieReceber));
+  renderTrendBadge("fin-kpi-pagar-trend", calcularTrendPercentual(seriePagar));
+  renderTrendBadge("fin-kpi-projmes-trend", calcularTrendPercentual(serieProjetado));
+  renderTrendBadge("fin-kpi-proj30-trend", calcularTrendPercentual(serieProjetado));
+
+  renderSparkline("fin-spark-saldo", serieSaldo, "--ok");
+  renderSparkline("fin-spark-receber", serieReceber, "--blue");
+  renderSparkline("fin-spark-pagar", seriePagar, "--danger");
+  renderSparkline("fin-spark-projmes", serieProjetado, "--purple");
+  renderSparkline("fin-spark-proj30", serieProjetado, "--yellow");
+
+  financeiroSaldoAlertaEl.innerHTML = dataRuptura
+    ? `<div class="saldo-alerta">
+        <h3>Saldo pode ficar negativo</h3>
+        <p>Pelos lançamentos previstos, o saldo deve ficar negativo a partir de <strong>${formatDate(dataRuptura)}</strong> se nada mudar até lá.</p>
+      </div>`
+    : "";
 
   const contasAtivas = contasFinanceiras.filter((c) => c.ativa);
-  if (contasAtivas.length > 0) {
-    html += `<div class="stat-card contas-saldo-card">
-      <div class="stat-label">Saldo por conta</div>
-      ${contasAtivas.map((c) => `<div class="conta-saldo-linha"><span>${escapeHtml(c.nome)}</span><span>${formatMoney(saldos[c.id] || 0)}</span></div>`).join("")}
-    </div>`;
-  }
+  const ICONE_CONTA = { banco: "landmark", dinheiro: "banknote", maquininha: "credit-card", pix: "gem", outro: "wallet" };
+  financeiroSaldoContasEl.innerHTML =
+    contasAtivas.length > 0
+      ? contasAtivas
+          .map(
+            (c) => `<div class="financeiro-conta-linha">
+              <span class="financeiro-conta-nome"><i data-lucide="${ICONE_CONTA[c.tipo] || "wallet"}"></i>${escapeHtml(c.nome)}</span>
+              <span class="financeiro-conta-valor">${formatMoney(saldos[c.id] || 0)}</span>
+            </div>`
+          )
+          .join("")
+      : `<p class="column-empty">Nenhuma conta cadastrada.</p>`;
 
   // Gasto por pessoa: só conta o que já saiu de fato (realizado), não o que ainda está previsto.
   const RESPONSAVEIS = ["Tamires", "Gustavo"];
@@ -2192,14 +2248,136 @@ function renderFinanceiroDashboard() {
       .filter((m) => m.tipo === "saida" && m.status === "realizado" && m.responsavel === nome)
       .reduce((s, m) => s + Number(m.valor), 0),
   }));
-  html += `<div class="stat-card contas-saldo-card">
-    <div class="stat-label">Gasto por pessoa</div>
-    ${gastoPorPessoa.map((g) => `<div class="conta-saldo-linha"><span>${escapeHtml(g.nome)}</span><span>${formatMoney(g.total)}</span></div>`).join("")}
-  </div>`;
+  const maiorGasto = Math.max(...gastoPorPessoa.map((g) => g.total), 1);
+  financeiroGastoPessoaEl.innerHTML = gastoPorPessoa
+    .map(
+      (g) => `<div class="financeiro-gasto-linha">
+        <div class="financeiro-gasto-linha-head"><span>${escapeHtml(g.nome)}</span><span>${formatMoney(g.total)}</span></div>
+        <div class="financeiro-gasto-track"><div class="financeiro-gasto-fill" style="width:${(g.total / maiorGasto) * 100}%"></div></div>
+      </div>`
+    )
+    .join("");
 
-  html += renderMeiHtml();
+  renderFinanceiroMei();
+  renderFinanceiroChartEntradasSaidas();
+  renderFinanceiroChartEvolucaoSaldo();
 
-  financeiroDashboardEl.innerHTML = html;
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function renderFinanceiroMei() {
+  const teto = Number(configuracoes?.teto_mei_anual) || 81000;
+  const percentualProvisao = Number(configuracoes?.percentual_provisao_fiscal) || 0;
+  const { receitaAno, receitaMes } = calcularReceitaAnualMei();
+  const percentualTeto = teto > 0 ? (receitaAno / teto) * 100 : 0;
+
+  financeiroMeiPctEl.textContent = `${percentualTeto.toFixed(1)}%`;
+  financeiroMeiValoresEl.textContent = `(${formatMoney(receitaAno)} de ${formatMoney(teto)})`;
+
+  financeiroMeiAlertaEl.innerHTML =
+    percentualTeto >= 100
+      ? `<p class="financeiro-mei-aviso financeiro-mei-aviso--danger">Teto do MEI ultrapassado em ${new Date().getFullYear()}. Vale conversar com um contador sobre desenquadramento.</p>`
+      : percentualTeto >= 80
+      ? `<p class="financeiro-mei-aviso financeiro-mei-aviso--warn">Perto do teto anual — fique de olho pro resto do ano.</p>`
+      : "";
+
+  const canvas = document.getElementById("financeiro-mei-donut");
+  if (typeof Chart === "undefined" || !canvas) return;
+  Chart.getChart(canvas)?.destroy();
+  const progresso = Math.min(percentualTeto, 100);
+  new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      datasets: [{ data: [progresso, 100 - progresso], backgroundColor: [corTema("--accent"), corTema("--border")], borderWidth: 0 }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+  });
+
+  if (percentualProvisao > 0) {
+    financeiroProvisaoValorEl.textContent = formatMoney((receitaMes * percentualProvisao) / 100);
+    financeiroProvisaoSubEl.textContent = `Provisão fiscal sugerida do mês (${percentualProvisao}% da receita)`;
+  } else {
+    financeiroProvisaoValorEl.textContent = formatMoney(0);
+    financeiroProvisaoSubEl.textContent = "Configure o % de provisão em Configurações.";
+  }
+}
+
+let chartFinEntradasSaidasInstance = null;
+function renderFinanceiroChartEntradasSaidas() {
+  const canvas = document.getElementById("financeiro-chart-entradas-saidas");
+  if (typeof Chart === "undefined" || !canvas) return;
+
+  const meses = ultimosNMeses(6);
+  const entradas = meses.map((m) => faturamentoDoMes(m.chave));
+  const saidas = meses.map((m) =>
+    movimentos.filter((mv) => ehMovimentoDeDespesa(mv) && (mv.data_movimento || "").startsWith(m.chave)).reduce((s, mv) => s + Number(mv.valor), 0)
+  );
+
+  const corTexto = corTema("--muted");
+  const corGrade = corTema("--border");
+
+  Chart.getChart(canvas)?.destroy();
+  chartFinEntradasSaidasInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: meses.map((m) => m.rotulo),
+      datasets: [
+        { label: "Entradas", data: entradas, backgroundColor: corTema("--ok"), borderRadius: 4, maxBarThickness: 22 },
+        { label: "Saídas", data: saidas, backgroundColor: corTema("--danger"), borderRadius: 4, maxBarThickness: 22 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatMoney(ctx.parsed.y)}` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: corTexto } },
+        y: { beginAtZero: true, grid: { color: corGrade }, ticks: { color: corTexto, callback: (v) => formatMoney(v) } },
+      },
+    },
+  });
+}
+
+let chartFinEvolucaoSaldoInstance = null;
+function renderFinanceiroChartEvolucaoSaldo() {
+  const canvas = document.getElementById("financeiro-chart-evolucao-saldo");
+  if (typeof Chart === "undefined" || !canvas) return;
+
+  const serie = serieFluxoDeCaixaCumulativo(6);
+  const meses = ultimosNMeses(6);
+  const cor = corTema("--accent");
+  const corTexto = corTema("--muted");
+  const corGrade = corTema("--border");
+
+  Chart.getChart(canvas)?.destroy();
+  chartFinEvolucaoSaldoInstance = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: meses.map((m) => m.rotulo),
+      datasets: [
+        {
+          label: "Saldo",
+          data: serie,
+          borderColor: cor,
+          backgroundColor: cor + "26",
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: cor,
+          pointBorderColor: "rgba(255,138,0,.25)",
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.parsed.y) } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: corTexto } },
+        y: { grid: { color: corGrade }, ticks: { color: corTexto, callback: (v) => formatMoney(v) } },
+      },
+    },
+  });
 }
 
 // Receita bruta anual pra comparar com o teto do MEI: só entradas já realizadas, e nunca conta
@@ -2217,39 +2395,6 @@ function calcularReceitaAnualMei() {
     .reduce((s, m) => s + Number(m.valor), 0);
 
   return { receitaAno, receitaMes };
-}
-
-function renderMeiHtml() {
-  const teto = Number(configuracoes?.teto_mei_anual) || 81000;
-  const percentualProvisao = Number(configuracoes?.percentual_provisao_fiscal) || 0;
-  const { receitaAno, receitaMes } = calcularReceitaAnualMei();
-  const percentualTeto = teto > 0 ? (receitaAno / teto) * 100 : 0;
-
-  let html = `<div class="stat-card">
-    <div class="stat-value">${percentualTeto.toFixed(1)}%</div>
-    <div class="stat-label">Do teto MEI no ano (${formatMoney(receitaAno)} de ${formatMoney(teto)})</div>
-  </div>`;
-
-  if (percentualProvisao > 0) {
-    html += `<div class="stat-card">
-      <div class="stat-value">${formatMoney((receitaMes * percentualProvisao) / 100)}</div>
-      <div class="stat-label">Provisão fiscal sugerida do mês (${percentualProvisao}% da receita)</div>
-    </div>`;
-  }
-
-  if (percentualTeto >= 100) {
-    html += `<div class="saldo-alerta">
-      <h3>🚨 Teto do MEI ultrapassado</h3>
-      <p>A receita realizada em ${new Date().getFullYear()} já passou de ${formatMoney(teto)}. Vale conversar com um contador sobre desenquadramento do MEI.</p>
-    </div>`;
-  } else if (percentualTeto >= 80) {
-    html += `<div class="estoque-alerta">
-      <h3>⚠️ Perto do teto do MEI</h3>
-      <p>Já foi faturado ${percentualTeto.toFixed(1)}% do limite anual de ${formatMoney(teto)}. Fique de olho pro resto do ano.</p>
-    </div>`;
-  }
-
-  return html;
 }
 
 function renderContasAReceber() {
@@ -2283,6 +2428,46 @@ function renderContasAReceber() {
 
   financeiroEl.innerHTML = html;
   financeiroEl.querySelectorAll("tr[data-mov-id]").forEach((tr) =>
+    tr.addEventListener("click", () => {
+      const movimento = movimentos.find((m) => m.id === tr.dataset.movId);
+      if (movimento) openMovimentoDialog(movimento);
+    })
+  );
+}
+
+// Espelho de renderContasAReceber() pro lado das saídas — mesma lógica (previsto, não
+// realizado), só troca tipo/origem e o rótulo. Inclui qualquer despesa prevista, não só a
+// gerada por pedido, já que despesa geralmente é lançamento manual/despesa fixa.
+function renderContasAPagar() {
+  const linhas = movimentos
+    .filter((m) => m.tipo === "saida" && m.status === "previsto")
+    .sort((a, b) => (a.data_movimento || "9999") < (b.data_movimento || "9999") ? -1 : 1);
+
+  const totalGeral = linhas.reduce((sum, l) => sum + Number(l.valor), 0);
+
+  let html = `<div class="stat-card financeiro-total"><div class="stat-value">${formatMoney(totalGeral)}</div><div class="stat-label">Total a pagar</div></div>`;
+
+  if (linhas.length === 0) {
+    html += `<p class="column-empty">Nenhuma conta em aberto. 🎉</p>`;
+  } else {
+    html += `<div class="table-wrap"><table class="financeiro-table"><thead><tr>
+      <th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Status</th>
+    </tr></thead><tbody>`;
+    for (const m of linhas) {
+      const atrasado = isMovimentoAtrasado(m);
+      const categoria = categoriasFinanceiras.find((c) => c.id === m.categoria_id)?.nome || "";
+      html += `<tr class="${atrasado ? "late-row" : ""}" data-mov-id="${m.id}">
+        <td>${escapeHtml(m.descricao || categoria || "—")}</td>
+        <td>${formatMoney(m.valor)}</td>
+        <td>${m.data_movimento ? formatDate(m.data_movimento) : "—"}</td>
+        <td><span class="status-badge ${atrasado ? "atrasado" : "previsto"}">${atrasado ? "Atrasado" : "Previsto"}</span></td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  financeiroAPagarEl.innerHTML = html;
+  financeiroAPagarEl.querySelectorAll("tr[data-mov-id]").forEach((tr) =>
     tr.addEventListener("click", () => {
       const movimento = movimentos.find((m) => m.id === tr.dataset.movId);
       if (movimento) openMovimentoDialog(movimento);
