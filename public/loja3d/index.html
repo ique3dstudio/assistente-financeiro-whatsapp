@@ -375,7 +375,164 @@
     </main>
 
     <main id="tab-painel" class="tab-panel" hidden>
-      <div id="dashboard" class="dashboard"></div>
+      <div class="inicio-hero">
+        <div class="inicio-hero-left">
+          <h1 class="inicio-title">Painel do <span class="inicio-title-name">negócio</span></h1>
+          <p class="inicio-subtitle">Acompanhe os principais indicadores da sua operação.</p>
+        </div>
+        <div class="inicio-hero-right">
+          <div class="inicio-date">
+            <i data-lucide="calendar-days"></i>
+            <span class="inicio-date-text-wrap">
+              <span id="painel-date-text" class="inicio-date-text"></span>
+              <span class="inicio-date-sub">Tenha um excelente dia!</span>
+            </span>
+          </div>
+          <button type="button" id="painel-novo-pedido-btn" class="btn-hero-primary btn-hero-primary--md">
+            <i data-lucide="plus"></i>NOVO PEDIDO
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid kpi-grid--6">
+        <div class="kpi-card kpi-card--primary">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="package"></i></span>
+            <span class="kpi-trend" id="painel-kpi-abertos-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-abertos-value">0</div>
+          <div class="kpi-label">Pedidos abertos</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-abertos"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--danger">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="clock-3"></i></span>
+            <span class="kpi-trend" id="painel-kpi-atrasados-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-atrasados-value">0</div>
+          <div class="kpi-label">Itens atrasados</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-atrasados"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--success">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="chart-no-axes-column-increasing"></i></span>
+            <span class="kpi-trend" id="painel-kpi-faturamento-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-faturamento-value">R$ 0,00</div>
+          <div class="kpi-label">Faturamento entregue no mês</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-faturamento"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--yellow">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="circle-dollar-sign"></i></span>
+            <span class="kpi-trend" id="painel-kpi-lucro-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-lucro-value">R$ 0,00</div>
+          <div class="kpi-label">Lucro entregue no mês <small>(itens com custo calculado)</small></div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-lucro"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--blue">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="clock"></i></span>
+            <span class="kpi-trend" id="painel-kpi-horas-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-horas-value">0h</div>
+          <div class="kpi-label">Horas na fila</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-horas"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--purple">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="users"></i></span>
+            <span class="kpi-trend" id="painel-kpi-clientes-trend"></span>
+          </div>
+          <div class="kpi-value" id="painel-kpi-clientes-value">0</div>
+          <div class="kpi-label">Clientes ativos</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="painel-spark-clientes"></canvas>
+        </div>
+      </div>
+
+      <div class="painel-row-2">
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div class="chart-card-heading">
+              <span class="chart-card-icon"><i data-lucide="chart-pie"></i></span>
+              <div>
+                <h3>Pedidos por status</h3>
+                <span class="subtitle">Visão geral dos seus pedidos</span>
+              </div>
+            </div>
+          </div>
+          <div class="painel-status-body">
+            <ul class="painel-status-list" id="painel-status-list"></ul>
+            <div class="painel-donut-wrap">
+              <canvas id="painel-donut-chart"></canvas>
+              <div class="painel-donut-center">
+                <strong id="painel-donut-total">0</strong>
+                <span>Total de pedidos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-heading">
+              <span class="chart-card-icon"><i data-lucide="chart-column"></i></span>
+              <div>
+                <h3>Faturamento mensal</h3>
+                <span class="subtitle">Últimos 6 meses</span>
+              </div>
+            </div>
+            <span class="chart-card-period"><span>Últimos 6 meses</span><i data-lucide="chevron-down"></i></span>
+          </div>
+          <div class="chart-card-body"><canvas id="painel-chart-faturamento"></canvas></div>
+        </div>
+      </div>
+
+      <div class="painel-row-3">
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h3>Pedidos recentes</h3>
+              <span class="subtitle">Últimos pedidos cadastrados</span>
+            </div>
+            <button type="button" class="btn-link" data-tab-link="pedidos">Ver todos</button>
+          </div>
+          <div id="painel-pedidos-recentes"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h3>Produtos mais produzidos</h3>
+              <span class="subtitle">Ranking dos itens no período</span>
+            </div>
+            <button type="button" class="btn-link" data-tab-link="estoque">Ver todos</button>
+          </div>
+          <div id="painel-produtos-produzidos"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h3>Alertas e avisos</h3>
+              <span class="subtitle">Fique atento aos pontos importantes</span>
+            </div>
+          </div>
+          <div id="painel-alertas"></div>
+        </div>
+      </div>
     </main>
 
     <main id="tab-financeiro" class="tab-panel" hidden>

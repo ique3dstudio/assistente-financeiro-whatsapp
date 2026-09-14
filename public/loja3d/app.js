@@ -72,7 +72,13 @@ const loginError = document.getElementById("login-error");
 const loginRememberCheckbox = document.getElementById("login-remember");
 const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
-const dashboard = document.getElementById("dashboard");
+const painelDateText = document.getElementById("painel-date-text");
+const painelNovoPedidoBtn = document.getElementById("painel-novo-pedido-btn");
+const painelStatusListEl = document.getElementById("painel-status-list");
+const painelDonutTotalEl = document.getElementById("painel-donut-total");
+const painelPedidosRecentesEl = document.getElementById("painel-pedidos-recentes");
+const painelProdutosProduzidosEl = document.getElementById("painel-produtos-produzidos");
+const painelAlertasEl = document.getElementById("painel-alertas");
 const chartFaturamentoCanvas = document.getElementById("chart-faturamento-mensal");
 const chartDespesasCanvas = document.getElementById("chart-despesas-categoria");
 const financeiroEl = document.getElementById("financeiro");
@@ -620,6 +626,12 @@ async function init() {
     console.error("Falha ao montar os botões do cabeçalho do Quadro:", err);
   }
 
+  try {
+    painelNovoPedidoBtn.addEventListener("click", () => openOrderDialog(null));
+  } catch (err) {
+    console.error("Falha ao montar o botão do cabeçalho do Painel:", err);
+  }
+
   estoqueSubtabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       estoqueSubtabButtons.forEach((b) => b.classList.remove("active"));
@@ -698,12 +710,14 @@ function atualizarUsuarioHeader() {
   userAvatarInitials.textContent = iniciais;
   userNameLabel.textContent = nome;
   inicioGreetingName.textContent = `${nome}!`;
-  inicioDateText.textContent = new Date().toLocaleDateString("pt-BR", {
+  const dataFormatada = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   }).replace(/^\w/, (c) => c.toUpperCase());
+  inicioDateText.textContent = dataFormatada;
+  if (painelDateText) painelDateText.textContent = dataFormatada;
 }
 
 // Alertas reais (não inventados): pedidos atrasados + itens de estoque abaixo do mínimo —
@@ -1243,6 +1257,34 @@ async function baixarEstoqueSeNecessario({ itemId, pedidoId, statusAnterior, sta
 
 /* ---------- Painel (Dashboard) ---------- */
 
+// Proxies mensais pros sparklines/tendência do Painel — os KPIs em si (número grande do card)
+// são o estado ATUAL (igual sempre foi), essas funções só respondem "quanto disso rolou/venceu
+// naquele mês" pra desenhar uma tendência real, sem inventar dado nem guardar histórico à parte.
+function pedidosAbertosDoMes(chave) {
+  return pedidos.filter((p) => (p.created_at || "").startsWith(chave)).length;
+}
+function itensAtrasadosDoMes(chave) {
+  return allCards().filter((c) => (c.pedido.prazo_entrega || "").startsWith(chave) && isAtrasado(c.item, c.pedido)).length;
+}
+function faturamentoEntregueDoMes(chave) {
+  return allCards()
+    .filter((c) => c.item.status === "entregue" && (c.item.updated_at || "").startsWith(chave))
+    .reduce((s, c) => s + (Number(c.item.valor) || 0), 0);
+}
+function lucroEntregueDoMes(chave) {
+  return allCards()
+    .filter((c) => c.item.status === "entregue" && (c.item.updated_at || "").startsWith(chave) && c.item.custo_calculado != null)
+    .reduce((s, c) => s + (Number(c.item.valor) || 0) - Number(c.item.custo_calculado), 0);
+}
+function horasFilaDoMes(chave) {
+  return allCards()
+    .filter((c) => c.item.status !== "entregue" && (c.pedido.prazo_entrega || "").startsWith(chave))
+    .reduce((s, c) => s + (Number(c.item.tempo_estimado_horas) || 0), 0);
+}
+function clientesAtivosDoMes(chave) {
+  return new Set(pedidos.filter((p) => (p.created_at || "").startsWith(chave)).map((p) => p.cliente_id)).size;
+}
+
 function renderDashboard() {
   const cards = allCards();
   const hoje = new Date();
@@ -1271,37 +1313,225 @@ function renderDashboard() {
     pedidos.filter((p) => (p.itens || []).some((i) => i.status !== "entregue")).map((p) => p.cliente_id)
   ).size;
 
+  document.getElementById("painel-kpi-abertos-value").textContent = String(pedidosAbertos);
+  document.getElementById("painel-kpi-atrasados-value").textContent = String(itensAtrasados);
+  document.getElementById("painel-kpi-faturamento-value").textContent = formatMoney(faturamentoMes);
+  document.getElementById("painel-kpi-lucro-value").textContent = formatMoney(lucroMes);
+  document.getElementById("painel-kpi-horas-value").textContent = `${horasFila}h`;
+  document.getElementById("painel-kpi-clientes-value").textContent = String(clientesAtivos);
+
+  const seriePedidosAbertos = serieMensal(pedidosAbertosDoMes, 6);
+  const serieItensAtrasados = serieMensal(itensAtrasadosDoMes, 6);
+  const serieFaturamentoEntregue = serieMensal(faturamentoEntregueDoMes, 6);
+  const serieLucroEntregue = serieMensal(lucroEntregueDoMes, 6);
+  const serieHorasFila = serieMensal(horasFilaDoMes, 6);
+  const serieClientesAtivos = serieMensal(clientesAtivosDoMes, 6);
+
+  renderTrendBadge("painel-kpi-abertos-trend", calcularTrendPercentual(seriePedidosAbertos));
+  renderTrendBadge("painel-kpi-atrasados-trend", calcularTrendPercentual(serieItensAtrasados));
+  renderTrendBadge("painel-kpi-faturamento-trend", calcularTrendPercentual(serieFaturamentoEntregue));
+  renderTrendBadge("painel-kpi-lucro-trend", calcularTrendPercentual(serieLucroEntregue));
+  renderTrendBadge("painel-kpi-horas-trend", calcularTrendPercentual(serieHorasFila));
+  renderTrendBadge("painel-kpi-clientes-trend", calcularTrendPercentual(serieClientesAtivos));
+
+  renderSparkline("painel-spark-abertos", seriePedidosAbertos, "--accent");
+  renderSparkline("painel-spark-atrasados", serieItensAtrasados, "--danger");
+  renderSparkline("painel-spark-faturamento", serieFaturamentoEntregue, "--ok");
+  renderSparkline("painel-spark-lucro", serieLucroEntregue, "--yellow");
+  renderSparkline("painel-spark-horas", serieHorasFila, "--blue");
+  renderSparkline("painel-spark-clientes", serieClientesAtivos, "--purple");
+
+  renderPainelStatus(cards);
+  renderPainelChartFaturamento();
+  renderPainelPedidosRecentes();
+  renderPainelProdutosProduzidos(cards);
+  renderPainelAlertas(mesAtual, anoAtual);
+
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+// "Pedidos por status": mesma contagem por item (STATUS_DEFS) que o resumo do Quadro usa — um
+// pedido não tem status único, cada peça tem o seu, então a granularidade real é por item.
+function renderPainelStatus(cards) {
+  const total = cards.length;
+  painelDonutTotalEl.textContent = String(total);
+
+  const linhas = STATUS_DEFS.map((def) => {
+    const qtd = cards.filter((c) => c.item.status === def.key).length;
+    const pct = total > 0 ? Math.round((qtd / total) * 100) : 0;
+    return { def, qtd, pct, meta: STATUS_META[def.key] };
+  });
+
+  painelStatusListEl.innerHTML = linhas
+    .map(
+      (l) => `<li class="painel-status-row">
+        <span class="painel-status-dot" style="background:${l.meta.color}"></span>
+        <span class="painel-status-nome">${escapeHtml(nomeStatusSemEmoji(l.def.label))}</span>
+        <span class="painel-status-qtd">${l.qtd}</span>
+        <span class="painel-status-pct">${l.pct}%</span>
+      </li>`
+    )
+    .join("");
+
+  const canvas = document.getElementById("painel-donut-chart");
+  if (typeof Chart === "undefined" || !canvas) return;
+  Chart.getChart(canvas)?.destroy();
+
+  const semDados = total === 0;
+  new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: linhas.map((l) => nomeStatusSemEmoji(l.def.label)),
+      datasets: [
+        {
+          data: semDados ? [1] : linhas.map((l) => l.qtd),
+          backgroundColor: semDados ? ["#283444"] : linhas.map((l) => l.meta.color),
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "72%",
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: !semDados, callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}` } },
+      },
+    },
+  });
+}
+
+let chartPainelFaturamentoInstance = null;
+function renderPainelChartFaturamento() {
+  const canvas = document.getElementById("painel-chart-faturamento");
+  if (typeof Chart === "undefined" || !canvas) return;
+
+  const meses = ultimosNMeses(6);
+  const valores = meses.map((m) => faturamentoEntregueDoMes(m.chave));
+
+  const corTexto = corTema("--muted");
+  const corGrade = corTema("--border");
+
+  Chart.getChart(canvas)?.destroy();
+  chartPainelFaturamentoInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: meses.map((m) => m.rotulo),
+      datasets: [{ label: "Faturamento", data: valores, backgroundColor: corTema("--accent"), borderRadius: 4, maxBarThickness: 28 }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => formatMoney(ctx.parsed.y) } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: corTexto } },
+        y: { beginAtZero: true, grid: { color: corGrade }, ticks: { color: corTexto, callback: (v) => formatMoney(v) } },
+      },
+    },
+  });
+}
+
+function renderPainelPedidosRecentes() {
+  const recentes = [...pedidos].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 6);
+
+  if (recentes.length === 0) {
+    painelPedidosRecentesEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="package-open"></i>
+      <strong>Nenhum pedido encontrado.</strong>
+      <span>Seus pedidos aparecerão aqui.</span>
+    </div>`;
+    return;
+  }
+
+  painelPedidosRecentesEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>#</th><th>Cliente</th><th>Peça</th><th>Data</th><th>Status</th></tr></thead>
+    <tbody>
+      ${recentes
+        .map((p, i) => {
+          const itens = p.itens || [];
+          const peca = itens.length === 0 ? "—" : itens.length === 1 ? escapeHtml(itens[0].descricao) : `${escapeHtml(itens[0].descricao)} e mais ${itens.length - 1}`;
+          const status = statusRepresentativoPedido(p);
+          return `<tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(p.cliente?.nome || "—")}</td>
+            <td>${peca}</td>
+            <td>${formatDate((p.created_at || "").slice(0, 10)) || "—"}</td>
+            <td>${status ? escapeHtml(nomeStatusSemEmoji(status.label)) : "—"}</td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
+}
+
+// Produção real (itens_pedido, não venda avulsa de produto acabado) — diferente do "Produtos em
+// destaque" da Início, que usa movimentos_produto (venda). Aqui é "o que a gente mais IMPRIMIU".
+function renderPainelProdutosProduzidos(cards) {
+  const porNome = new Map();
+  for (const c of cards) {
+    const nome = c.item.descricao;
+    const atual = porNome.get(nome) || { quantidade: 0, receita: 0 };
+    atual.quantidade += Number(c.item.quantidade) || 0;
+    atual.receita += Number(c.item.valor) || 0;
+    porNome.set(nome, atual);
+  }
+  const ranking = [...porNome.entries()].sort((a, b) => b[1].quantidade - a[1].quantidade).slice(0, 6);
+
+  if (ranking.length === 0) {
+    painelProdutosProduzidosEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="package"></i>
+      <strong>Nenhum produto encontrado.</strong>
+      <span>Os dados aparecerão aqui.</span>
+    </div>`;
+    return;
+  }
+
+  painelProdutosProduzidosEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>#</th><th>Produto</th><th>Quantidade</th><th>Receita</th></tr></thead>
+    <tbody>
+      ${ranking
+        .map(([nome, r], i) => `<tr><td>${i + 1}</td><td>${escapeHtml(nome)}</td><td>${r.quantidade}</td><td>${formatMoney(r.receita)}</td></tr>`)
+        .join("")}
+    </tbody>
+  </table></div>`;
+}
+
+function renderPainelAlertas(mesAtual, anoAtual) {
+  const materiaisBaixos = materiais.filter((m) => Number(m.saldo_gramas) <= Number(m.estoque_minimo_gramas));
   const falhasMes = falhas.filter((f) => {
     const d = new Date(f.created_at);
     return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   });
   const custoFalhasMes = falhasMes.reduce((sum, f) => sum + (Number(f.custo_perdido) || 0), 0);
 
-  const stats = [
-    { label: "Pedidos abertos", value: pedidosAbertos },
-    { label: "Itens atrasados", value: itensAtrasados },
-    { label: "Faturamento entregue no mês", value: formatMoney(faturamentoMes) },
-    { label: "Lucro entregue no mês (itens com custo calculado)", value: formatMoney(lucroMes) },
-    { label: "Horas na fila", value: `${horasFila}h` },
-    { label: "Clientes ativos", value: clientesAtivos },
-    { label: "Falhas do mês", value: falhasMes.length },
-    { label: "Custo perdido em falhas (mês)", value: formatMoney(custoFalhasMes) },
-  ];
-
-  const materiaisBaixos = materiais.filter((m) => Number(m.saldo_gramas) <= Number(m.estoque_minimo_gramas));
-
-  let html = stats
-    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
-    .join("");
+  const blocos = [];
 
   if (materiaisBaixos.length > 0) {
-    html += `<div class="estoque-alerta">
-      <h3>⚠️ Estoque baixo</h3>
+    blocos.push(`<div class="painel-alerta painel-alerta--warn">
+      <div class="painel-alerta-head"><i data-lucide="triangle-alert"></i><strong>Estoque baixo</strong></div>
       <ul>${materiaisBaixos.map((m) => `<li>${escapeHtml(m.nome)} — restam ${m.saldo_gramas}g</li>`).join("")}</ul>
-    </div>`;
+    </div>`);
   }
 
-  dashboard.innerHTML = html;
+  if (falhasMes.length > 0) {
+    blocos.push(`<div class="painel-alerta painel-alerta--danger">
+      <div class="painel-alerta-head"><i data-lucide="triangle-alert"></i><strong>Falhas de impressão no mês</strong></div>
+      <ul><li>${falhasMes.length} falha${falhasMes.length > 1 ? "s" : ""} — ${formatMoney(custoFalhasMes)} em custo perdido</li></ul>
+    </div>`);
+  }
+
+  painelAlertasEl.innerHTML =
+    blocos.length > 0
+      ? blocos.join("")
+      : `<div class="panel-empty">
+          <i data-lucide="shield-check"></i>
+          <strong>Tudo em ordem.</strong>
+          <span>Nenhum alerta no momento.</span>
+        </div>`;
 }
 
 /* ---------- Início (home) ---------- */
