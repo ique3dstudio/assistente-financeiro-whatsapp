@@ -94,6 +94,11 @@ const financeiroMeiAlertaEl = document.getElementById("financeiro-mei-alerta");
 const financeiroProvisaoValorEl = document.getElementById("financeiro-provisao-valor");
 const financeiroProvisaoSubEl = document.getElementById("financeiro-provisao-sub");
 const estoqueDateText = document.getElementById("estoque-date-text");
+const orcamentoDateText = document.getElementById("orcamento-date-text");
+const orcamentoKpiTotalValue = document.getElementById("orcamento-kpi-total-value");
+const orcamentoKpiAguardandoValue = document.getElementById("orcamento-kpi-aguardando-value");
+const orcamentoKpiAprovadosValue = document.getElementById("orcamento-kpi-aprovados-value");
+const orcamentoKpiRejeitadosValue = document.getElementById("orcamento-kpi-rejeitados-value");
 const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
 const indicadoresDashboardEl = document.getElementById("indicadores-dashboard");
 const indicadoresTabelasEl = document.getElementById("indicadores-tabelas");
@@ -747,6 +752,7 @@ function atualizarUsuarioHeader() {
   if (painelDateText) painelDateText.textContent = dataFormatada;
   if (financeiroDateText) financeiroDateText.textContent = dataFormatada;
   if (estoqueDateText) estoqueDateText.textContent = dataFormatada;
+  if (orcamentoDateText) orcamentoDateText.textContent = dataFormatada;
 }
 
 // Alertas reais (não inventados): pedidos atrasados + itens de estoque abaixo do mínimo —
@@ -5639,32 +5645,67 @@ function orcamentoTotal(orcamento) {
   return (orcamento.itens || []).reduce((s, i) => s + Number(i.quantidade) * Number(i.valor_unitario), 0);
 }
 
+function orcamentoPecaResumo(orcamento) {
+  const itens = orcamento.itens || [];
+  if (itens.length === 0) return "—";
+  const primeira = itens[0].descricao || "—";
+  return itens.length > 1 ? `${primeira} +${itens.length - 1}` : primeira;
+}
+
 function renderOrcamentosList() {
+  orcamentoKpiTotalValue.textContent = String(orcamentos.length);
+  orcamentoKpiAguardandoValue.textContent = String(orcamentos.filter((o) => o.status === "enviado").length);
+  orcamentoKpiAprovadosValue.textContent = String(orcamentos.filter((o) => o.status === "aceito").length);
+  orcamentoKpiRejeitadosValue.textContent = String(orcamentos.filter((o) => o.status === "recusado").length);
+
   const busca = orcamentoBuscaInput.value.trim().toLowerCase();
   const statusFiltro = orcamentoFiltroStatus.value;
-  const filtrados = orcamentos.filter((o) => {
-    if (statusFiltro && o.status !== statusFiltro) return false;
-    if (busca && !o.cliente_nome.toLowerCase().includes(busca)) return false;
-    return true;
-  });
+  const filtrados = orcamentos
+    .filter((o) => {
+      if (statusFiltro && o.status !== statusFiltro) return false;
+      if (busca && !o.cliente_nome.toLowerCase().includes(busca)) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   if (filtrados.length === 0) {
-    orcamentosListEl.innerHTML = `<li class="column-empty">Nenhum orçamento ainda.</li>`;
+    orcamentosListEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="file-text"></i>
+      <strong>Nenhum orçamento ainda.</strong>
+      <span>Clique em "Novo orçamento" para criar sua primeira proposta.</span>
+    </div>`;
+    lucide.createIcons();
     return;
   }
 
-  orcamentosListEl.innerHTML = filtrados
-    .map((o) => {
-      return `<li>
-        <span>
-          ${escapeHtml(o.cliente_nome)} — ${formatMoney(orcamentoTotal(o))}
-          <span class="badge-status badge-status-${o.status}">${ORCAMENTO_STATUS_LABELS[o.status] || o.status}</span>
-          ${o.pedido_id ? '<span class="badge-alerta">🔗 virou pedido</span>' : ""}
-        </span>
-        <button type="button" data-id="${o.id}" class="edit-orcamento-btn">✏️</button>
-      </li>`;
-    })
-    .join("");
+  orcamentosListEl.innerHTML = `<table class="panel-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cliente</th>
+        <th>Peça</th>
+        <th>Valor</th>
+        <th>Status</th>
+        <th>Data</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${filtrados
+        .map(
+          (o, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(o.cliente_nome)}${o.pedido_id ? ' <span class="badge-status badge-status-aceito" title="Já virou pedido">🔗 pedido</span>' : ""}</td>
+        <td>${escapeHtml(orcamentoPecaResumo(o))}</td>
+        <td>${formatMoney(orcamentoTotal(o))}</td>
+        <td><span class="badge-status badge-status-${o.status}">${ORCAMENTO_STATUS_LABELS[o.status] || o.status}</span></td>
+        <td>${o.created_at ? new Date(o.created_at).toLocaleDateString("pt-BR") : "—"}</td>
+        <td><button type="button" data-id="${o.id}" class="edit-orcamento-btn btn-outline btn-outline--sm">Editar</button></td>
+      </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>`;
 
   orcamentosListEl.querySelectorAll(".edit-orcamento-btn").forEach((btn) =>
     btn.addEventListener("click", () => openOrcamentoDialog(orcamentos.find((o) => o.id === btn.dataset.id)))

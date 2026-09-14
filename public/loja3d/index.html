@@ -875,6 +875,56 @@
     </main>
 
     <main id="tab-orcamento" class="tab-panel" hidden>
+      <div class="inicio-hero">
+        <div class="inicio-hero-left">
+          <h1 class="inicio-title">Orçamentos</h1>
+          <p class="inicio-subtitle">Crie propostas comerciais e acompanhe o status de cada uma.</p>
+        </div>
+        <div class="inicio-hero-right">
+          <div class="inicio-date">
+            <i data-lucide="calendar-days"></i>
+            <span class="inicio-date-text-wrap">
+              <span id="orcamento-date-text" class="inicio-date-text"></span>
+              <span class="inicio-date-sub">Tenha um excelente dia!</span>
+            </span>
+          </div>
+          <button type="button" id="novo-orcamento-btn" class="btn-hero-primary btn-hero-primary--md">
+            <i data-lucide="plus"></i>NOVO ORÇAMENTO
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid kpi-grid--orcamento">
+        <div class="kpi-card kpi-card--primary">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="file-text"></i></span>
+          </div>
+          <div class="kpi-value" id="orcamento-kpi-total-value">0</div>
+          <div class="kpi-label">Total de orçamentos</div>
+        </div>
+        <div class="kpi-card kpi-card--yellow">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="clock-3"></i></span>
+          </div>
+          <div class="kpi-value" id="orcamento-kpi-aguardando-value">0</div>
+          <div class="kpi-label">Aguardando resposta</div>
+        </div>
+        <div class="kpi-card kpi-card--success">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="check-circle-2"></i></span>
+          </div>
+          <div class="kpi-value" id="orcamento-kpi-aprovados-value">0</div>
+          <div class="kpi-label">Aprovados</div>
+        </div>
+        <div class="kpi-card kpi-card--danger">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="x-circle"></i></span>
+          </div>
+          <div class="kpi-value" id="orcamento-kpi-rejeitados-value">0</div>
+          <div class="kpi-label">Rejeitados</div>
+        </div>
+      </div>
+
       <div class="financeiro-toolbar">
         <input id="orcamento-busca" type="search" placeholder="Buscar cliente…" />
         <select id="orcamento-filtro-status">
@@ -883,10 +933,23 @@
           <option value="aceito">Aceito</option>
           <option value="recusado">Recusado</option>
         </select>
-        <span class="spacer"></span>
-        <button type="button" id="novo-orcamento-btn" class="primary">+ Novo orçamento</button>
       </div>
-      <ul id="orcamentos-list" class="materiais-list orcamentos-list"></ul>
+      <div id="orcamentos-list" class="page-table-wrap"></div>
+
+      <div class="estoque-info-grid">
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="zap"></i></span>
+          <div><h3>Agilidade no atendimento</h3><p class="subtitle">Gere propostas profissionais em minutos e envie direto pro cliente</p></div>
+        </div>
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="trending-up"></i></span>
+          <div><h3>Mais conversões</h3><p class="subtitle">Acompanhe o status de cada orçamento e converta os aceitos em pedidos</p></div>
+        </div>
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="archive"></i></span>
+          <div><h3>Histórico organizado</h3><p class="subtitle">Todos os orçamentos enviados ficam salvos e disponíveis pra consulta</p></div>
+        </div>
+      </div>
     </main>
 
     <main id="tab-clientes" class="tab-panel" hidden>

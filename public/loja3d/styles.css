@@ -1363,22 +1363,6 @@ legend {
   color: var(--danger);
 }
 
-.orcamentos-list {
-  max-height: none;
-  padding: 16px;
-  margin: 0;
-  gap: 8px;
-}
-
-.orcamentos-list li {
-  font-size: 14px;
-}
-
-.orcamentos-list .edit-orcamento-btn {
-  border-color: var(--border);
-  color: var(--text);
-}
-
 .financeiro-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2923,6 +2907,22 @@ dialog.pdf-preview-dialog[open] {
 
 .kpi-grid--6 {
   grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.kpi-grid--orcamento {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1279px) {
+  .kpi-grid--orcamento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .kpi-grid--orcamento {
+    grid-template-columns: 1fr;
+  }
 }
 
 .painel-row-2 {
