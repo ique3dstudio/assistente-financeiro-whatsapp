@@ -249,9 +249,38 @@ cor branca (pensada só para quando o fundo vira a cor de destaque) — no tema 
 branco ficava **invisível**. Isso já existia desde a Fase 2 (afetava treino, saúde, vícios, agenda...) e só
 apareceu porque o novo módulo de dieta tornou o problema óbvio numa das fotos. Corrigido na raiz do CSS.
 
+## E6.3 (parcial) — Lançamento financeiro por WhatsApp (texto e áudio)
+- **O webhook passa a processar mensagens de verdade.** Texto ou nota de voz mandados pro número do WhatsApp
+  viram lançamento automático em Finanças: "gastei 40 no mercado" (digitado ou falado) cai como despesa, na
+  categoria mais parecida entre as **suas** categorias cadastradas — não uma lista fixa.
+- **IA migrada de vez para Claude** (`src/core/ai.js`): o provedor de teste gratuito (NVIDIA) que estava desde
+  a primeira versão do projeto saiu; agora usa Anthropic com tool use, escolhendo entre as categorias reais do
+  seu Finanças a cada mensagem.
+- **Transcrição de áudio nova** (`src/core/transcricao.js`): nota de voz do WhatsApp (ogg/opus) é baixada da
+  API do Meta e transcrita pela Groq (Whisper open-source, hospedado de graça na faixa de uso de um app
+  pessoal) antes de passar pela mesma IA que entende o texto digitado.
+- **Trava contra lançar duas vezes a mesma compra**: se você já tinha lançado algo pelo app e depois manda a
+  mesma coisa por mensagem (ou vice-versa), o app reconhece (mesmo tipo, mesmo valor, data próxima) e avisa que
+  já tinha, em vez de duplicar. A tabela `transacoes` ganhou `origem` (`manual` / `whatsapp` / `banco`) e
+  `origem_ref` para isso — e a coluna `'banco'` já nasce pronta para quando (e se) você conectar um agregador
+  Open Finance no futuro, sem precisar mexer nessa lógica de novo.
+- **Segurança de uma rota pública**: o webhook do Meta não tem como carregar seu cookie de login, então a
+  única trava é o número do remetente bater com `WHATSAPP_MEU_NUMERO` — mensagem de qualquer outro número é
+  ignorada, e sem essa variável configurada o webhook não processa nada, por precaução.
+- **Idempotência própria**: cada mensagem recebida vira uma linha em `whatsapp_mensagens` (id = id da mensagem
+  do próprio WhatsApp); se o Meta reenviar o mesmo evento (ele faz isso quando a resposta demora), a segunda
+  tentativa esbarra na chave primária e não processa de novo — e a tabela também guarda o que a IA entendeu de
+  cada mensagem, útil para você conferir depois.
+- **Decisão consciente de escopo**: conectar direto no Nubank foi cogitado, mas não existe API bancária
+  gratuita no Brasil — só via agregador Open Finance pago (Pluggy, Belvo...). Ficou registrado em
+  `PENDENTE-VOCE.md` como decisão sua para mais adiante; o código de conciliação acima já foi desenhado
+  pensando nesse dia.
+- Ainda só entende **Finanças** — "bebi 500ml" ou "supino 4x8" pelo WhatsApp ainda não roteiam para os outros
+  módulos; isso é o trabalho da barra de comando (E6.1), que reaproveita este mesmo webhook.
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
-- `npm test` roda **151 testes**: as regras de cálculo de todos os módulos (105 testes), **as 46 telas
+- `npm test` roda **153 testes**: as regras de cálculo de todos os módulos (107 testes), **as 46 telas
   renderizadas num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL
   num Postgres real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as
   tabelas aceitam exatamente os inserts do app, barrando os inválidos.

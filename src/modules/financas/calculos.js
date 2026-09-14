@@ -243,6 +243,24 @@ export function planoQuitacao(dividas, extraMensal = 0, estrategia = "avalanche"
   };
 }
 
+// ---------- conciliação entre canais ----------
+
+function diasEntre(a, b) {
+  return Math.round((Date.parse(`${a}T12:00:00Z`) - Date.parse(`${b}T12:00:00Z`)) / 86400000);
+}
+
+// Decide se dois lançamentos são provavelmente a mesma compra vista por dois
+// canais diferentes — hoje: WhatsApp x lançamento manual; amanhã, se você
+// conectar o banco, também manual/WhatsApp x extrato importado. Mesmo tipo,
+// mesmo valor (até o centavo) e datas próximas. Não cruza horário porque nem
+// toda origem carrega um confiável (áudio transcrito só tem a hora do envio,
+// não a da compra).
+export function parecemAMesmaCompra(novo, existente, janelaDias = 1) {
+  if (novo.tipo !== existente.tipo) return false;
+  if (Math.abs(Number(novo.valor) - Number(existente.valor)) > 0.01) return false;
+  return Math.abs(diasEntre(novo.data, existente.data)) <= janelaDias;
+}
+
 // ---------- alertas de vazamento ----------
 
 // Gasto fora do padrão: acima da média mais dois desvios (e acima de um piso,

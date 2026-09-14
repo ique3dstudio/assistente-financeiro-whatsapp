@@ -3,7 +3,8 @@ import { hoje, somarDias } from "../../core/datas.js";
 import { diaSemana } from "../habitos/regras.js";
 import {
   FORMAS, comprometimento, consumoOrcamento, dataNoMes, diasNoMes, faturaDaCompra, foraDoPadrao,
-  mesDe, ocorrenciasRecorrente, parcelar, planoQuitacao, projecaoDoMes, regra502030, somarMeses,
+  mesDe, ocorrenciasRecorrente, parcelar, parecemAMesmaCompra, planoQuitacao, projecaoDoMes,
+  regra502030, somarMeses,
 } from "./calculos.js";
 
 const T = "transacoes";
@@ -183,6 +184,8 @@ export async function criarLancamento(usuario, dados) {
     cartao_id: noCredito ? dados.cartao_id : null,
     forma_pagamento: dados.forma_pagamento || "dinheiro",
     transferencia: Boolean(dados.transferencia),
+    origem: dados.origem || "manual",
+    origem_ref: dados.origem_ref || null,
   };
 
   // Crédito: precisa do cartão para saber em que fatura cai.
@@ -228,8 +231,12 @@ export async function criarLancamento(usuario, dados) {
   return { lancamentos: [criada], parcelas: 1 };
 }
 
-// Lançamento vindo da IA/WhatsApp, que só conhece o nome da categoria.
-export async function salvarTransacao(usuario, { valor, tipo, categoria, descricao, telefone = null, data = hoje() }) {
+// Lançamento vindo da IA/WhatsApp, que só conhece o nome da categoria (não o
+// id) — casa pelo nome se achar uma igual, senão guarda o texto mesmo assim.
+export async function salvarTransacao(
+  usuario,
+  { valor, tipo, categoria, descricao, telefone = null, data = hoje(), origem = "whatsapp", origem_ref = null }
+) {
   const lista = await categorias(usuario, tipo).catch(() => []);
   const achada = lista.find((c) => c.nome.toLowerCase() === String(categoria || "").toLowerCase());
 
@@ -240,12 +247,35 @@ export async function salvarTransacao(usuario, { valor, tipo, categoria, descric
     categoria_id: achada?.id || null,
     descricao,
     data,
+    origem,
+    origem_ref,
   });
 
   if (telefone) {
     await getSupabase().from(T).update({ telefone }).eq("id", lancamentos[0].id);
   }
   return lancamentos[0];
+}
+
+// Evita lançar a mesma compra duas vezes quando ela chega por dois canais —
+// hoje, só quando você já tinha lançado à mão algo igual antes de mandar a
+// mensagem; amanhã, também contra um extrato de banco importado (`origem =
+// 'banco'`), sem precisar mudar essa função. Ignora candidatas que vieram do
+// próprio WhatsApp, senão duas mensagens parecidas se cancelariam uma à outra.
+export async function buscarDuplicataRecente(usuario, { valor, tipo, data = hoje() }) {
+  const { data: candidatas, error } = await getSupabase()
+    .from(T)
+    .select("id, valor, tipo, data, origem")
+    .eq("user_id", usuario)
+    .eq("tipo", tipo)
+    .neq("origem", "whatsapp")
+    .gte("data", somarDias(data, -1))
+    .lte("data", somarDias(data, 1))
+    .order("criado_em", { ascending: false })
+    .limit(20);
+
+  if (error) return null;
+  return candidatas.find((c) => parecemAMesmaCompra({ valor, tipo, data }, c)) || null;
 }
 
 export async function atualizarLancamento(usuario, id, dados) {

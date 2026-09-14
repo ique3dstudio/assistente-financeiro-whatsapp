@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import {
   comprometimento, consumoOrcamento, dataNoMes, diasNoMes, faturaDaCompra, foraDoPadrao,
-  ocorrenciasRecorrente, parcelar, planoQuitacao, projecaoDoMes, regra502030, somarMeses,
+  ocorrenciasRecorrente, parcelar, parecemAMesmaCompra, planoQuitacao, projecaoDoMes, regra502030,
+  somarMeses,
 } from "../src/modules/financas/calculos.js";
 
 let passou = 0;
@@ -182,6 +183,20 @@ teste("gasto fora do padrão", () => {
   assert.equal(foraDoPadrao(rotina, 50), false);
   assert.equal(foraDoPadrao(rotina, 49), false);
   assert.equal(foraDoPadrao([40, 45], 300), false, "histórico curto não acusa nada");
+});
+
+teste("mesma compra, mesmo tipo, mesmo valor, datas próximas: é duplicata", () => {
+  const novo = { valor: 45.9, tipo: "despesa", data: "2026-09-14" };
+  assert.equal(parecemAMesmaCompra(novo, { valor: 45.9, tipo: "despesa", data: "2026-09-14" }), true);
+  assert.equal(parecemAMesmaCompra(novo, { valor: 45.9, tipo: "despesa", data: "2026-09-13" }), true, "1 dia de janela");
+  assert.equal(parecemAMesmaCompra(novo, { valor: 45.91, tipo: "despesa", data: "2026-09-14" }), true, "diferença de menos de 1 centavo");
+});
+
+teste("compra diferente não é duplicata", () => {
+  const novo = { valor: 45.9, tipo: "despesa", data: "2026-09-14" };
+  assert.equal(parecemAMesmaCompra(novo, { valor: 45.9, tipo: "receita", data: "2026-09-14" }), false, "tipo diferente");
+  assert.equal(parecemAMesmaCompra(novo, { valor: 50, tipo: "despesa", data: "2026-09-14" }), false, "valor diferente");
+  assert.equal(parecemAMesmaCompra(novo, { valor: 45.9, tipo: "despesa", data: "2026-09-10" }), false, "data longe demais");
 });
 
 console.log(`\n${passou} testes passaram.`);

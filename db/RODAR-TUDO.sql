@@ -45,6 +45,23 @@ create table if not exists sync_idempotencia (
 );
 alter table sync_idempotencia enable row level security;
 
+-- Entrada rápida por WhatsApp (Fase 6): cada mensagem recebida vira uma linha
+-- aqui — tanto para não processar a mesma mensagem duas vezes (o Meta reenvia
+-- o webhook quando demora pra responder) quanto para você conseguir ver depois
+-- o que a IA entendeu de cada áudio ou texto.
+create table if not exists whatsapp_mensagens (
+  id text primary key,              -- id da mensagem, dado pelo próprio WhatsApp
+  user_id text not null default 'eu',
+  telefone text,
+  tipo text,                        -- 'text' | 'audio' | outros tipos do WhatsApp
+  texto text,                       -- texto recebido, ou transcrito do áudio
+  interpretado jsonb,               -- o que a IA extraiu (valor, tipo, categoria...), se algo
+  transacao_id uuid,
+  criado_em timestamptz not null default now()
+);
+create index if not exists whatsapp_mensagens_user_idx on whatsapp_mensagens (user_id, criado_em);
+alter table whatsapp_mensagens enable row level security;
+
 -- ====== MÓDULO: ROTINA E HÁBITOS ======
 
 create table if not exists habitos (
@@ -888,8 +905,16 @@ alter table transacoes add column if not exists efetivada boolean not null defau
 -- saldo da conta mas nunca entra nos relatórios de despesa, senão o gasto do
 -- cartão seria contado duas vezes.
 alter table transacoes add column if not exists transferencia boolean not null default false;
+-- Fase 6: de onde veio o lançamento — usado para não duplicar quando a mesma
+-- compra chega por dois canais (ex: você digitou no WhatsApp e também importou
+-- do banco). 'banco' ainda não é usado por nenhuma integração — a coluna já
+-- nasce pronta para quando você decidir conectar uma.
+alter table transacoes add column if not exists origem text not null default 'manual'
+  check (origem in ('manual', 'whatsapp', 'banco'));
+alter table transacoes add column if not exists origem_ref text;
 
 create index if not exists transacoes_user_data_idx on transacoes (user_id, data);
+create index if not exists transacoes_origem_ref_idx on transacoes (user_id, origem_ref);
 create index if not exists transacoes_fatura_idx on transacoes (user_id, cartao_id, fatura_mes);
 create index if not exists transacoes_grupo_idx on transacoes (grupo_parcelas);
 alter table transacoes enable row level security;

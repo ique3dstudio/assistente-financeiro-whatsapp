@@ -8,7 +8,8 @@ construção, etapa por etapa, em [`ROADMAP.md`](ROADMAP.md); o que já foi entr
 Duas portas de entrada para os mesmos dados:
 
 - **PWA** — site que instala na tela inicial do celular e abre como app (dashboard do dia, botões, gráficos).
-- **WhatsApp** — mensagem solta tipo "bebi 500ml" ou "gastei 50 no mercado" cai no módulo certo (em construção).
+- **WhatsApp** — mensagem solta (texto ou áudio) tipo "gastei 50 no mercado" já vira lançamento sozinho em
+  Finanças; "bebi 500ml" ou "supino 4x8" caindo nos outros módulos ainda está em construção.
 
 Banco de dados no **Supabase**, hospedagem no **Render**.
 
@@ -25,9 +26,10 @@ src/
     config.js             configurações que mudam pelo app (metas, etc.)
     datas.js              o "hoje" no seu fuso, não no fuso do servidor
     modulos.js            lista dos módulos + montagem do dashboard
-    ai.js                 interpreta mensagens de texto
-    whatsapp.js           envia mensagens pelo WhatsApp
-    webhook.js            recebe as mensagens do WhatsApp
+    ai.js                 interpreta mensagens de texto (Anthropic)
+    transcricao.js        transcreve áudio em texto (Groq)
+    whatsapp.js           envia mensagens e baixa mídia do WhatsApp
+    webhook.js             recebe as mensagens do WhatsApp e vira lançamento
   modules/
     agua/                 índice · service · routes · schema.sql   ← molde dos outros
     financas/             índice · service · routes · schema.sql
@@ -75,7 +77,8 @@ Preencha:
   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 - `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` — em **Project Settings → API**
 
-As chaves da IA e do WhatsApp só são necessárias para a entrada por mensagem.
+As chaves de IA (Anthropic), transcrição (Groq) e WhatsApp só são necessárias para a entrada por mensagem —
+veja o passo a passo em `PENDENTE-VOCE.md`.
 
 ### 3. Rodar
 
@@ -93,7 +96,8 @@ mostra o estado da conexão com o Supabase, tabela por tabela.
 ```bash
 node scripts/test-agua.js 500                        # grava 500ml e mostra o panorama
 node scripts/test-financas.js                        # grava um lançamento e resume o mês
-node scripts/test-ai.js "gastei 50 no mercado"       # interpretação de mensagem
+node scripts/test-ai.js "gastei 50 no mercado"       # interpretação de mensagem (Anthropic)
+node scripts/test-transcricao.js audio.ogg           # transcrição de um áudio local (Groq)
 node scripts/test-whatsapp.js 5511999999999 "oi"     # envio de mensagem real
 ```
 
@@ -120,7 +124,7 @@ O plano completo está em [`ROADMAP.md`](ROADMAP.md), em 7 fases:
 | 3 | Dinheiro: contas, cartões e faturas, recorrentes, orçamento, relatórios, dívidas | feito |
 | 4 | Saúde e vícios: medicamentos, consultas, exames, contador, SOS, gatilhos | feito |
 | 5 | Dieta e diário: refeições, macros, ajuste adaptativo, humor, revisão semanal | feito |
-| 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | a fazer |
+| 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | em andamento (WhatsApp lança gasto por texto/áudio; resto a fazer) |
 | 7 | Fechamento: export total, acabamento visual, calendário externo | a fazer |
 
 Veja `ROADMAP.md` para o detalhe etapa a etapa e `PENDENTE-VOCE.md` para o que depende de você.

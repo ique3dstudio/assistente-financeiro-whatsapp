@@ -9,11 +9,15 @@ O que depende de você fica esperando aqui, marcado.
 
 ---
 
-> **Atenção: a Fase 5 (Dieta e Diário) acrescentou 10 tabelas.** O SQL agora tem **58 tabelas** — pegue a
-> versão nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo rodar quantas vezes quiser,
-> mesmo que você já tenha rodado uma versão anterior: o que já existe é preservado e só o que falta é criado.
-> Se você já tinha alguma anotação no diário de antes desta etapa, nada muda nela — só foi acrescentado um
-> tipo novo de anotação (marco da linha do tempo) à lista já existente.
+> **Atenção: o SQL agora tem 59 tabelas** (mais uma, `whatsapp_mensagens`, e duas colunas novas na tabela de
+> lançamentos). Pegue a versão nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo
+> rodar quantas vezes quiser, mesmo que você já tenha rodado uma versão anterior: o que já existe é preservado
+> e só o que falta é criado. Nada muda nos seus lançamentos antigos.
+>
+> **Novidade grande desta etapa: o lançamento automático pelo WhatsApp está pronto no código** — manda um
+> texto ou um áudio tipo "gastei 40 no mercado" e ele vira um gasto lançado sozinho, na categoria certa. Só que,
+> diferente de tudo que veio antes, isso depende de **3 cadastros externos** (não só do SQL) para ligar de
+> verdade. Veja a seção 4 abaixo — é o próximo passo mais importante da sua lista.
 
 ## 1. Rodar o SQL (resolve quase tudo)
 
@@ -69,16 +73,51 @@ API); nesse caso o app já cai sozinho para você digitar o número, que continu
 |---|---|---|---|
 | Chaves de push (VAPID) | Eu gero e te mando; você cola no Render | Notificação com o app fechado | E1.11 |
 | Bucket privado no Supabase Storage | Painel do Supabase → Storage | Fotos de progresso do treino e PDF dos exames | E2.8 e E4.3 |
-| Chave de IA (Anthropic) | console.anthropic.com | Barra de comando em linguagem natural, resumos, **gerador de programa de treino** | E6.1 e E2.7 |
-| App no Meta for Developers | developers.facebook.com | Registrar por WhatsApp | E6.3 |
+| **Chave de IA (Anthropic)** | console.anthropic.com | Entender a mensagem do WhatsApp e extrair o lançamento; depois, barra de comando e gerador de treino | **E6.3 (agora)**, E6.1, E2.7 |
+| **Chave da Groq** | console.groq.com | Transcrever nota de voz do WhatsApp (texto digitado não usa isso) | **E6.3 (agora)** |
+| **App no Meta for Developers** | developers.facebook.com | Receber e responder mensagens do WhatsApp | **E6.3 (agora)** |
 | Cron job no Render | Painel do Render | Briefing da manhã e fechamento da noite | E6.4 |
+
+### Como ativar o lançamento por WhatsApp — passo a passo
+
+O código já está pronto e testado; falta só isto, tudo feito uma vez só:
+
+1. **Chave da Anthropic**: entre em console.anthropic.com → API Keys → crie uma → cole no Render como
+   `ANTHROPIC_API_KEY`. É pago por uso, mas no seu volume (algumas mensagens por dia) fica em centavos por mês —
+   o modelo padrão já é o mais barato da família (Haiku).
+2. **Chave da Groq**: entre em console.groq.com → crie uma conta grátis → API Keys → crie uma → cole no Render
+   como `GROQ_API_KEY`. É de graça dentro do uso normal de um app pessoal; se um dia o limite gratuito mudar,
+   eu aviso na hora que aparecer um erro de transcrição nos logs.
+3. **App no Meta for Developers**: em developers.facebook.com, crie um app do tipo "Business", adicione o
+   produto **WhatsApp**. Lá você já ganha um número de teste. Copie para o Render:
+   - `WHATSAPP_ACCESS_TOKEN` (o token temporário de teste, ou um permanente se você já gerar um)
+   - `WHATSAPP_PHONE_NUMBER_ID` (aparece na mesma tela)
+   - `WHATSAPP_VERIFY_TOKEN`: você inventa qualquer texto (ex: `vidaos2026`) e cola **os dois lugares**: no
+     Render e no painel do Meta, na hora de configurar o webhook
+4. **Configurar o webhook no Meta**: na mesma tela do produto WhatsApp, em "Configuration", cole a URL:
+   `https://<seu-app>.onrender.com/webhook` e o Verify Token do passo anterior. Clique em "Verify and save".
+   Depois, em "Webhook fields", inscreva-se em `messages`.
+5. **`WHATSAPP_MEU_NUMERO`**: o número de teste do Meta só fala com números que você cadastrar como
+   "destinatário de teste" na mesma tela. Adicione o SEU WhatsApp lá (o Meta manda um código por WhatsApp pra
+   confirmar). Depois, cole esse mesmo número no Render como `WHATSAPP_MEU_NUMERO`, com DDI e DDD, sem "+" e
+   sem espaço (ex: `5511999999999`) — é a única trava de segurança dessa rota pública: sem isso configurado
+   certinho, o app ignora toda mensagem recebida, por precaução.
+6. Manda um "oi, gastei 20 no café" pelo WhatsApp pro número de teste e o app deve responder confirmando o
+   lançamento — confere no app se ele realmente apareceu em Finanças.
+
+Enquanto isso não estiver tudo configurado, nada quebra: o resto do app funciona normalmente, o webhook só
+fica recebendo e ignorando mensagens (ou nem isso, se o Meta ainda não tiver sido apontado pra ele).
 
 ## 5. Decisões que só você toma
 
 - **Plano do Render**: no gratuito o app dorme após ~15 min e a primeira abertura demora ~30 s. Isso incomoda
   pouco no uso pelo celular, mas atrasa o WhatsApp. US$ 7/mês resolve — decidir quando a Fase 6 chegar.
-- **Open Finance** (importar do banco automaticamente): exige agregador pago (~R$ 50/mês). Só depois de o
-  lançamento manual estar redondo.
+- **Open Finance** (importar do banco automaticamente, ex: Nubank): você já decidiu adiar isso — não existe
+  API gratuita oficial de banco nenhum no Brasil, só via agregador licenciado (Pluggy, Belvo, Quanto...) e a
+  camada gratuita deles costuma virar paga (~R$ 20–50/mês) em uso contínuo. O código já está preparado pra
+  quando você decidir: a coluna `transacoes.origem` já aceita o valor `'banco'` e a lógica que evita duplicar
+  lançamento repetido (usada hoje entre WhatsApp e lançamento manual) já funciona igual pra um extrato importado
+  — não vai precisar reescrever nada, só plugar o agregador quando topar o custo.
 - **Domínio próprio** (~R$ 40/ano) em vez de `minha-vida-vlda.onrender.com`: opcional, a qualquer momento.
 
 ---
@@ -98,4 +137,6 @@ Estas partes já estão **escritas** ou serão escritas, mas só funcionam de ve
   funciona só com o SQL.
 - Leitura de código de barras pela câmera → só funciona onde o navegador suporta (não é o caso do Safari
   no iPhone); digitar o número sempre funciona, com ou sem essa API.
+- Lançamento financeiro por WhatsApp (texto e áudio) → item 4 (as 3 chaves + apontar o webhook no Meta). O
+  resto do app não depende disso pra nada.
 

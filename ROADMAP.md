@@ -89,6 +89,7 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E5.5 Diário: reflexão semanal e "um ano atrás" | ✅ feito |
 | E5.6 Como você se sentiu depois de comer | ✅ feito |
 | E1.12 Roda da vida e vision board (desdobrado de M2 — a revisão guiada saiu daqui e virou a E5.5) | ⬜ a fazer |
+| E6.3 WhatsApp — texto e áudio viram lançamento financeiro | ✅ feito para Finanças (⬜ depende de você para ativar — ver `PENDENTE-VOCE.md`); água/treino/humor ficam para a barra de comando (E6.1) |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
 novo quantas vezes quiser — nada é apagado nem duplicado. O arquivo é gerado por `npm run sql` e validado
@@ -518,12 +519,20 @@ Aqui está o diferencial da seção 9 da espec. Só funciona bem **depois** que 
 - **Você faz:** autorizar microfone e câmera.
 
 ### E6.3 — WhatsApp
-- **Entrega:** o webhook que já está no projeto passa a receber de verdade: texto e áudio pelo WhatsApp caem
-  nos módulos (gasto, água, treino, humor), com confirmação na conversa.
-- **Banco:** `whatsapp_mensagens`.
-- **Código:** `src/core/webhook.js`, `src/core/whatsapp.js`.
-- **Aceite:** mandar "bebi 500ml" pelo WhatsApp e ver o anel de água subir no app.
-- **Você faz:** finalizar o app no Meta for Developers e apontar o webhook para a URL do Render.
+- **Entrega:** o webhook que já estava no projeto passa a receber de verdade: texto **e áudio** (nota de voz
+  transcrita) viram lançamento financeiro automático — categoria escolhida entre as suas categorias de verdade,
+  confirmação na conversa, e trava contra duplicar quando a mesma compra já tinha sido lançada à mão.
+  **Feito só para Finanças por enquanto** — "bebi 500ml" ou "supino 4x8" pelo WhatsApp ainda não caem em água/treino/humor;
+  isso pede a barra de comando com roteador por módulo (E6.1), que puxa este mesmo webhook depois.
+- **Banco:** `whatsapp_mensagens` (log + trava contra reprocessar a mesma mensagem), `transacoes.origem`/`origem_ref`
+  (de onde veio o lançamento — usado para não duplicar quando, no futuro, um extrato de banco também alimentar
+  a mesma tabela).
+- **Código:** `src/core/webhook.js`, `src/core/whatsapp.js` (envio e download de mídia), `src/core/ai.js`
+  (migrado para Claude), `src/core/transcricao.js` (áudio → texto via Groq/Whisper).
+- **Aceite:** mandar "gastei 40 no mercado" (texto ou áudio) pelo WhatsApp e ver o lançamento aparecer no app,
+  na categoria certa, sem duplicar se você já tinha lançado à mão.
+- **Você faz:** finalizar o app no Meta for Developers, apontar o webhook para a URL do Render, gerar as chaves
+  Anthropic e Groq, e configurar `WHATSAPP_MEU_NUMERO` (ver `PENDENTE-VOCE.md`).
 
 ### E6.4 — Briefing da manhã e fechamento da noite
 - **Entrega:** notificação (e opcionalmente mensagem no WhatsApp) de manhã com agenda, treino previsto,
@@ -584,7 +593,8 @@ Aqui está o diferencial da seção 9 da espec. Só funciona bem **depois** que 
 |---|---|---|---|
 | Render (hospedagem) | já ativo | US$ 0 (dorme após 15 min) ou US$ 7/mês | O plano pago só vale a pena quando o WhatsApp entrar |
 | Supabase | já ativo | US$ 0 até 500 MB | Sobra muito para dados pessoais; fotos e PDFs consomem mais |
-| IA (Anthropic) | E6.1 | centavos por dia no seu volume | Alternativa gratuita para testes: NVIDIA Build, já no projeto |
+| IA (Anthropic) | E6.1/E6.3 | centavos por dia no seu volume | Modelo padrão é o Haiku, o mais barato da família |
+| Transcrição de áudio (Groq/Whisper) | E6.2/E6.3 | grátis na faixa de uso normal | Cadastro grátis em console.groq.com; confira o limite atual na hora de gerar a chave |
 | WhatsApp Cloud API | E6.3 | grátis nas conversas iniciadas por você | Precisa app no Meta for Developers |
 | Open Finance (Pluggy/Belvo) | pós-Fase 3 | pago, a partir de ~R$ 50/mês | Só se o lançamento manual não bastar |
 | Domínio próprio | opcional | ~R$ 40/ano | `vida.seudominio.com` em vez de `.onrender.com` |

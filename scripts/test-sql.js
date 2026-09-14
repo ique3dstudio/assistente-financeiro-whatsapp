@@ -115,6 +115,10 @@ const testes = [
   ["marco na linha do tempo (tipo ampliado)", "insert into diario (user_id, data, tipo, conteudo) values ('eu', current_date, 'marco', 'Comecei o Life OS')"],
   ["revisão semanal", "insert into revisoes (user_id, semana_inicio, vitorias, travas) values ('eu', current_date - 6, 'treinei 4x', 'dormi pouco')"],
   ["revisão repetida na mesma semana faz upsert", "insert into revisoes (user_id, semana_inicio, vitorias) values ('eu', current_date - 6, 'editado') on conflict (user_id, semana_inicio) do update set vitorias='editado'"],
+  ["lançamento com origem do WhatsApp", "insert into transacoes (user_id, data, valor, tipo, categoria, origem, origem_ref) values ('eu', current_date, 35, 'despesa', 'transporte', 'whatsapp', 'wamid.teste123')"],
+  ["origem inválida (deve falhar)", "insert into transacoes (user_id, data, valor, tipo, origem) values ('eu', current_date, 10, 'despesa', 'cartao_magico')"],
+  ["mensagem do whatsapp", "insert into whatsapp_mensagens (id, user_id, telefone, tipo, texto) values ('wamid.teste123', 'eu', '5511999999999', 'text', 'gastei 35 no uber')"],
+  ["mensagem do whatsapp repetida (deve falhar)", "insert into whatsapp_mensagens (id, user_id, telefone, tipo) values ('wamid.teste123', 'eu', '5511999999999', 'text')"],
 ];
 
 console.log("\nInserts:");

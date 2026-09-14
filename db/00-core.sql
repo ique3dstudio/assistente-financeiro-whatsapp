@@ -39,3 +39,20 @@ create table if not exists sync_idempotencia (
   primary key (user_id, origem_id)
 );
 alter table sync_idempotencia enable row level security;
+
+-- Entrada rápida por WhatsApp (Fase 6): cada mensagem recebida vira uma linha
+-- aqui — tanto para não processar a mesma mensagem duas vezes (o Meta reenvia
+-- o webhook quando demora pra responder) quanto para você conseguir ver depois
+-- o que a IA entendeu de cada áudio ou texto.
+create table if not exists whatsapp_mensagens (
+  id text primary key,              -- id da mensagem, dado pelo próprio WhatsApp
+  user_id text not null default 'eu',
+  telefone text,
+  tipo text,                        -- 'text' | 'audio' | outros tipos do WhatsApp
+  texto text,                       -- texto recebido, ou transcrito do áudio
+  interpretado jsonb,               -- o que a IA extraiu (valor, tipo, categoria...), se algo
+  transacao_id uuid,
+  criado_em timestamptz not null default now()
+);
+create index if not exists whatsapp_mensagens_user_idx on whatsapp_mensagens (user_id, criado_em);
+alter table whatsapp_mensagens enable row level security;

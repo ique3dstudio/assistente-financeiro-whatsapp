@@ -115,8 +115,16 @@ alter table transacoes add column if not exists efetivada boolean not null defau
 -- saldo da conta mas nunca entra nos relatórios de despesa, senão o gasto do
 -- cartão seria contado duas vezes.
 alter table transacoes add column if not exists transferencia boolean not null default false;
+-- Fase 6: de onde veio o lançamento — usado para não duplicar quando a mesma
+-- compra chega por dois canais (ex: você digitou no WhatsApp e também importou
+-- do banco). 'banco' ainda não é usado por nenhuma integração — a coluna já
+-- nasce pronta para quando você decidir conectar uma.
+alter table transacoes add column if not exists origem text not null default 'manual'
+  check (origem in ('manual', 'whatsapp', 'banco'));
+alter table transacoes add column if not exists origem_ref text;
 
 create index if not exists transacoes_user_data_idx on transacoes (user_id, data);
+create index if not exists transacoes_origem_ref_idx on transacoes (user_id, origem_ref);
 create index if not exists transacoes_fatura_idx on transacoes (user_id, cartao_id, fatura_mes);
 create index if not exists transacoes_grupo_idx on transacoes (grupo_parcelas);
 alter table transacoes enable row level security;
