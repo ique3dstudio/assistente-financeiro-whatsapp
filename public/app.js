@@ -16,9 +16,10 @@ import * as foco from "./telas/foco.js";
 import * as treino from "./telas/treino.js";
 import * as saude from "./telas/saude.js";
 import * as vicios from "./telas/vicios.js";
+import * as dieta from "./telas/dieta.js";
 import { pendentes, sincronizar } from "./sync.js";
 
-const TELAS = [hoje, habitos, agua, agenda, treino, saude, metas, dinheiro, eu, foco, vicios];
+const TELAS = [hoje, habitos, agua, agenda, treino, saude, dieta, metas, dinheiro, eu, foco, vicios];
 
 const TODAS = TELAS;
 
@@ -48,7 +49,7 @@ const ACOES = {
       ["ir:/agenda/novo", "calendario", "Compromisso", "var(--c-agenda)"],
       ["fechamento", "coracao", "Humor", "var(--c-humor)"],
       ["rapido-nota", "livro", "Nota", "var(--tinta-2)"],
-      ["ir:/habitos/novo", "raio", "Hábito", "var(--c-rotina)"],
+      ["ir:/dieta/registrar", "prato", "Refeição", "var(--c-dieta)"],
       ["rapido-treino", "corpo", "Treino", "var(--c-treino)"],
     ];
 

@@ -210,12 +210,51 @@ grandes), Apple Fitness e Health (sistema de cartões, título grande que colaps
   cabeçalho empurrava a página 18 px para o lado (desalinhando a barra de abas), o botão + cobria o cartão
   da agenda, e o texto "1 exercícios".
 
+## Fase 5 — Dieta e Diário (E5.1 a E5.6)
+
+**Dieta**
+- **Registro do simples ao completo**: check-in "comi bem hoje: sim / mais ou menos / não" em 1 toque; busca
+  em banco de alimentos com quantidade; texto livre ("2 ovos e uma fatia de pão"), com macros opcionais; foto
+  do prato como diário visual, mesmo sem contar caloria.
+- **Refeições salvas**: qualquer refeição já registrada vira um atalho de 1 toque ("Café padrão").
+- **Banco de alimentos**: 69 alimentos comuns na mesa brasileira, valores por 100 g (aproximados — não é uma
+  cópia da tabela TACO oficial, é ponto de partida para ajustar pelo rótulo real). **Código de barras**: busca
+  primeiro no seu banco, depois no Open Food Facts (catálogo público); leitura pela câmera quando o navegador
+  suporta a `BarcodeDetector` API (Android/Chrome) — no Safari do iPhone, que não suporta, cai direto para
+  digitar o número, sem fingir uma função que não existe ali.
+- **Alvo de calorias e macros**, diferente em dia de treino (lido do módulo Treino) e de descanso.
+- **Ajuste adaptativo semanal**, no espírito do MacroFactor: em vez de uma fórmula fixa, compara o que você
+  **realmente** comeu com o que o peso **realmente** fez nos últimos 21 dias (peso suavizado pela média das 3
+  primeiras e das 3 últimas pesagens, para um dia de retenção de água não distorcer a conta), estima sua
+  manutenção real e propõe um novo alvo com a justificativa escrita por extenso.
+- **Planejador semanal** com lista de compras gerada a partir dele, somando quantidades repetidas e agrupada
+  por seção do mercado (hortifrúti, açougue, laticínios, padaria, bebidas, mercearia).
+- **Como você se sentiu depois de comer** (energia, inchaço, sono), cruzado com o humor do mesmo dia.
+- 13 testes cobrem o motor de ajuste adaptativo: dados insuficientes pedem mais tempo; comendo acima do alvo
+  e engordando sugere baixar; emagrecendo mais rápido que a meta sugere subir; peso estável não sugere nada.
+
+**Diário**
+- **Revisão semanal guiada** (4 perguntas: vitórias, travas, aprendizado, foco da semana), uma por semana —
+  pular a semana deixa ela em branco, não vira pendência acumulada.
+- **"Um ano atrás você..."**: junta o que foi escrito e o humor do mesmo dia em anos anteriores.
+- Linha do tempo da vida (marcos com foto), reaproveitando a tabela `diario` com um tipo novo.
+
+**Acerto de paleta:** a Fase 4 tinha deixado Saúde e Metas com a cor idêntica sem eu perceber (mesma laranja) —
+corrigido agora. Com 10 módulos e 8 matizes validados, Dieta reaproveita o vermelho de Controle (os dois nunca
+aparecem lado a lado: Controle não está na fila de anéis). A fila de anéis da tela Hoje passou a ter 8 cores,
+revalidada nos dois temas antes de entrar no código.
+
+**Bug de contraste pego pela foto das telas:** ícones dentro de um `.caixa` fora do estado marcado herdavam a
+cor branca (pensada só para quando o fundo vira a cor de destaque) — no tema claro, ícone branco em fundo
+branco ficava **invisível**. Isso já existia desde a Fase 2 (afetava treino, saúde, vícios, agenda...) e só
+apareceu porque o novo módulo de dieta tornou o problema óbvio numa das fotos. Corrigido na raiz do CSS.
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
-- `npm test` roda 72 testes: as regras de cálculo (hábitos, água, metas, agenda), **as 20 telas renderizadas
-  num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL num Postgres
-  real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as tabelas
-  aceitam exatamente os inserts do app, barrando os inválidos.
+- `npm test` roda **151 testes**: as regras de cálculo de todos os módulos (105 testes), **as 46 telas
+  renderizadas num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL
+  num Postgres real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as
+  tabelas aceitam exatamente os inserts do app, barrando os inválidos.
 - O teste de telas já pegou dois defeitos antes do deploy: recipiente de água sem nome na tela e cronômetro
   da rotina guiada que continuava rodando depois de trocar de tela.
 - `npm run sql` regenera `db/RODAR-TUDO.sql` a partir dos schemas dos módulos.

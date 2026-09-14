@@ -99,6 +99,22 @@ const testes = [
   ["humor nota inválida (deve falhar)", "insert into humor_log (user_id, data, nota) values ('eu', current_date - 1, 9)"],
   ["tipo de transação inválido (deve falhar)", "insert into transacoes (user_id, data, valor, tipo, categoria) values ('eu', current_date, 10, 'outro', 'x')"],
   ["periodo de hábito inválido (deve falhar)", "insert into habitos (user_id, nome, periodo) values ('eu','x','madrugada')"],
+  ["alimento próprio", "insert into alimentos (user_id, nome, kcal, proteina_g, carbo_g, gordura_g) values ('eu','Vitamina caseira',180,12,20,4)"],
+  ["favorito", "insert into alimentos_favoritos (user_id, alimento_id) select 'eu', id from alimentos where slug='arroz-branco-cozido'"],
+  ["favorito repetido (deve falhar)", "insert into alimentos_favoritos (user_id, alimento_id) select 'eu', id from alimentos where slug='arroz-branco-cozido'"],
+  ["refeição salva", "insert into refeicoes_salvas (user_id, nome, refeicao_padrao, itens, kcal, proteina_g, carbo_g, gordura_g) values ('eu','Café padrão','cafe','[]',350,20,40,10)"],
+  ["refeição registrada a partir de alimento", "insert into refeicoes_log (user_id, data, refeicao, tipo_registro, alimento_id, quantidade_g, descricao, kcal, proteina_g, carbo_g, gordura_g) select 'eu', current_date, 'almoco', 'alimento', id, 150, nome, 192, 3.75, 42.15, 0.3 from alimentos where slug='arroz-branco-cozido'"],
+  ["sensação de refeição fora da escala (deve falhar)", "insert into refeicoes_log (user_id, sensacao_energia) values ('eu', 9)"],
+  ["check-in do dia", "insert into dieta_checkins (user_id, data, avaliacao) values ('eu', current_date, 'bem')"],
+  ["check-in repetido no mesmo dia faz upsert", "insert into dieta_checkins (user_id, data, avaliacao) values ('eu', current_date, 'mal') on conflict (user_id, data) do update set avaliacao='mal'"],
+  ["avaliação de check-in inválida (deve falhar)", "insert into dieta_checkins (user_id, data, avaliacao) values ('eu', current_date - 1, 'excelente')"],
+  ["alvo de dieta", "insert into dieta_alvos (user_id, kcal_treino, kcal_descanso, proteina_g, carbo_g, gordura_g) values ('eu',2600,2200,160,250,70)"],
+  ["ajuste semanal", "insert into dieta_ajustes (user_id, semana_inicio, kcal_anterior, kcal_sugerido, variacao_peso_kg, consumo_medio_kcal, justificativa) values ('eu', current_date - 6, 2200, 2100, 0.4, 2280, 'teste')"],
+  ["item do plano semanal", "insert into dieta_plano (user_id, data, refeicao, descricao, quantidade_g) values ('eu', current_date + 1, 'jantar', 'Frango com batata doce', 300)"],
+  ["item da lista de compras", "insert into lista_compras (user_id, item, secao, quantidade) values ('eu', 'Peito de frango', 'Açougue e peixaria', '500 g')"],
+  ["marco na linha do tempo (tipo ampliado)", "insert into diario (user_id, data, tipo, conteudo) values ('eu', current_date, 'marco', 'Comecei o Life OS')"],
+  ["revisão semanal", "insert into revisoes (user_id, semana_inicio, vitorias, travas) values ('eu', current_date - 6, 'treinei 4x', 'dormi pouco')"],
+  ["revisão repetida na mesma semana faz upsert", "insert into revisoes (user_id, semana_inicio, vitorias) values ('eu', current_date - 6, 'editado') on conflict (user_id, semana_inicio) do update set vitorias='editado'"],
 ];
 
 console.log("\nInserts:");
@@ -133,12 +149,25 @@ const exercicios = await db.query("select count(*)::int as n, count(distinct mus
 console.log(`\nbiblioteca de exercícios: ${exercicios.rows[0].n} exercícios em ${exercicios.rows[0].m} grupos musculares`);
 if (exercicios.rows[0].n < 70) process.exitCode = 1;
 
+// O banco de alimentos veio no seed?
+const alimentos = await db.query("select count(*)::int as n from alimentos where user_id = 'sistema'");
+console.log(`banco de alimentos: ${alimentos.rows[0].n} alimentos`);
+if (alimentos.rows[0].n < 60) process.exitCode = 1;
+
 // Rodar duas vezes não duplicou a biblioteca?
 const antes = exercicios.rows[0].n;
 await db.exec(fs.readFileSync("src/modules/treino/seed-exercicios.sql", "utf8"));
 const depois = await db.query("select count(*)::int as n from exercicios");
 console.log(`seed rodado de novo: ${depois.rows[0].n === antes ? "ok, não duplicou" : `✗ duplicou (${antes} → ${depois.rows[0].n})`}`);
 if (depois.rows[0].n !== antes) process.exitCode = 1;
+
+const antesAlimentos = alimentos.rows[0].n;
+await db.exec(fs.readFileSync("src/modules/dieta/seed-alimentos.sql", "utf8"));
+const depoisAlimentos = await db.query("select count(*)::int as n from alimentos where user_id = 'sistema'");
+console.log(
+  `banco de alimentos rodado de novo: ${depoisAlimentos.rows[0].n === antesAlimentos ? "ok, não duplicou" : `✗ duplicou (${antesAlimentos} → ${depoisAlimentos.rows[0].n})`}`
+);
+if (depoisAlimentos.rows[0].n !== antesAlimentos) process.exitCode = 1;
 
 // Confere que o cascade funciona (apagar hábito apaga o log dele)
 await db.exec("delete from habitos");

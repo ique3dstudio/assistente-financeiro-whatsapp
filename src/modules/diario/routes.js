@@ -43,4 +43,48 @@ router.delete("/anotacao/:id", async (req, res, next) => {
   }
 });
 
+router.get("/revisao", async (req, res, next) => {
+  try {
+    res.json({
+      atual: await diario.revisaoDaSemana(req.usuario, req.query.semana),
+      recentes: await diario.revisoesRecentes(req.usuario),
+      perguntas: diario.PERGUNTAS_REVISAO,
+    });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.post("/revisao", async (req, res, next) => {
+  try {
+    res.json(await diario.salvarRevisao(req.usuario, req.body || {}));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.get("/um-ano-atras", async (req, res, next) => {
+  try {
+    res.json({ entradas: await diario.umAnoAtras(req.usuario, req.query.data) });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.get("/linha-do-tempo", async (req, res, next) => {
+  try {
+    res.json({ marcos: await diario.linhaDoTempo(req.usuario) });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+router.post("/marco", async (req, res, next) => {
+  try {
+    res.json(await diario.marcarMomento(req.usuario, req.body || {}));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
 export default router;

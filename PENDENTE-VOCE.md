@@ -9,9 +9,11 @@ O que depende de você fica esperando aqui, marcado.
 
 ---
 
-> **Atenção: a Fase 4 (Saúde e Vícios) acrescentou 18 tabelas.** O SQL agora tem **48 tabelas** — pegue a
+> **Atenção: a Fase 5 (Dieta e Diário) acrescentou 10 tabelas.** O SQL agora tem **58 tabelas** — pegue a
 > versão nova do `db/RODAR-TUDO.sql`. Continua sendo um arquivo só e continua podendo rodar quantas vezes quiser,
 > mesmo que você já tenha rodado uma versão anterior: o que já existe é preservado e só o que falta é criado.
+> Se você já tinha alguma anotação no diário de antes desta etapa, nada muda nela — só foi acrescentado um
+> tipo novo de anotação (marco da linha do tempo) à lista já existente.
 
 ## 1. Rodar o SQL (resolve quase tudo)
 
@@ -55,6 +57,12 @@ Depois de rodar o SQL, vale cadastrar em 5 minutos, pelo app: suas **contas** (c
 (salário, aluguel, assinaturas) e o **teto** das 3 ou 4 categorias em que você mais estoura. Sem isso o
 módulo Dinheiro funciona, mas não tem como projetar nem avisar de nada.
 
+No módulo Dieta, defina um **alvo de calorias** (Dieta → Alvo e ajuste → Definir alvo manualmente) assim que
+abrir — sem ele o app só soma o que você comeu, sem comparar com nada. O **ajuste adaptativo** só aparece
+depois de ~21 dias registrando comida e pesando-se (o peso é lido do módulo Corpo → Medidas). Uma limitação
+honesta: **ler código de barras pela câmera não funciona no Safari do iPhone** (a Apple não implementou essa
+API); nesse caso o app já cai sozinho para você digitar o número, que continua buscando os dados certos.
+
 ## 4. Chaves e cadastros externos (quando cada fase chegar)
 
 | O quê | Onde | Para quê | Etapa |
@@ -86,4 +94,8 @@ Estas partes já estão **escritas** ou serão escritas, mas só funcionam de ve
 - Bloqueio biométrico → item 3.
 - Programas de treino periodizados gerados por IA (E2.7) → item 4 (chave de IA).
 - Fotos de progresso do treino → item 4 (bucket). O resto do módulo de treino já funciona só com o SQL.
+- Foto do prato salva de verdade (hoje aceita um link) → item 4 (bucket). O resto do módulo Dieta já
+  funciona só com o SQL.
+- Leitura de código de barras pela câmera → só funciona onde o navegador suporta (não é o caso do Safari
+  no iPhone); digitar o número sempre funciona, com ou sem essa API.
 

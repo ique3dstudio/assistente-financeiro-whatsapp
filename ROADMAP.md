@@ -81,8 +81,14 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E4.5 Vícios: contador, pledge e marcos | ✅ feito |
 | E4.6 SOS, fissuras e mapa de gatilhos | ✅ feito |
 | E4.7 Recaída com recorde preservado e economia | ✅ feito |
-| E1.12 Roda da vida, revisão guiada e vision board (desdobrado de M2) | ⬜ a fazer |
 | **Passo de design** (tokens, ícones, movimento, gráficos, fotos das telas) | ✅ feito — fora da numeração, pedido no meio da Fase 2 |
+| E5.1 Registro de refeição, do simples ao completo | ✅ feito |
+| E5.2 Banco de alimentos e código de barras | ✅ feito (câmera só onde o navegador suporta; iPhone cai para digitar) |
+| E5.3 Alvos e ajuste adaptativo | ✅ feito |
+| E5.4 Planejador semanal e lista de compras | ✅ feito |
+| E5.5 Diário: reflexão semanal e "um ano atrás" | ✅ feito |
+| E5.6 Como você se sentiu depois de comer | ✅ feito |
+| E1.12 Roda da vida e vision board (desdobrado de M2 — a revisão guiada saiu daqui e virou a E5.5) | ⬜ a fazer |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
 novo quantas vezes quiser — nada é apagado nem duplicado. O arquivo é gerado por `npm run sql` e validado

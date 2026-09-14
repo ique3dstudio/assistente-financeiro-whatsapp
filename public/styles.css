@@ -36,6 +36,7 @@
   --c-humor: #4a3aa7;
   --c-saude: #eb6834;
   --c-vicios: #e34948;
+  --c-dieta: #e34948;
   --marca: #2a78d6;
 
   /* --- status (fixo, nunca tematizado; sempre com ícone ou rótulo) --- */
@@ -89,6 +90,7 @@
     --c-humor: #9085e9;
     --c-saude: #d95926;
     --c-vicios: #e66767;
+    --c-dieta: #e66767;
     --marca: #3987e5;
 
     --sombra-1: 0 1px 2px rgba(0, 0, 0, .3);
@@ -116,6 +118,7 @@
   --c-humor: #9085e9;
   --c-saude: #d95926;
   --c-vicios: #e66767;
+  --c-dieta: #e66767;
   --marca: #3987e5;
   --sombra-1: 0 1px 2px rgba(0, 0, 0, .3);
   --sombra-2: 0 2px 10px rgba(0, 0, 0, .34), 0 12px 32px rgba(0, 0, 0, .28);
@@ -337,11 +340,14 @@ button.cartao:active, .item:active, .chip:active { transform: scale(.985); }
   border-radius: 9px;
   border: 2px solid var(--borda-forte);
   display: grid; place-items: center;
-  color: #fff;
-  transition: background var(--rapido) var(--suave), border-color var(--rapido) var(--suave), transform var(--rapido) var(--mola);
+  color: var(--tinta-2);
+  transition: background var(--rapido) var(--suave), border-color var(--rapido) var(--suave),
+    color var(--rapido) var(--suave), transform var(--rapido) var(--mola);
 }
 .caixa svg { width: 15px; height: 15px; stroke-width: 3; }
-.item.feito .caixa { background: var(--acento, var(--marca)); border-color: var(--acento, var(--marca)); }
+/* Marcada: fundo ganha a cor de destaque e o ícone vira branco por cima dela —
+   por isso a cor só é branca aqui, nunca por padrão (senão some no tema claro). */
+.item.feito .caixa { background: var(--acento, var(--marca)); border-color: var(--acento, var(--marca)); color: #fff; }
 .item.feito .caixa svg { animation: risca var(--normal) var(--mola) both; }
 .caixa:active { transform: scale(.88); }
 

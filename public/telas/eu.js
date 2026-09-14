@@ -5,9 +5,15 @@ export const rota = /^\/eu$/;
 export const aba = "eu";
 
 export async function render() {
-  const [perfil, diario] = await Promise.all([api("/perfil"), api("/diario?dias=30").catch(() => null)]);
+  const [perfil, diario, umAnoAtras, revisao] = await Promise.all([
+    api("/perfil"),
+    api("/diario?dias=30").catch(() => null),
+    api("/diario/um-ano-atras").catch(() => ({ entradas: [] })),
+    api("/diario/revisao").catch(() => null),
+  ]);
   estado.dados.perfil = perfil;
   estado.dados.diario = diario;
+  estado.dados.revisao = revisao;
 
   const desligados = perfil.modulos_inativos || [];
   const linha = diario?.linha || [];
@@ -44,6 +50,38 @@ export async function render() {
 
     ${anotacoes ? `<div class="secao"><h2>Últimas anotações</h2><div class="cartao">${anotacoes}</div></div>` : ""}
 
+    ${
+      umAnoAtras.entradas.length
+        ? `<div class="secao"><h2>Um ano atrás</h2>
+            ${umAnoAtras.entradas
+              .map(
+                (entrada) => `<div class="cartao" style="margin-bottom:8px">
+                  <p class="sub" style="margin:0 0 6px">${entrada.anos_atras === 1 ? "1 ano atrás" : `${entrada.anos_atras} anos atrás`} você...</p>
+                  ${entrada.humor ? `<p class="sub">humor: ${entrada.humor.nota}/5</p>` : ""}
+                  ${entrada.anotacoes.map((a) => `<p style="margin:4px 0">${escapar(a.conteudo)}</p>`).join("")}
+                </div>`
+              )
+              .join("")}
+          </div>`
+        : ""
+    }
+
+    <div class="secao"><h2>Revisão semanal</h2>
+      <div class="cartao cartao-destaque" style="--acento:var(--c-humor)">
+        ${
+          revisao?.atual
+            ? `<p class="sub" style="margin:0 0 8px">Você já fez a revisão desta semana.</p>
+               <p style="margin:4px 0"><strong>Vitórias:</strong> ${escapar(revisao.atual.vitorias || "—")}</p>
+               <p style="margin:4px 0"><strong>Travas:</strong> ${escapar(revisao.atual.travas || "—")}</p>
+               <p style="margin:4px 0"><strong>Foco da semana:</strong> ${escapar(revisao.atual.foco_semana || "—")}</p>`
+            : `<p class="sub" style="margin:0 0 10px">5 minutos, 4 perguntas. Se pular a semana, ela fica em branco — não vira pendência.</p>`
+        }
+        <button class="botao secundario" data-acao="revisao-abrir" style="border-color:var(--c-humor)">
+          ${revisao?.atual ? "Editar revisão" : "Fazer a revisão desta semana"}</button>
+        ${revisao?.recentes?.length ? `<button class="botao secundario" data-acao="revisao-historico">Ver revisões anteriores</button>` : ""}
+      </div>
+    </div>
+
     <div class="secao"><h2>Perfil</h2>
       <label class="campo"><span>Nome</span><input id="p-nome" value="${escapar(perfil.nome || "")}" /></label>
       <div class="dois">
@@ -78,7 +116,7 @@ export async function render() {
       </div></div>
 
     <div class="secao"><h2>Ainda por vir</h2>
-      <p class="sub">Dieta, insights cruzados e assistente por WhatsApp — fases 5 e 6 do roadmap.</p></div>
+      <p class="sub">Insights cruzados e assistente por WhatsApp — fase 6 do roadmap.</p></div>
 
     <button class="botao secundario" data-acao="diagnostico">Diagnóstico do banco</button>
     <button class="botao perigo" data-acao="sair">Sair do app</button>`;
@@ -211,6 +249,51 @@ export const acoes = {
     } catch (erro) {
       if (erro.message !== "sessao") avisar(erro.message);
     }
+  },
+
+  "revisao-abrir"() {
+    const atual = estado.dados.revisao?.atual;
+
+    abrirPainel(`<div class="titulo">Revisão da semana</div>
+      <div style="padding:0 14px 14px">
+        <label class="campo"><span>O que deu certo essa semana?</span>
+          <textarea id="r-vitorias" rows="2">${escapar(atual?.vitorias || "")}</textarea></label>
+        <label class="campo"><span>O que travou ou ficou pelo caminho?</span>
+          <textarea id="r-travas" rows="2">${escapar(atual?.travas || "")}</textarea></label>
+        <label class="campo"><span>O que essa semana ensinou?</span>
+          <textarea id="r-aprendizado" rows="2">${escapar(atual?.aprendizado || "")}</textarea></label>
+        <label class="campo"><span>Qual é o foco da próxima semana?</span>
+          <textarea id="r-foco" rows="2">${escapar(atual?.foco_semana || "")}</textarea></label>
+        <button class="botao" data-acao="revisao-salvar" style="background:var(--c-humor)">Salvar revisão</button>
+      </div>
+      <button data-acao="fechar-painel">Cancelar</button>`);
+  },
+
+  async "revisao-salvar"() {
+    const corpo = {
+      vitorias: $("#r-vitorias").value.trim() || null,
+      travas: $("#r-travas").value.trim() || null,
+      aprendizado: $("#r-aprendizado").value.trim() || null,
+      foco_semana: $("#r-foco").value.trim() || null,
+    };
+
+    fecharPainel();
+    await acaoApi("/diario/revisao", { method: "POST", body: JSON.stringify(corpo) }, "Revisão guardada");
+  },
+
+  "revisao-historico"() {
+    const recentes = estado.dados.revisao?.recentes || [];
+
+    abrirPainel(`<div class="titulo">Revisões anteriores</div>
+      <div style="padding:0 14px 14px">
+        ${recentes
+          .map(
+            (r) => `<div class="linha"><span><small class="sub">semana de ${escapar(dataCurta(r.semana_inicio))}</small><br />
+              ${escapar(r.vitorias || "sem anotação")}</span></div>`
+          )
+          .join("")}
+      </div>
+      <button data-acao="fechar-painel">Fechar</button>`);
   },
 
   async diagnostico() {

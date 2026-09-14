@@ -263,13 +263,35 @@ create table if not exists diario (
   id uuid primary key default gen_random_uuid(),
   user_id text not null default 'eu',
   data date not null,
-  tipo text not null default 'nota' check (tipo in ('nota', 'gratidao', 'travou', 'fechamento', 'reflexao')),
+  tipo text not null default 'nota' check (tipo in ('nota', 'gratidao', 'travou', 'fechamento', 'reflexao', 'marco')),
   conteudo text not null,
   foto_url text,
   criado_em timestamptz not null default now()
 );
 create index if not exists diario_user_data_idx on diario (user_id, data);
 alter table diario enable row level security;
+
+-- 'marco' foi acrescentado na E5.5 (linha do tempo da vida): alarga a
+-- restrição de quem já tinha a tabela criada antes dessa etapa.
+alter table diario drop constraint if exists diario_tipo_check;
+alter table diario add constraint diario_tipo_check
+  check (tipo in ('nota', 'gratidao', 'travou', 'fechamento', 'reflexao', 'marco'));
+
+-- Reflexão semanal guiada (E5.5): uma por semana, para não virar tarefa
+-- acumulada — a semana passada em branco fica em branco, não pendente.
+create table if not exists revisoes (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  semana_inicio date not null,
+  vitorias text,
+  travas text,
+  aprendizado text,
+  foco_semana text,
+  criado_em timestamptz not null default now(),
+  unique (user_id, semana_inicio)
+);
+create index if not exists revisoes_user_idx on revisoes (user_id, semana_inicio desc);
+alter table revisoes enable row level security;
 
 -- ====== MÓDULO: TREINO ======
 
@@ -943,3 +965,229 @@ on conflict (user_id, nome, tipo) do nothing;
 insert into contas (user_id, nome, tipo, icone, cor, ordem)
 select 'eu', 'Carteira', 'carteira', '👛', '#eda100', 0
 where not exists (select 1 from contas where user_id = 'eu');
+
+-- ====== MÓDULO: DIETA E ALIMENTAÇÃO ======
+
+create table if not exists alimentos (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  slug text unique,
+  nome text not null,
+  marca text,
+  codigo_barras text,
+  porcao_padrao_g numeric(8,2) not null default 100,
+  kcal numeric(8,2) not null default 0,
+  proteina_g numeric(8,2) not null default 0,
+  carbo_g numeric(8,2) not null default 0,
+  gordura_g numeric(8,2) not null default 0,
+  fibra_g numeric(8,2),
+  sodio_mg numeric(8,2),
+  criado_em timestamptz not null default now()
+);
+create index if not exists alimentos_nome_idx on alimentos using gin (to_tsvector('portuguese', nome));
+create unique index if not exists alimentos_codigo_idx on alimentos (codigo_barras) where codigo_barras is not null;
+alter table alimentos enable row level security;
+
+create table if not exists alimentos_favoritos (
+  user_id text not null default 'eu',
+  alimento_id uuid not null references alimentos (id) on delete cascade,
+  criado_em timestamptz not null default now(),
+  primary key (user_id, alimento_id)
+);
+alter table alimentos_favoritos enable row level security;
+
+-- Refeição salva ("café da manhã padrão"): um conjunto de itens que você
+-- registra inteiro, em 1 toque. Os itens ficam em jsonb porque cada um pode
+-- ser um alimento do banco OU um texto livre ("2 ovos mexidos").
+create table if not exists refeicoes_salvas (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  nome text not null,
+  refeicao_padrao text not null default 'cafe'
+    check (refeicao_padrao in ('cafe', 'almoco', 'lanche', 'jantar', 'ceia', 'outro')),
+  itens jsonb not null default '[]',
+  kcal numeric(8,2) not null default 0,
+  proteina_g numeric(8,2) not null default 0,
+  carbo_g numeric(8,2) not null default 0,
+  gordura_g numeric(8,2) not null default 0,
+  criado_em timestamptz not null default now()
+);
+alter table refeicoes_salvas enable row level security;
+
+-- Cada refeição registrada. Os macros ficam gravados na própria linha (não
+-- recalculados do alimento na hora de ler): se você editar um alimento depois,
+-- o histórico não muda sozinho.
+create table if not exists refeicoes_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  data date not null default current_date,
+  hora time not null default localtime,
+  refeicao text not null default 'outro'
+    check (refeicao in ('cafe', 'almoco', 'lanche', 'jantar', 'ceia', 'outro')),
+  tipo_registro text not null default 'alimento'
+    check (tipo_registro in ('alimento', 'texto', 'foto', 'salva')),
+  alimento_id uuid references alimentos (id) on delete set null,
+  quantidade_g numeric(8,2),
+  descricao text,
+  foto_url text,
+  kcal numeric(8,2) not null default 0,
+  proteina_g numeric(8,2) not null default 0,
+  carbo_g numeric(8,2) not null default 0,
+  gordura_g numeric(8,2) not null default 0,
+  fibra_g numeric(8,2),
+  sodio_mg numeric(8,2),
+  -- E5.6: como você se sentiu depois — cruza com humor e treino
+  sensacao_energia integer check (sensacao_energia between 1 and 5),
+  sensacao_inchaco integer check (sensacao_inchaco between 1 and 5),
+  sensacao_sono integer check (sensacao_sono between 1 and 5),
+  criado_em timestamptz not null default now()
+);
+create index if not exists refeicoes_log_user_data_idx on refeicoes_log (user_id, data);
+alter table refeicoes_log enable row level security;
+
+-- Check-in do modo simples: um por dia. "comi bem hoje: sim / mais ou menos / não"
+create table if not exists dieta_checkins (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  data date not null default current_date,
+  avaliacao text not null check (avaliacao in ('bem', 'mais_ou_menos', 'mal')),
+  nota text,
+  criado_em timestamptz not null default now(),
+  unique (user_id, data)
+);
+alter table dieta_checkins enable row level security;
+
+-- Histórico de alvos: cada ajuste (manual ou automático) cria uma linha nova,
+-- então dá para ver a evolução do alvo ao longo do tempo, não só o atual.
+create table if not exists dieta_alvos (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  kcal_treino numeric(8,2) not null,
+  kcal_descanso numeric(8,2) not null,
+  proteina_g numeric(8,2) not null,
+  carbo_g numeric(8,2) not null,
+  gordura_g numeric(8,2) not null,
+  origem text not null default 'manual' check (origem in ('manual', 'ajuste_automatico')),
+  ativo_em date not null default current_date,
+  criado_em timestamptz not null default now()
+);
+create index if not exists dieta_alvos_user_idx on dieta_alvos (user_id, ativo_em desc);
+alter table dieta_alvos enable row level security;
+
+-- Cada proposta de ajuste semanal (E5.3), aceita ou não.
+create table if not exists dieta_ajustes (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  semana_inicio date not null,
+  kcal_anterior numeric(8,2) not null,
+  kcal_sugerido numeric(8,2) not null,
+  variacao_peso_kg numeric(6,3),
+  consumo_medio_kcal numeric(8,2),
+  justificativa text,
+  aplicado boolean not null default false,
+  criado_em timestamptz not null default now(),
+  unique (user_id, semana_inicio)
+);
+alter table dieta_ajustes enable row level security;
+
+-- Planejador semanal: o que você pretende comer em cada refeição do dia.
+create table if not exists dieta_plano (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  data date not null,
+  refeicao text not null default 'almoco'
+    check (refeicao in ('cafe', 'almoco', 'lanche', 'jantar', 'ceia', 'outro')),
+  alimento_id uuid references alimentos (id) on delete set null,
+  descricao text,
+  quantidade_g numeric(8,2),
+  criado_em timestamptz not null default now()
+);
+create index if not exists dieta_plano_user_data_idx on dieta_plano (user_id, data);
+alter table dieta_plano enable row level security;
+
+create table if not exists lista_compras (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null default 'eu',
+  item text not null,
+  secao text not null default 'outros',
+  quantidade text,
+  comprado boolean not null default false,
+  origem_plano boolean not null default false,
+  criado_em timestamptz not null default now()
+);
+create index if not exists lista_compras_user_idx on lista_compras (user_id, comprado);
+alter table lista_compras enable row level security;
+
+-- ====== MÓDULO: DIETA — BANCO DE ALIMENTOS ======
+
+insert into alimentos (user_id, slug, nome, porcao_padrao_g, kcal, proteina_g, carbo_g, gordura_g, fibra_g, sodio_mg) values
+('sistema','arroz-branco-cozido','Arroz branco cozido',100,128,2.5,28.1,0.2,1.6,1),
+('sistema','arroz-integral-cozido','Arroz integral cozido',100,124,2.6,25.8,1.0,2.7,4),
+('sistema','feijao-carioca-cozido','Feijão carioca cozido',100,76,4.8,13.6,0.5,8.5,2),
+('sistema','feijao-preto-cozido','Feijão preto cozido',100,77,4.5,14.0,0.5,8.4,2),
+('sistema','lentilha-cozida','Lentilha cozida',100,93,6.3,16.3,0.5,7.9,2),
+('sistema','grao-de-bico-cozido','Grão de bico cozido',100,121,8.4,20.1,1.9,5.0,7),
+('sistema','quinoa-cozida','Quinoa cozida',100,120,4.4,21.3,1.9,2.8,7),
+('sistema','peito-de-frango-grelhado','Peito de frango grelhado',100,159,32.0,0.0,3.0,0.0,63),
+('sistema','ovo-cozido','Ovo cozido',50,155,13.0,1.1,11.0,0.0,124),
+('sistema','carne-moida-patinho','Carne moída (patinho)',100,219,26.0,0.0,12.0,0.0,60),
+('sistema','file-de-tilapia','Filé de tilápia',100,96,20.0,0.0,1.7,0.0,52),
+('sistema','salmao-grelhado','Salmão grelhado',100,208,20.0,0.0,13.0,0.0,59),
+('sistema','atum-lata-agua','Atum em água (lata)',100,116,26.0,0.0,0.8,0.0,247),
+('sistema','tofu','Tofu',100,76,8.0,1.9,4.8,0.3,7),
+('sistema','presunto','Presunto',30,145,21.0,1.5,5.5,0.0,1200),
+('sistema','peito-de-peru','Peito de peru',30,104,21.0,1.0,1.5,0.0,900),
+('sistema','bacon','Bacon',20,541,37.0,1.4,42.0,0.0,1717),
+('sistema','hamburguer-carne','Hambúrguer de carne (100g)',100,254,17.0,0.0,20.0,0.0,68),
+('sistema','pao-frances','Pão francês (unidade ~50g)',50,300,8.0,58.0,3.1,2.3,540),
+('sistema','pao-integral','Pão integral (fatia)',25,253,9.0,43.0,4.0,6.4,400),
+('sistema','pao-de-forma','Pão de forma (fatia)',25,265,9.0,49.0,3.3,2.5,490),
+('sistema','macarrao-cozido','Macarrão cozido',100,158,5.8,30.9,0.9,1.8,6),
+('sistema','farinha-de-aveia','Farinha/flocos de aveia',30,389,17.0,66.0,7.0,10.6,2),
+('sistema','farinha-de-trigo','Farinha de trigo',100,364,10.0,76.3,1.0,2.3,2),
+('sistema','granola','Granola',30,471,10.0,64.0,20.0,7.0,30),
+('sistema','banana-prata','Banana prata',100,89,1.1,23.0,0.3,2.6,1),
+('sistema','maca','Maçã',130,52,0.3,14.0,0.2,2.4,1),
+('sistema','mamao','Mamão',150,40,0.5,10.4,0.1,1.7,3),
+('sistema','melancia','Melancia',150,30,0.6,7.6,0.2,0.4,1),
+('sistema','morango','Morango',100,32,0.7,7.7,0.3,2.0,1),
+('sistema','abacate','Abacate',100,96,1.2,6.0,8.4,6.3,2),
+('sistema','laranja-suco-natural','Suco de laranja natural',200,37,0.7,8.7,0.1,0.1,1),
+('sistema','leite-integral','Leite integral',200,61,3.2,4.8,3.3,0.0,43),
+('sistema','leite-desnatado','Leite desnatado',200,35,3.4,5.0,0.2,0.0,42),
+('sistema','iogurte-natural','Iogurte natural',170,61,3.5,4.7,3.3,0.0,46),
+('sistema','iogurte-grego','Iogurte grego',170,97,9.0,3.6,5.0,0.0,36),
+('sistema','iogurte-com-frutas','Iogurte com frutas (industrializado)',170,90,3.0,15.0,2.0,0.5,45),
+('sistema','queijo-minas','Queijo minas',30,264,17.4,3.2,20.2,0.0,346),
+('sistema','queijo-mussarela','Queijo mussarela',30,280,22.0,3.1,21.0,0.0,620),
+('sistema','requeijao','Requeijão',30,257,9.3,3.5,23.0,0.0,380),
+('sistema','manteiga','Manteiga',10,717,0.9,0.1,81.0,0.0,11),
+('sistema','pasta-de-amendoim','Pasta de amendoim',30,588,25.0,20.0,50.0,6.0,17),
+('sistema','whey-protein-po','Whey protein (pó)',30,375,75.0,8.0,5.0,1.0,150),
+('sistema','barra-de-proteina','Barra de proteína (média)',40,380,30.0,40.0,12.0,8.0,250),
+('sistema','azeite-de-oliva','Azeite de oliva',10,884,0.0,0.0,100.0,0.0,2),
+('sistema','amendoim-torrado','Amendoim torrado',30,567,26.0,16.0,49.0,8.0,18),
+('sistema','castanha-do-para','Castanha do Pará',20,656,14.0,12.0,66.0,7.5,3),
+('sistema','batata-doce-cozida','Batata doce cozida',150,77,0.6,18.4,0.1,2.2,27),
+('sistema','batata-inglesa-cozida','Batata inglesa cozida',150,52,1.2,11.9,0.0,1.3,3),
+('sistema','batata-frita','Batata frita',100,312,3.4,41.0,15.0,3.8,210),
+('sistema','brocolis-cozido','Brócolis cozido',100,25,2.1,4.0,0.3,3.4,8),
+('sistema','couve-refogada','Couve refogada',80,35,3.3,4.3,0.7,3.6,43),
+('sistema','tomate','Tomate',100,15,1.1,3.1,0.2,1.2,4),
+('sistema','alface','Alface',50,11,1.3,1.7,0.2,1.7,7),
+('sistema','cenoura-crua','Cenoura crua',80,41,0.9,9.6,0.2,2.8,69),
+('sistema','abobrinha-refogada','Abobrinha refogada',100,20,1.2,4.3,0.2,1.2,1),
+('sistema','berinjela-refogada','Berinjela refogada',100,35,1.0,8.7,0.2,3.0,1),
+('sistema','cebola-crua','Cebola crua',50,39,1.7,8.9,0.1,2.2,4),
+('sistema','alho','Alho',5,113,7.1,23.9,0.2,4.3,17),
+('sistema','agua-de-coco','Água de coco',200,22,0.7,5.3,0.2,1.1,25),
+('sistema','cafe-sem-acucar','Café sem açúcar',100,2,0.1,0.0,0.0,0.0,2),
+('sistema','refrigerante-comum','Refrigerante comum',200,42,0.0,10.6,0.0,0.0,4),
+('sistema','suco-de-caixa','Suco de caixa (néctar)',200,45,0.1,11.0,0.0,0.2,5),
+('sistema','mel','Mel',20,304,0.3,82.4,0.0,0.2,4),
+('sistema','acucar-refinado','Açúcar refinado',10,387,0.0,99.8,0.0,0.0,1),
+('sistema','chocolate-70-cacau','Chocolate 70% cacau',25,598,7.8,45.9,42.6,10.9,20),
+('sistema','chocolate-ao-leite','Chocolate ao leite',25,535,7.7,59.4,29.7,3.4,79),
+('sistema','azeitona','Azeitona',20,115,0.8,6.3,10.7,3.2,1556),
+('sistema','pizza-mussarela-fatia','Pizza de mussarela (fatia)',100,266,11.0,33.0,10.0,2.3,598)
+on conflict (slug) do nothing;

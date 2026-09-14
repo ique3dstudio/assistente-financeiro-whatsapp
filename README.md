@@ -114,11 +114,13 @@ O plano completo está em [`ROADMAP.md`](ROADMAP.md), em 7 fases:
 
 | Fase | Conteúdo | Situação |
 |---|---|---|
-| 0 | Fundação: núcleo, 5 abas, perfil, offline, bloqueio biométrico | E0.1 feito, E0.2 em ajuste |
-| 1 | O dia a dia: hábitos, tela Hoje, botão +, água v2, metas, agenda, fechamento do dia | a fazer |
-| 2 | Corpo: biblioteca de exercícios, rotinas, execução, progressão de carga, gráficos, medidas | a fazer |
-| 3 | Dinheiro: contas, cartões e faturas, recorrentes, orçamento, relatórios, dívidas | a fazer |
-| 4 | Saúde e vícios: medicamentos, consultas, exames, contador, SOS, gatilhos | a fazer |
-| 5 | Dieta e diário: refeições, macros, ajuste adaptativo, humor, revisão semanal | a fazer |
+| 0 | Fundação: núcleo, 5 abas, perfil, offline | feito (bloqueio biométrico depende de você) |
+| 1 | O dia a dia: hábitos, tela Hoje, botão +, água v2, metas, agenda, fechamento do dia | feito |
+| 2 | Corpo: biblioteca de exercícios, rotinas, execução, progressão de carga, gráficos, medidas | feito |
+| 3 | Dinheiro: contas, cartões e faturas, recorrentes, orçamento, relatórios, dívidas | feito |
+| 4 | Saúde e vícios: medicamentos, consultas, exames, contador, SOS, gatilhos | feito |
+| 5 | Dieta e diário: refeições, macros, ajuste adaptativo, humor, revisão semanal | feito |
 | 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | a fazer |
 | 7 | Fechamento: export total, acabamento visual, calendário externo | a fazer |
+
+Veja `ROADMAP.md` para o detalhe etapa a etapa e `PENDENTE-VOCE.md` para o que depende de você.

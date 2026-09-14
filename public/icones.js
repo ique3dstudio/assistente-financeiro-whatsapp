@@ -25,6 +25,9 @@ const D = {
   vazio: '<circle cx="12" cy="12" r="9"/><path d="M8.4 13.6h7.2"/>',
   engrenagem: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.8 12H2.4M21.6 12h-2.4M6.8 6.8 5.1 5.1M18.9 18.9l-1.7-1.7M17.2 6.8l1.7-1.7M5.1 18.9l1.7-1.7"/>',
   raio: '<path d="M13.4 2.6 5.6 13.4h5l-1.4 8 8.2-11h-5.2z"/>',
+  prato: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.4"/>',
+  camera: '<path d="M4 8.4h2.8l1.4-2h7.6l1.4 2H20a1.6 1.6 0 0 1 1.6 1.6v9A1.6 1.6 0 0 1 20 20.6H4A1.6 1.6 0 0 1 2.4 19v-9A1.6 1.6 0 0 1 4 8.4z"/><circle cx="12" cy="14" r="3.6"/>',
+  garfo: '<path d="M7 3v7.6a2.2 2.2 0 0 0 4.4 0V3M9.2 3v7.6M9.2 10.6V21M16 3c-1.5 0-2.4 1.6-2.4 4s.9 4 2.4 4M16 3v14.5"/>',
 };
 
 export function icone(nome, tamanho = null) {
@@ -49,12 +52,15 @@ export const COR_MODULO = {
   diario: "var(--c-humor)",
   metas: "var(--c-metas)",
   vicios: "var(--c-vicios)",
+  dieta: "var(--c-dieta)",
 };
 
 // A ORDEM dos anéis na tela Hoje é o que foi validado para daltonismo e
 // contraste — mudar a ordem exige rodar o validador de novo. Metas e Controle
 // ficam fora da fila de anéis: não têm número diário, e têm tela própria.
-export const ORDEM_ANEIS = ["habitos", "agua", "saude", "treino", "financas", "agenda", "diario"];
+// Dieta reaproveita o matiz vermelho de Controle: os dois nunca aparecem lado
+// a lado (Controle não está nos anéis), então a cor repetida não confunde.
+export const ORDEM_ANEIS = ["habitos", "agua", "saude", "treino", "financas", "agenda", "diario", "dieta"];
 
 export const COR_ABA = {
   hoje: "var(--c-agua)",
@@ -74,4 +80,5 @@ export const ICONE_MODULO = {
   financas: "dinheiro",
   agenda: "calendario",
   diario: "eu",
+  dieta: "prato",
 };

@@ -63,6 +63,7 @@ const telas = {
   treino: await import("../public/telas/treino.js"),
   saude: await import("../public/telas/saude.js"),
   vicios: await import("../public/telas/vicios.js"),
+  dieta: await import("../public/telas/dieta.js"),
 };
 
 let passou = 0;
@@ -188,9 +189,11 @@ await teste("contas somam saldo", async () => {
   contem(html, "Contas", "Nubank", "R$\u00a03.810,35", "Carteira", "saldo somado");
 });
 
-await teste("aba Eu: humor, perfil e módulos", async () => {
+await teste("aba Eu: humor, perfil, módulos, um ano atrás e revisão semanal", async () => {
   const html = await telas.eu.render();
-  contem(html, "4,0 / 5", "1 dias com check-in", 'value="Gustavo Ique"', 'value="80"', "Módulos", "Diagnóstico do banco");
+  contem(html, "4,0 / 5", "1 dias com check-in", 'value="Gustavo Ique"', 'value="80"', "Módulos", "Diagnóstico do banco",
+    "Um ano atrás", "1 ano atrás", "primeira semana correndo", "Revisão semanal",
+    "Fazer a revisão desta semana", "Ver revisões anteriores");
 });
 
 await teste("rotina guiada mostra o item atual com cronômetro", async () => {
@@ -300,6 +303,41 @@ await teste("rede de apoio e ações alternativas", async () => {
   contem(html, "Rede de apoio", "Irmão", "Ações alternativas", "Caminhar 10 minutos", "não é tratamento");
 });
 
+await teste("painel da Dieta: macros, jejum, check-in e refeições do dia", async () => {
+  const html = await telas.dieta.render();
+  contem(html, "Dieta", "jejum: 7h45", "dia de treino", "Calorias", "853", "de 2200", "Como você comeu hoje",
+    "Registrar em 1 toque", "Café padrão", "Aveia em flocos", "Arroz, feijão e frango", "Registrar refeição");
+});
+
+await teste("registrar refeição: atalhos e refeições salvas", async () => {
+  const html = await telas.dieta.render("registrar");
+  contem(html, "Registrar refeição", "Buscar alimento", "Descrever em texto", "Foto do prato", "Refeições salvas", "Café padrão");
+});
+
+await teste("busca de alimentos mostra macros por 100g", async () => {
+  const html = await telas.dieta.render("alimentos");
+  contem(html, "Alimentos", "Arroz branco cozido", "128 kcal/100g", "Peito de frango grelhado", "Ler código de barras");
+});
+
+await teste("planejador semanal e lista de compras", async () => {
+  const plano = await telas.dieta.render("plano");
+  contem(plano, "Planejador", "Salmão com legumes", "250g", "Gerar lista de compras");
+
+  const lista = await telas.dieta.render("lista");
+  contem(lista, "Lista de compras", "Açougue e peixaria", "Peito de frango", "600 g", "Hortifrúti", "Banana prata");
+});
+
+await teste("ajuste adaptativo mostra a justificativa e o botão de aplicar", async () => {
+  const html = await telas.dieta.render("ajuste");
+  contem(html, "Alvo e ajuste", "Alvo atual", "manutenção real por volta de 2150 kcal",
+    "perder ~0.4 kg por semana", "Aplicar: 2000 kcal");
+});
+
+await teste("sensações pós-refeição cruzam com o humor do dia", async () => {
+  const html = await telas.dieta.render("sensacoes");
+  contem(html, "Como você se sente", "Aveia em flocos", "energia 4/5", "humor do dia 4/5");
+});
+
 await teste("trocar de tela mata o cronômetro anterior", async () => {
   await telas.foco.render("manha"); // inicia rotina guiada (timer via setTimeout)
   await telas.foco.render("pomodoro"); // troca de tela antes do timer começar
@@ -337,6 +375,14 @@ await teste("toda ação usada nas telas tem função registrada", async () => {
     await telas.vicios.render("vc1"),
     await telas.vicios.render("sos"),
     await telas.vicios.render("apoio"),
+    await telas.dieta.render(),
+    await telas.dieta.render("registrar"),
+    await telas.dieta.render("alimentos"),
+    await telas.dieta.render("alimentos/escolher"),
+    await telas.dieta.render("plano"),
+    await telas.dieta.render("lista"),
+    await telas.dieta.render("ajuste"),
+    await telas.dieta.render("sensacoes"),
     await telas.hoje.render(),
     await telas.habitos.render(),
     await telas.habitos.render("novo"),

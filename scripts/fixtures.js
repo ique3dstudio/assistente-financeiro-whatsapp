@@ -230,6 +230,22 @@ export const RESPOSTAS = {
   },
 
   "/diario?dias=1": { emocoes_opcoes: ["calmo", "grato"], fatores_opcoes: ["sono", "treino"], linha: [], anotacoes: [], humores: [], media_humor: null, dias_registrados: 0 },
+
+  "/diario/um-ano-atras": {
+    entradas: [
+      { data: "2025-09-08", anos_atras: 1, humor: { data: "2025-09-08", nota: 3 }, anotacoes: [{ id: "u1", data: "2025-09-08", tipo: "nota", conteudo: "primeira semana correndo" }] },
+    ],
+  },
+  "/diario/revisao": {
+    atual: null,
+    recentes: [{ id: "rv1", semana_inicio: "2026-08-31", vitorias: "treinei 4x", travas: "dormi pouco", aprendizado: null, foco_semana: null }],
+    perguntas: [
+      { campo: "vitorias", pergunta: "O que deu certo essa semana?" },
+      { campo: "travas", pergunta: "O que travou ou ficou pelo caminho?" },
+      { campo: "aprendizado", pergunta: "O que essa semana ensinou?" },
+      { campo: "foco_semana", pergunta: "Qual é o foco da próxima semana?" },
+    ],
+  },
   "/treino": {
     data: HOJE,
     rotinas: [
@@ -428,6 +444,67 @@ export const RESPOSTAS = {
       "Este módulo acompanha o seu progresso — não é tratamento. Nos momentos difíceis, fale com alguém: " +
       "a sua rede de apoio, um profissional, ou o CVV pelo 188 (24h, gratuito).",
   },
+
+  "/dieta": {
+    data: HOJE,
+    refeicoes: [
+      { id: "rf1", data: HOJE, hora: "07:30:00", refeicao: "cafe", tipo_registro: "alimento", descricao: "Aveia em flocos", kcal: 233, proteina_g: 10.2, carbo_g: 39.6, gordura_g: 4.2 },
+      { id: "rf2", data: HOJE, hora: "12:15:00", refeicao: "almoco", tipo_registro: "texto", descricao: "Arroz, feijão e frango", kcal: 620, proteina_g: 48, carbo_g: 65, gordura_g: 12 },
+    ],
+    consumido: { kcal: 853, proteina_g: 58.2, carbo_g: 104.6, gordura_g: 16.2, fibra_g: 8, sodio_mg: 400 },
+    alvo: { kcal: 2200, proteina_g: 160, carbo_g: 250, gordura_g: 70 },
+    progresso: {
+      kcal: { consumido: 853, alvo: 2200, resta: 1347, proporcao: 0.388 },
+      proteina_g: { consumido: 58.2, alvo: 160, resta: 101.8, proporcao: 0.364 },
+      carbo_g: { consumido: 104.6, alvo: 250, resta: 145.4, proporcao: 0.418 },
+      gordura_g: { consumido: 16.2, alvo: 70, resta: 53.8, proporcao: 0.231 },
+    },
+    checkin_hoje: null,
+    checkins: [
+      { id: "bem", nome: "Comi bem", emoji: "🙂" },
+      { id: "mais_ou_menos", nome: "Mais ou menos", emoji: "😐" },
+      { id: "mal", nome: "Comi mal", emoji: "🙁" },
+    ],
+    refeicoes_tipos: [
+      { id: "cafe", nome: "Café da manhã" }, { id: "almoco", nome: "Almoço" }, { id: "lanche", nome: "Lanche" },
+      { id: "jantar", nome: "Jantar" }, { id: "ceia", nome: "Ceia" }, { id: "outro", nome: "Outro" },
+    ],
+    salvas: [{ id: "sv1", nome: "Café padrão", refeicao_padrao: "cafe", kcal: 350, proteina_g: 20, carbo_g: 40, gordura_g: 10 }],
+    treinou_hoje: true,
+    jejum: { desde: `${HOJE}T12:15:00`, minutos: 465 },
+  },
+
+  "/dieta/alimentos": {
+    alimentos: [
+      { id: "al1", nome: "Arroz branco cozido", kcal: 128, proteina_g: 2.5, carbo_g: 28.1, gordura_g: 0.2, porcao_padrao_g: 100 },
+      { id: "al2", nome: "Peito de frango grelhado", kcal: 159, proteina_g: 32, carbo_g: 0, gordura_g: 3, porcao_padrao_g: 100 },
+    ],
+  },
+  "/dieta/plano": {
+    dias: ["2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14"],
+    itens: [{ id: "pl1", data: "2026-09-09", refeicao: "jantar", descricao: "Salmão com legumes", quantidade_g: 250, alimento: null }],
+  },
+  "/dieta/lista": {
+    lista: [
+      { id: "lc1", item: "Peito de frango", secao: "Açougue e peixaria", quantidade: "600 g", comprado: false },
+      { id: "lc2", item: "Banana prata", secao: "Hortifrúti", quantidade: "1x", comprado: true },
+    ],
+  },
+  "/dieta/ajuste": {
+    suficiente: true,
+    dias: 21,
+    media_consumo: 2350,
+    variacao_peso_kg: 0.6,
+    manutencao_estimada: 2150,
+    kcal_sugerido: 2000,
+    kcal_atual: 2200,
+    diferenca: -200,
+    mudar: true,
+    justificativa: "Em 21 dias você comeu em média 2350 kcal e o peso subiu 0.6 kg. Isso indica uma manutenção real por volta de 2150 kcal. Para perder ~0.4 kg por semana, o alvo sugerido é 2000 kcal.",
+  },
+  "/dieta/sensacoes": [
+    { id: "rf1", data: HOJE, descricao: "Aveia em flocos", refeicao: "cafe", energia: 4, inchaco: 1, sono: 1, humor_do_dia: 4 },
+  ],
 
   "/diagnostico": { configurado: { url_usada: "https://x.supabase.co" }, tabelas: { perfil: "ok" } },
   "/abas": {
