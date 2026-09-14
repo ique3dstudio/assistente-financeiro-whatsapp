@@ -63,7 +63,6 @@ const loginRememberCheckbox = document.getElementById("login-remember");
 const logoutBtn = document.getElementById("logout-btn");
 const board = document.getElementById("board");
 const dashboard = document.getElementById("dashboard");
-const inicioDashboardEl = document.getElementById("inicio-dashboard");
 const chartFaturamentoCanvas = document.getElementById("chart-faturamento-mensal");
 const chartDespesasCanvas = document.getElementById("chart-despesas-categoria");
 const financeiroEl = document.getElementById("financeiro");
@@ -82,11 +81,31 @@ const transferenciaBtn = document.getElementById("transferencia-btn");
 const searchInput = document.getElementById("search-input");
 const filterAtrasadosBtn = document.getElementById("filter-atrasados");
 const newOrderBtn = document.getElementById("new-order-btn");
-const topbarNovoMovimentoBtn = document.getElementById("topbar-novo-movimento-btn");
 const exportCsvBtn = document.getElementById("export-csv-btn");
 const clientesOptions = document.getElementById("clientes-options");
-const tabButtons = document.querySelectorAll(".tab-btn");
+const tabButtons = document.querySelectorAll(".sidebar-link[data-tab]");
 const themeToggleBtn = document.getElementById("theme-toggle-btn");
+const sidebarEl = document.getElementById("sidebar");
+const sidebarToggleBtn = document.getElementById("sidebar-toggle-btn");
+const sidebarHelpBtn = document.getElementById("sidebar-help-btn");
+const notifBtn = document.getElementById("notif-btn");
+const notifDot = document.getElementById("notif-dot");
+const notifDropdown = document.getElementById("notif-dropdown");
+const userMenuBtn = document.getElementById("user-menu-btn");
+const userDropdown = document.getElementById("user-dropdown");
+const userAvatarInitials = document.getElementById("user-avatar-initials");
+const userNameLabel = document.getElementById("user-name-label");
+const inicioGreetingName = document.getElementById("inicio-greeting-name");
+const inicioDateText = document.getElementById("inicio-date-text");
+const inicioUltimosPedidosEl = document.getElementById("inicio-ultimos-pedidos");
+const inicioProdutosDestaqueEl = document.getElementById("inicio-produtos-destaque");
+const inicioResumoFinanceiroEl = document.getElementById("inicio-resumo-financeiro");
+const clientesBuscaInput = document.getElementById("clientes-busca");
+const clientesPaginaListEl = document.getElementById("clientes-pagina-list");
+const pedidosPaginaBuscaInput = document.getElementById("pedidos-pagina-busca");
+const pedidosPaginaNovoBtn = document.getElementById("pedidos-pagina-novo-btn");
+const pedidosPaginaListEl = document.getElementById("pedidos-pagina-list");
+const relatoriosContentEl = document.getElementById("relatorios-content");
 const loginThemeToggleBtn = document.getElementById("login-theme-toggle-btn");
 
 const orderDialog = document.getElementById("order-dialog");
@@ -368,7 +387,6 @@ async function init() {
     renderBoard();
   });
   newOrderBtn.addEventListener("click", () => openOrderDialog(null));
-  topbarNovoMovimentoBtn.addEventListener("click", () => openMovimentoDialog(null));
   cancelOrderBtn.addEventListener("click", () => orderDialog.close());
   closeOrderBtn.addEventListener("click", () => orderDialog.close());
   orderForm.addEventListener("submit", handleSaveOrder);
@@ -458,7 +476,10 @@ async function init() {
   anexoInput.addEventListener("change", handleAnexoSelected);
   exportCsvBtn.addEventListener("click", exportCsv);
 
-  configBtn.addEventListener("click", openConfigDialog);
+  configBtn.addEventListener("click", () => {
+    openConfigDialog();
+    fecharSidebarMobile();
+  });
   cancelConfigBtn.addEventListener("click", () => configDialog.close());
   closeConfigBtn.addEventListener("click", () => configDialog.close());
   configForm.addEventListener("submit", handleSaveConfig);
@@ -528,24 +549,55 @@ async function init() {
 
   tabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
-      tabButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".tab-panel").forEach((panel) => {
-        panel.hidden = panel.id !== `tab-${btn.dataset.tab}`;
-      });
-      if (btn.dataset.tab === "inicio") renderInicio();
-      if (btn.dataset.tab === "painel") renderDashboard();
-      if (btn.dataset.tab === "financeiro") renderFinanceiroAtivo();
-      if (btn.dataset.tab === "estoque") renderEstoqueAtivo();
-      if (btn.dataset.tab === "orcamento") renderOrcamentosList();
-      if (btn.dataset.tab === "calculadora") {
-        populateMaterialSelect(calcMaterial);
-        populateCanalSelect();
-        renderCalculadoraLivre();
-        renderHistoricoConsultas();
+      // "Produtos" não é uma página própria — aponta pro catálogo que já existe dentro de
+      // Estoque, pra não duplicar a mesma lista de produtos em dois lugares do app.
+      if (btn.dataset.tab === "produtos") {
+        ativarTab("estoque");
+        document.querySelector('.estoque-modo-btn[data-modo-estoque="produto-acabado"]')?.click();
+        document.querySelector('.produto-subtab-btn[data-subtab-produto="catalogo"]')?.click();
+        return;
       }
+      ativarTab(btn.dataset.tab);
+      fecharSidebarMobile();
     })
   );
+
+  document.querySelectorAll("[data-tab-link]").forEach((btn) =>
+    btn.addEventListener("click", () => ativarTab(btn.dataset.tabLink))
+  );
+
+  sidebarToggleBtn.addEventListener("click", () => sidebarEl.classList.toggle("sidebar-open"));
+
+  notifBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const abrindo = notifDropdown.hidden;
+    notifDropdown.hidden = !abrindo;
+    userDropdown.hidden = true;
+    if (abrindo) renderNotificacoes();
+  });
+  userMenuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    userDropdown.hidden = !userDropdown.hidden;
+    notifDropdown.hidden = true;
+  });
+  document.addEventListener("click", (e) => {
+    if (!notifDropdown.hidden && !notifDropdown.contains(e.target) && e.target !== notifBtn) notifDropdown.hidden = true;
+    if (!userDropdown.hidden && !userDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) userDropdown.hidden = true;
+  });
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
+
+  try {
+    clientesBuscaInput.addEventListener("input", renderClientesPagina);
+    pedidosPaginaBuscaInput.addEventListener("input", renderPedidosPagina);
+    pedidosPaginaNovoBtn.addEventListener("click", () => openOrderDialog(null));
+  } catch (err) {
+    console.error("Falha ao montar os botões das páginas Clientes/Pedidos:", err);
+  }
 
   estoqueSubtabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -579,6 +631,108 @@ async function init() {
       renderEstoqueAtivo();
     })
   );
+}
+
+// Troca a aba ativa na sidebar — extraído do handler de clique pra também poder ser chamado por
+// código (links "Ver todos" nos cards da Início, atalhos de outras páginas), não só por toque.
+function ativarTab(tab) {
+  tabButtons.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.hidden = panel.id !== `tab-${tab}`;
+  });
+  if (tab === "inicio") renderInicio();
+  if (tab === "painel") renderDashboard();
+  if (tab === "financeiro") renderFinanceiroAtivo();
+  if (tab === "estoque") renderEstoqueAtivo();
+  if (tab === "orcamento") renderOrcamentosList();
+  if (tab === "clientes") renderClientesPagina();
+  if (tab === "pedidos") renderPedidosPagina();
+  if (tab === "relatorios") renderRelatoriosPagina();
+  if (tab === "calculadora") {
+    populateMaterialSelect(calcMaterial);
+    populateCanalSelect();
+    renderCalculadoraLivre();
+    renderHistoricoConsultas();
+  }
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function fecharSidebarMobile() {
+  sidebarEl.classList.remove("sidebar-open");
+}
+
+// Iniciais pro avatar circular do cabeçalho — o app só guarda e-mail (não tem cadastro de nome
+// próprio), então deriva um nome de exibição e as iniciais a partir da parte antes do "@".
+function nomeDeExibicaoUsuario() {
+  const local = (currentUser?.email || "").split("@")[0] || "";
+  const partes = local.split(/[._-]+/).filter(Boolean);
+  const nome = partes.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ") || "Usuário";
+  const iniciais = (partes.slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join("") || nome.slice(0, 2).toUpperCase());
+  return { nome, iniciais };
+}
+
+function atualizarUsuarioHeader() {
+  if (!currentUser) return;
+  const { nome, iniciais } = nomeDeExibicaoUsuario();
+  userAvatarInitials.textContent = iniciais;
+  userNameLabel.textContent = nome;
+  inicioGreetingName.textContent = `${nome}!`;
+  inicioDateText.textContent = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).replace(/^\w/, (c) => c.toUpperCase());
+}
+
+// Alertas reais (não inventados): pedidos atrasados + itens de estoque abaixo do mínimo —
+// os mesmos sinais que já existem em outras telas do app, só reunidos aqui no sino.
+function contarAlertasEstoque() {
+  const insumosBaixos = insumos.filter(
+    (i) => Number(i.estoque_minimo) > 0 && calcularSaldoInsumo(i.id) <= Number(i.estoque_minimo)
+  ).length;
+  const produtosBaixos = produtos.filter(
+    (p) => Number(p.estoque_minimo) > 0 && Number(p.quantidade_estoque) <= Number(p.estoque_minimo)
+  ).length;
+  return insumosBaixos + produtosBaixos;
+}
+
+function atualizarNotifDot() {
+  const atrasados = allCards().filter((c) => isAtrasado(c.item, c.pedido)).length;
+  const alertasEstoque = contarAlertasEstoque();
+  notifDot.hidden = atrasados + alertasEstoque === 0;
+}
+
+function renderNotificacoes() {
+  const atrasados = allCards().filter((c) => isAtrasado(c.item, c.pedido)).length;
+  const alertasEstoque = contarAlertasEstoque();
+
+  const itens = [];
+  if (atrasados > 0) {
+    itens.push(`<button type="button" class="notif-item" data-tab-link="quadro">
+      <i data-lucide="clock-alert"></i>
+      <span>${atrasados} pedido${atrasados > 1 ? "s" : ""} atrasado${atrasados > 1 ? "s" : ""}</span>
+    </button>`);
+  }
+  if (alertasEstoque > 0) {
+    itens.push(`<button type="button" class="notif-item" data-tab-link="estoque">
+      <i data-lucide="triangle-alert"></i>
+      <span>${alertasEstoque} ite${alertasEstoque > 1 ? "ns" : "m"} de estoque abaixo do mínimo</span>
+    </button>`);
+  }
+
+  notifDropdown.innerHTML =
+    itens.length > 0
+      ? itens.join("")
+      : `<div class="notif-empty"><i data-lucide="bell-off"></i><span>Nenhuma notificação por enquanto.</span></div>`;
+
+  notifDropdown.querySelectorAll("[data-tab-link]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      ativarTab(btn.dataset.tabLink);
+      notifDropdown.hidden = true;
+    })
+  );
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 // Redesenha o que estiver visível dentro da aba Financeiro no momento (visão geral, contas a
@@ -708,6 +862,9 @@ async function loadData() {
   if (!document.getElementById("tab-financeiro").hidden) renderFinanceiroAtivo();
   if (!document.getElementById("tab-estoque").hidden) renderEstoqueAtivo();
   if (!document.getElementById("tab-orcamento").hidden) renderOrcamentosList();
+  if (!document.getElementById("tab-clientes").hidden) renderClientesPagina();
+  if (!document.getElementById("tab-pedidos").hidden) renderPedidosPagina();
+  if (!document.getElementById("tab-relatorios").hidden) renderRelatoriosPagina();
   if (!document.getElementById("tab-calculadora").hidden) {
     const materialSelecionado = calcMaterial.value;
     populateMaterialSelect(calcMaterial, materialSelecionado);
@@ -715,6 +872,9 @@ async function loadData() {
     renderCalculadoraLivre();
     renderHistoricoConsultas();
   }
+  atualizarUsuarioHeader();
+  atualizarNotifDot();
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function populateCanalSelect() {
@@ -1102,35 +1262,424 @@ function calcularFluxoDeCaixa() {
   return entradas - saidas;
 }
 
+// Uma função "calculadora(chaveDoMes)" aplicada aos últimos N meses — usada tanto pros
+// sparklines dos cards quanto pra achar a variação em relação ao mês anterior.
+function serieMensal(calculadora, n = 6) {
+  return ultimosNMeses(n).map((m) => calculadora(m.chave));
+}
+
+function calcularTrendPercentual(serie) {
+  const atual = serie[serie.length - 1] ?? 0;
+  const anterior = serie[serie.length - 2] ?? 0;
+  if (anterior === 0) return atual === 0 ? 0 : 100;
+  return ((atual - anterior) / Math.abs(anterior)) * 100;
+}
+
+function faturamentoDoMes(chave) {
+  return movimentos
+    .filter((mv) => ehMovimentoDeReceita(mv) && (mv.data_movimento || "").startsWith(chave))
+    .reduce((s, mv) => s + Number(mv.valor), 0);
+}
+
+function vendasDoMes(chave) {
+  return pedidos.filter((p) => (p.created_at || "").startsWith(chave)).length;
+}
+
+// Saldo acumulado (entradas - saídas, desde sempre) até o fim de cada mês — igual ao fluxo de
+// caixa mostrado no card, só que "fotografado" em pontos do tempo pra desenhar a tendência.
+function serieFluxoDeCaixaCumulativo(n = 6) {
+  return ultimosNMeses(n).map((m) => {
+    const ateOFimDoMes = `${m.chave}-31`;
+    const entradas = movimentos
+      .filter((mv) => ehMovimentoDeReceita(mv) && (mv.data_movimento || "") <= ateOFimDoMes)
+      .reduce((s, mv) => s + Number(mv.valor), 0);
+    const saidas = movimentos
+      .filter((mv) => ehMovimentoDeDespesa(mv) && (mv.data_movimento || "") <= ateOFimDoMes)
+      .reduce((s, mv) => s + Number(mv.valor), 0);
+    return entradas - saidas;
+  });
+}
+
+function renderSparkline(canvasId, serie, corVar) {
+  const canvas = document.getElementById(canvasId);
+  if (typeof Chart === "undefined" || !canvas) return;
+  const cor = corTema(corVar) || "#ff8a00";
+  Chart.getChart(canvas)?.destroy();
+  new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: serie.map((_, i) => i),
+      datasets: [{ data: serie, borderColor: cor, backgroundColor: cor + "26", fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } },
+    },
+  });
+}
+
+function renderTrendBadge(elId, percentual) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const arredondado = Math.round(Math.abs(percentual));
+  if (percentual > 0) {
+    el.className = "kpi-trend kpi-trend--up";
+    el.innerHTML = `<i data-lucide="arrow-up"></i>${arredondado}%`;
+  } else if (percentual < 0) {
+    el.className = "kpi-trend kpi-trend--down";
+    el.innerHTML = `<i data-lucide="arrow-down"></i>${arredondado}%`;
+  } else {
+    el.className = "kpi-trend kpi-trend--neutral";
+    el.innerHTML = `<i data-lucide="minus"></i>0%`;
+  }
+}
+
 function renderInicio() {
-  const fluxoDeCaixa = calcularFluxoDeCaixa();
-
   const mesAtual = new Date().toISOString().slice(0, 7);
-  const faturamentoMes = movimentos
-    .filter((m) => ehMovimentoDeReceita(m) && (m.data_movimento || "").startsWith(mesAtual))
-    .reduce((s, m) => s + Number(m.valor), 0);
 
-  const vendasMes = pedidos.filter((p) => (p.created_at || "").startsWith(mesAtual)).length;
+  const fluxoDeCaixa = calcularFluxoDeCaixa();
+  const faturamentoMes = faturamentoDoMes(mesAtual);
+  const vendasMes = vendasDoMes(mesAtual);
   const ticketMedio = vendasMes > 0 ? faturamentoMes / vendasMes : 0;
-
   const aReceber = movimentos
     .filter((m) => m.status === "previsto" && m.tipo === "entrada")
     .reduce((s, m) => s + Number(m.valor), 0);
 
-  const stats = [
-    { label: "Fluxo de caixa", value: formatMoney(fluxoDeCaixa) },
-    { label: "Faturamento recebido no mês", value: formatMoney(faturamentoMes) },
-    { label: "Vendas do mês", value: vendasMes },
-    { label: "Ticket médio do mês", value: formatMoney(ticketMedio) },
-    { label: "A receber", value: formatMoney(aReceber) },
-  ];
+  document.getElementById("kpi-fluxo-value").textContent = formatMoney(fluxoDeCaixa);
+  document.getElementById("kpi-faturamento-value").textContent = formatMoney(faturamentoMes);
+  document.getElementById("kpi-vendas-value").textContent = String(vendasMes);
+  document.getElementById("kpi-ticket-value").textContent = formatMoney(ticketMedio);
+  document.getElementById("kpi-areceber-value").textContent = formatMoney(aReceber);
 
-  inicioDashboardEl.innerHTML = stats
-    .map((s) => `<div class="stat-card"><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`)
-    .join("");
+  const serieFluxo = serieFluxoDeCaixaCumulativo(6);
+  const serieFaturamento = serieMensal(faturamentoDoMes, 6);
+  const serieVendas = serieMensal(vendasDoMes, 6);
+  const serieTicket = serieFaturamento.map((f, i) => (serieVendas[i] > 0 ? f / serieVendas[i] : 0));
+  const serieAReceber = serieMensal(
+    (chave) =>
+      movimentos
+        .filter((mv) => mv.status === "previsto" && mv.tipo === "entrada" && (mv.data_movimento || "").startsWith(chave))
+        .reduce((s, mv) => s + Number(mv.valor), 0),
+    6
+  );
+
+  renderTrendBadge("kpi-fluxo-trend", calcularTrendPercentual(serieFluxo));
+  renderTrendBadge("kpi-faturamento-trend", calcularTrendPercentual(serieFaturamento));
+  renderTrendBadge("kpi-vendas-trend", calcularTrendPercentual(serieVendas));
+  renderTrendBadge("kpi-ticket-trend", calcularTrendPercentual(serieTicket));
+  renderTrendBadge("kpi-areceber-trend", calcularTrendPercentual(serieAReceber));
+
+  renderSparkline("kpi-spark-fluxo", serieFluxo, "--accent");
+  renderSparkline("kpi-spark-faturamento", serieFaturamento, "--ok");
+  renderSparkline("kpi-spark-vendas", serieVendas, "--blue");
+  renderSparkline("kpi-spark-ticket", serieTicket, "--purple");
+  renderSparkline("kpi-spark-areceber", serieAReceber, "--yellow");
 
   renderChartFaturamentoMensal();
   renderChartDespesasCategoria(mesAtual);
+  renderInicioUltimosPedidos();
+  renderInicioProdutosDestaque(mesAtual);
+  renderInicioResumoFinanceiro();
+}
+
+// O pedido em si não tem "um status só" (cada item tem o seu) — mostra o estágio mais atrasado
+// entre os itens, porque é o que precisa de atenção primeiro.
+function statusRepresentativoPedido(pedido) {
+  const statusItens = (pedido.itens || []).map((i) => i.status);
+  if (statusItens.length === 0) return null;
+  const chave = STATUS_KEYS.find((k) => statusItens.includes(k)) || statusItens[0];
+  return STATUS_DEFS.find((s) => s.key === chave) || null;
+}
+
+// STATUS_DEFS.label tem emoji embutido (usado no Quadro) — nas tabelas do design novo (Início,
+// Pedidos) o texto sozinho fica mais limpo, sem duplicar o emoji com o resto da UI.
+function nomeStatusSemEmoji(label) {
+  return (label || "").replace(/^\S+\s+/, "");
+}
+
+function renderInicioUltimosPedidos() {
+  const recentes = [...pedidos].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 6);
+
+  if (recentes.length === 0) {
+    inicioUltimosPedidosEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="package-open"></i>
+      <strong>Nenhum pedido encontrado.</strong>
+      <span>Seus pedidos aparecerão aqui.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
+    return;
+  }
+
+  inicioUltimosPedidosEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>#</th><th>Cliente</th><th>Peça</th><th>Data</th><th>Status</th><th>Valor</th></tr></thead>
+    <tbody>
+      ${recentes
+        .map((p, i) => {
+          const itens = p.itens || [];
+          const peca = itens.length === 0 ? "—" : itens.length === 1 ? escapeHtml(itens[0].descricao) : `${escapeHtml(itens[0].descricao)} e mais ${itens.length - 1}`;
+          const status = statusRepresentativoPedido(p);
+          const total = itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+          return `<tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(p.cliente?.nome || "—")}</td>
+            <td>${peca}</td>
+            <td>${formatDate((p.created_at || "").slice(0, 10)) || "—"}</td>
+            <td>${status ? escapeHtml(nomeStatusSemEmoji(status.label)) : "—"}</td>
+            <td>${formatMoney(total)}</td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function renderInicioProdutosDestaque(mesAtual) {
+  const vendasPorProduto = new Map();
+  for (const m of movimentosProduto) {
+    if (m.tipo !== "venda" || !(m.data_movimento || "").startsWith(mesAtual)) continue;
+    const qtd = Math.abs(Number(m.quantidade) || 0);
+    vendasPorProduto.set(m.produto_id, (vendasPorProduto.get(m.produto_id) || 0) + qtd);
+  }
+
+  const ranking = [...vendasPorProduto.entries()]
+    .map(([produtoId, vendas]) => {
+      const produto = produtos.find((p) => p.id === produtoId);
+      return produto ? { produto, vendas, receita: vendas * (Number(produto.preco_venda) || 0) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.vendas - a.vendas)
+    .slice(0, 6);
+
+  if (ranking.length === 0) {
+    inicioProdutosDestaqueEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="package"></i>
+      <strong>Nenhum produto registrado.</strong>
+      <span>Cadastre produtos para ver os dados aqui.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
+    return;
+  }
+
+  inicioProdutosDestaqueEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>Produto</th><th>Vendas</th><th>Receita</th></tr></thead>
+    <tbody>
+      ${ranking
+        .map((r) => `<tr><td>${escapeHtml(r.produto.nome)}</td><td>${r.vendas}</td><td>${formatMoney(r.receita)}</td></tr>`)
+        .join("")}
+    </tbody>
+  </table></div>`;
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function renderInicioResumoFinanceiro() {
+  const entradas = movimentos.filter(ehMovimentoDeReceita).reduce((s, m) => s + Number(m.valor), 0);
+  const saidas = movimentos.filter(ehMovimentoDeDespesa).reduce((s, m) => s + Number(m.valor), 0);
+  const saldo = entradas - saidas;
+  const aReceber = movimentos
+    .filter((m) => m.status === "previsto" && m.tipo === "entrada")
+    .reduce((s, m) => s + Number(m.valor), 0);
+  const aPagar = movimentos
+    .filter((m) => m.status === "previsto" && m.tipo === "saida")
+    .reduce((s, m) => s + Number(m.valor), 0);
+
+  const linhas = [
+    { icone: "arrow-up", cor: "resumo-icone--ok", label: "Entradas", valor: entradas },
+    { icone: "arrow-down", cor: "resumo-icone--danger", label: "Saídas", valor: saidas },
+    { icone: "equal", cor: "resumo-icone--neutro", label: "Saldo", valor: saldo },
+    { icone: "clock-3", cor: "resumo-icone--amarelo", label: "A receber", valor: aReceber },
+    { icone: "clock-3", cor: "resumo-icone--danger", label: "A pagar", valor: aPagar },
+  ];
+
+  inicioResumoFinanceiroEl.innerHTML = linhas
+    .map(
+      (l) => `<div class="resumo-linha">
+        <span class="resumo-icone ${l.cor}"><i data-lucide="${l.icone}"></i></span>
+        <span class="resumo-label">${l.label}</span>
+        <span class="resumo-valor">${formatMoney(l.valor)}</span>
+      </div>`
+    )
+    .join("");
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+/* ---------- Clientes (página própria: lista + histórico por cliente) ---------- */
+
+function renderClientesPagina() {
+  const busca = clientesBuscaInput.value.trim().toLowerCase();
+  const filtrados = clientes.filter((c) => !busca || c.nome.toLowerCase().includes(busca));
+
+  if (filtrados.length === 0) {
+    clientesPaginaListEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="users"></i>
+      <strong>Nenhum cliente encontrado.</strong>
+      <span>Clientes aparecem aqui assim que você cria o primeiro pedido ou orçamento pra eles.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
+    return;
+  }
+
+  const linhas = filtrados
+    .map((c) => {
+      const pedidosDoCliente = pedidos.filter((p) => p.cliente_id === c.id);
+      const totalGasto = pedidosDoCliente.reduce((s, p) => s + (p.itens || []).reduce((s2, i) => s2 + (Number(i.valor) || 0), 0), 0);
+      return { cliente: c, qtd: pedidosDoCliente.length, total: totalGasto };
+    })
+    .sort((a, b) => b.total - a.total);
+
+  clientesPaginaListEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>Cliente</th><th>Contato</th><th>Pedidos</th><th>Total gasto</th><th></th></tr></thead>
+    <tbody>
+      ${linhas
+        .map(
+          (l) => `<tr>
+            <td>${escapeHtml(l.cliente.nome)}</td>
+            <td>${escapeHtml(l.cliente.contato || "—")}</td>
+            <td>${l.qtd}</td>
+            <td>${formatMoney(l.total)}</td>
+            <td><button type="button" class="btn-outline btn-outline--sm novo-pedido-cliente-btn" data-cliente="${escapeHtml(l.cliente.nome)}">+ Pedido</button></td>
+          </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table></div>`;
+
+  clientesPaginaListEl.querySelectorAll(".novo-pedido-cliente-btn").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      openOrderDialog(null);
+      orderForm.elements.namedItem("cliente_nome").value = btn.dataset.cliente;
+    })
+  );
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+/* ---------- Pedidos (página própria: tabela completa, visão diferente do Quadro kanban) ---------- */
+
+function renderPedidosPagina() {
+  const busca = pedidosPaginaBuscaInput.value.trim().toLowerCase();
+  const filtrados = pedidos.filter((p) => {
+    if (!busca) return true;
+    const nomeCliente = (p.cliente?.nome || "").toLowerCase();
+    const pecas = (p.itens || []).map((i) => i.descricao.toLowerCase()).join(" ");
+    return nomeCliente.includes(busca) || pecas.includes(busca);
+  });
+  const ordenados = [...filtrados].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+  if (ordenados.length === 0) {
+    pedidosPaginaListEl.innerHTML = `<div class="panel-empty">
+      <i data-lucide="package-open"></i>
+      <strong>Nenhum pedido encontrado.</strong>
+      <span>Seus pedidos aparecerão aqui.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
+    return;
+  }
+
+  pedidosPaginaListEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>#</th><th>Cliente</th><th>Peça</th><th>Data</th><th>Status</th><th>Valor</th></tr></thead>
+    <tbody>
+      ${ordenados
+        .map((p, i) => {
+          const itens = p.itens || [];
+          const peca = itens.length === 0 ? "—" : itens.length === 1 ? escapeHtml(itens[0].descricao) : `${escapeHtml(itens[0].descricao)} e mais ${itens.length - 1}`;
+          const status = statusRepresentativoPedido(p);
+          const total = itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+          return `<tr class="panel-table-row-click" data-id="${p.id}">
+            <td>${i + 1}</td>
+            <td>${escapeHtml(p.cliente?.nome || "—")}</td>
+            <td>${peca}</td>
+            <td>${formatDate((p.created_at || "").slice(0, 10)) || "—"}</td>
+            <td>${status ? escapeHtml(nomeStatusSemEmoji(status.label)) : "—"}</td>
+            <td>${formatMoney(total)}</td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
+
+  pedidosPaginaListEl.querySelectorAll(".panel-table-row-click").forEach((row) =>
+    row.addEventListener("click", () => openOrderDialog(pedidos.find((p) => p.id === row.dataset.id)))
+  );
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+/* ---------- Relatórios (exportações + resumo, sem duplicar os números do Painel/Indicadores) ---------- */
+
+function exportMovimentosCsv() {
+  const header = ["Data", "Tipo", "Categoria", "Conta", "Responsável", "Status", "Valor", "Descrição"];
+  const rows = movimentos.map((m) => [
+    m.data_movimento || "",
+    m.tipo,
+    categoriasFinanceiras.find((c) => c.id === m.categoria_id)?.nome || "",
+    contasFinanceiras.find((c) => c.id === m.conta_id)?.nome || "",
+    m.responsavel || "",
+    m.status,
+    m.valor,
+    m.descricao || "",
+  ]);
+  const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `financeiro-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderRelatoriosPagina() {
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const alertasEstoque = contarAlertasEstoque();
+  const cards = [
+    {
+      icone: "receipt-text",
+      titulo: "Pedidos",
+      subtitulo: `${pedidos.length} pedido${pedidos.length === 1 ? "" : "s"} no total`,
+      acaoLabel: "Exportar CSV",
+      acaoId: "relatorio-export-pedidos-btn",
+    },
+    {
+      icone: "wallet-cards",
+      titulo: "Financeiro",
+      subtitulo: `${movimentos.length} lançamento${movimentos.length === 1 ? "" : "s"} no total`,
+      acaoLabel: "Exportar CSV",
+      acaoId: "relatorio-export-financeiro-btn",
+    },
+    {
+      icone: "chart-no-axes-combined",
+      titulo: "Faturamento do mês",
+      subtitulo: formatMoney(faturamentoDoMes(mesAtual)),
+      acaoLabel: "Ver Painel",
+      acaoId: "relatorio-ver-painel-btn",
+    },
+    {
+      icone: "package",
+      titulo: "Estoque",
+      subtitulo: `${alertasEstoque} ite${alertasEstoque === 1 ? "m" : "ns"} abaixo do mínimo`,
+      acaoLabel: "Ver Estoque",
+      acaoId: "relatorio-ver-estoque-btn",
+    },
+  ];
+
+  relatoriosContentEl.innerHTML = cards
+    .map(
+      (c) => `<div class="relatorio-card">
+        <span class="chart-card-icon"><i data-lucide="${c.icone}"></i></span>
+        <h3>${c.titulo}</h3>
+        <p class="subtitle">${c.subtitulo}</p>
+        <button type="button" class="btn-outline" id="${c.acaoId}">${c.acaoLabel}</button>
+      </div>`
+    )
+    .join("");
+
+  document.getElementById("relatorio-export-pedidos-btn")?.addEventListener("click", exportCsv);
+  document.getElementById("relatorio-export-financeiro-btn")?.addEventListener("click", exportMovimentosCsv);
+  document.getElementById("relatorio-ver-painel-btn")?.addEventListener("click", () => ativarTab("painel"));
+  document.getElementById("relatorio-ver-estoque-btn")?.addEventListener("click", () => ativarTab("estoque"));
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function renderChartFaturamentoMensal() {
@@ -1189,10 +1738,19 @@ function renderChartDespesasCategoria(mesAtual) {
 
   if (principais.length === 0) {
     chartDespesasCanvas.style.display = "none";
-    const vazio = document.createElement("p");
+    const vazio = document.createElement("div");
     vazio.className = "chart-empty";
-    vazio.textContent = "Nenhuma despesa registrada este mês ainda.";
+    vazio.innerHTML = `
+      <i data-lucide="file-chart-column"></i>
+      <p>Nenhuma despesa registrada<br />este mês ainda.</p>
+      <button type="button" class="btn-outline" id="registrar-despesa-vazio-btn">+ Registrar despesa</button>
+    `;
     chartDespesasCanvas.after(vazio);
+    document.getElementById("registrar-despesa-vazio-btn")?.addEventListener("click", () => {
+      openMovimentoDialog(null);
+      movimentoTipoSelect.value = "saida";
+    });
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
   chartDespesasCanvas.style.display = "";

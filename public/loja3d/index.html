@@ -8,6 +8,12 @@
   <link rel="manifest" href="/loja3d/manifest.json" />
   <link rel="icon" href="/loja3d/logo-icon" />
   <link rel="apple-touch-icon" href="/loja3d/logo-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="/loja3d/styles.css" />
   <script>
     document.documentElement.dataset.theme = localStorage.getItem("loja3d-theme") || "dark";
@@ -39,39 +45,244 @@
 
   <!-- App principal -->
   <section id="app-screen" class="screen" hidden>
-    <header class="topbar">
-      <h1><img src="/loja3d/icon.svg" class="brand-mark" alt="" /> IQUE 3D Studio</h1>
-      <nav class="tabs">
-        <button type="button" class="tab-btn active" data-tab="inicio">Início</button>
-        <button type="button" class="tab-btn" data-tab="calculadora">Calculadora</button>
-        <button type="button" class="tab-btn" data-tab="quadro">Quadro</button>
-        <button type="button" class="tab-btn" data-tab="painel">Painel</button>
-        <button type="button" class="tab-btn" data-tab="financeiro">Financeiro</button>
-        <button type="button" class="tab-btn" data-tab="estoque">Estoque</button>
-        <button type="button" class="tab-btn" data-tab="orcamento">Orçamento</button>
-      </nav>
-      <div class="topbar-actions">
-        <input id="search-input" type="search" placeholder="Buscar cliente ou peça…" />
-        <button id="filter-atrasados" class="chip" type="button">⏰ Atrasados: 0</button>
-        <button id="export-csv-btn" class="ghost" type="button">⬇ Exportar CSV</button>
-        <button id="theme-toggle-btn" class="ghost" type="button" title="Alternar tema">🌙</button>
-        <button id="config-btn" class="ghost" type="button" title="Configurações">⚙</button>
-        <button id="topbar-novo-movimento-btn" class="ghost" type="button">+ Lançamento</button>
-        <button id="new-order-btn" class="primary" type="button">+ Novo pedido</button>
-        <button id="logout-btn" class="ghost" type="button">Sair</button>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="/loja3d/icon.svg" class="brand-mark sidebar-brand-icon" alt="" />
+        <span class="sidebar-brand-name">IQUE 3D Studio</span>
       </div>
-    </header>
+      <nav class="sidebar-nav">
+        <button type="button" class="sidebar-link active" data-tab="inicio">
+          <i data-lucide="house"></i><span>Início</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="calculadora">
+          <i data-lucide="calculator"></i><span>Calculadora</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="quadro">
+          <i data-lucide="kanban-square"></i><span>Quadro</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="painel">
+          <i data-lucide="chart-no-axes-combined"></i><span>Painel</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="financeiro">
+          <i data-lucide="wallet-cards"></i><span>Financeiro</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="estoque">
+          <i data-lucide="package"></i><span>Estoque</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="orcamento">
+          <i data-lucide="clipboard-list"></i><span>Orçamento</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="clientes">
+          <i data-lucide="users"></i><span>Clientes</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="produtos">
+          <i data-lucide="box"></i><span>Produtos</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="pedidos">
+          <i data-lucide="receipt-text"></i><span>Pedidos</span>
+        </button>
+        <button type="button" class="sidebar-link" data-tab="relatorios">
+          <i data-lucide="file-chart-column"></i><span>Relatórios</span>
+        </button>
+        <button type="button" class="sidebar-link" id="config-btn">
+          <i data-lucide="settings"></i><span>Configurações</span>
+        </button>
+      </nav>
+      <button type="button" class="sidebar-help" id="sidebar-help-btn">
+        <span class="sidebar-help-icon"><i data-lucide="headphones"></i></span>
+        <span class="sidebar-help-text">
+          <strong>Precisa de ajuda?</strong>
+          <small>Fale com o suporte</small>
+        </span>
+        <i data-lucide="chevron-right" class="sidebar-help-chevron"></i>
+      </button>
+    </aside>
+
+    <div class="main-area">
+      <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Abrir menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <header class="topheader">
+        <div class="topheader-search">
+          <i data-lucide="search" class="topheader-search-icon"></i>
+          <input id="search-input" type="search" placeholder="Buscar cliente, peça ou pedido…" />
+          <kbd class="topheader-search-kbd">⌘K</kbd>
+        </div>
+        <div class="topheader-actions">
+          <button id="filter-atrasados" class="chip" type="button">Atrasados: 0</button>
+          <button id="export-csv-btn" class="btn-outline" type="button">
+            <i data-lucide="download"></i><span>Exportar CSV</span>
+          </button>
+          <button id="theme-toggle-btn" class="icon-btn" type="button" title="Alternar tema">
+            <i data-lucide="moon"></i>
+          </button>
+          <div class="topheader-notif-wrap">
+            <button id="notif-btn" class="icon-btn" type="button" title="Notificações">
+              <i data-lucide="bell"></i>
+              <span class="notif-dot" id="notif-dot" hidden></span>
+            </button>
+            <div class="notif-dropdown" id="notif-dropdown" hidden></div>
+          </div>
+          <span class="topheader-sep"></span>
+          <div class="topheader-user-wrap">
+            <button type="button" class="topheader-user" id="user-menu-btn">
+              <span class="user-avatar" id="user-avatar-initials">--</span>
+              <span class="user-info">
+                <strong id="user-name-label">—</strong>
+                <small>Administrador</small>
+              </span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="user-dropdown" id="user-dropdown" hidden>
+              <button type="button" id="logout-btn" class="user-dropdown-item">
+                <i data-lucide="log-out"></i><span>Sair</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="main-scroll">
 
     <main id="tab-inicio" class="tab-panel">
-      <div id="inicio-dashboard" class="dashboard"></div>
+      <div class="inicio-hero">
+        <div class="inicio-hero-left">
+          <h1 class="inicio-title">Olá, <span id="inicio-greeting-name" class="inicio-title-name">—</span></h1>
+          <p class="inicio-subtitle">Aqui está um resumo do seu negócio hoje.</p>
+        </div>
+        <div class="inicio-hero-right">
+          <div class="inicio-date">
+            <i data-lucide="calendar-days"></i>
+            <span class="inicio-date-text-wrap">
+              <span id="inicio-date-text" class="inicio-date-text"></span>
+              <span class="inicio-date-sub">Tenha um excelente dia!</span>
+            </span>
+          </div>
+          <button type="button" id="new-order-btn" class="btn-hero-primary">
+            <i data-lucide="plus"></i>Novo pedido
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-card--primary">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="wallet-cards"></i></span>
+            <span class="kpi-trend" id="kpi-fluxo-trend"></span>
+          </div>
+          <div class="kpi-value kpi-value--primary" id="kpi-fluxo-value">R$ 0,00</div>
+          <div class="kpi-label">Fluxo de caixa</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="kpi-spark-fluxo"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--success">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="bar-chart-3"></i></span>
+            <span class="kpi-trend" id="kpi-faturamento-trend"></span>
+          </div>
+          <div class="kpi-value" id="kpi-faturamento-value">R$ 0,00</div>
+          <div class="kpi-label">Faturamento no mês</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="kpi-spark-faturamento"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--blue">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="shopping-cart"></i></span>
+            <span class="kpi-trend" id="kpi-vendas-trend"></span>
+          </div>
+          <div class="kpi-value" id="kpi-vendas-value">0</div>
+          <div class="kpi-label">Vendas no mês</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="kpi-spark-vendas"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--purple">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="tag"></i></span>
+            <span class="kpi-trend" id="kpi-ticket-trend"></span>
+          </div>
+          <div class="kpi-value" id="kpi-ticket-value">R$ 0,00</div>
+          <div class="kpi-label">Ticket médio</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="kpi-spark-ticket"></canvas>
+        </div>
+
+        <div class="kpi-card kpi-card--yellow">
+          <div class="kpi-card-head">
+            <span class="kpi-icon"><i data-lucide="circle-dollar-sign"></i></span>
+            <span class="kpi-trend" id="kpi-areceber-trend"></span>
+          </div>
+          <div class="kpi-value" id="kpi-areceber-value">R$ 0,00</div>
+          <div class="kpi-label">A receber</div>
+          <div class="kpi-sub">em relação ao mês anterior</div>
+          <canvas class="kpi-sparkline" id="kpi-spark-areceber"></canvas>
+        </div>
+      </div>
+
       <div class="inicio-charts">
         <div class="chart-card">
-          <h3>Faturamento mensal <span class="subtitle">últimos 6 meses</span></h3>
+          <div class="chart-card-header">
+            <div class="chart-card-heading">
+              <span class="chart-card-icon"><i data-lucide="chart-no-axes-column-increasing"></i></span>
+              <div>
+                <h3>Faturamento mensal</h3>
+                <span class="subtitle">Últimos 6 meses</span>
+              </div>
+            </div>
+            <span class="chart-card-period"><span>Últimos 6 meses</span><i data-lucide="chevron-down"></i></span>
+          </div>
           <div class="chart-card-body"><canvas id="chart-faturamento-mensal"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>Despesas por categoria <span class="subtitle">mês atual</span></h3>
+          <div class="chart-card-header">
+            <div class="chart-card-heading">
+              <span class="chart-card-icon"><i data-lucide="pie-chart"></i></span>
+              <div>
+                <h3>Despesas por categoria</h3>
+                <span class="subtitle">Mês atual</span>
+              </div>
+            </div>
+            <span class="chart-card-period"><span>Mês atual</span><i data-lucide="chevron-down"></i></span>
+          </div>
           <div class="chart-card-body"><canvas id="chart-despesas-categoria"></canvas></div>
+        </div>
+      </div>
+
+      <div class="inicio-bottom-grid">
+        <div class="panel-card panel-card--pedidos">
+          <div class="panel-card-header">
+            <div>
+              <h3>Últimos pedidos</h3>
+              <span class="subtitle">Acompanhe os pedidos mais recentes.</span>
+            </div>
+            <button type="button" class="btn-link" data-tab-link="pedidos">Ver todos</button>
+          </div>
+          <div id="inicio-ultimos-pedidos"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h3>Produtos em destaque</h3>
+              <span class="subtitle">Mais vendidos no período.</span>
+            </div>
+            <button type="button" class="btn-link" data-tab-link="estoque">Ver todos</button>
+          </div>
+          <div id="inicio-produtos-destaque"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div>
+              <h3>Resumo financeiro</h3>
+              <span class="subtitle">Visão geral do seu negócio.</span>
+            </div>
+            <span class="chart-card-period"><span>Este mês</span><i data-lucide="chevron-down"></i></span>
+          </div>
+          <div id="inicio-resumo-financeiro"></div>
         </div>
       </div>
     </main>
@@ -308,6 +519,30 @@
       </div>
       <ul id="orcamentos-list" class="materiais-list orcamentos-list"></ul>
     </main>
+
+    <main id="tab-clientes" class="tab-panel" hidden>
+      <div class="financeiro-toolbar">
+        <input id="clientes-busca" type="search" placeholder="Buscar cliente…" />
+      </div>
+      <div id="clientes-pagina-list" class="page-table-wrap"></div>
+    </main>
+
+    <main id="tab-pedidos" class="tab-panel" hidden>
+      <div class="financeiro-toolbar">
+        <input id="pedidos-pagina-busca" type="search" placeholder="Buscar cliente ou peça…" />
+        <span class="spacer"></span>
+        <button type="button" id="pedidos-pagina-novo-btn" class="primary">+ Novo pedido</button>
+      </div>
+      <div id="pedidos-pagina-list" class="page-table-wrap"></div>
+    </main>
+
+    <main id="tab-relatorios" class="tab-panel" hidden>
+      <div id="relatorios-content" class="relatorios-grid"></div>
+    </main>
+
+      </div>
+    </div>
+  </div>
   </section>
 
   <!-- Modal de pedido (criar/editar) -->
@@ -1327,6 +1562,7 @@
     <option value="Resina"></option>
   </datalist>
 
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.454.0/dist/umd/lucide.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
