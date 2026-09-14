@@ -351,7 +351,27 @@
     </main>
 
     <main id="tab-quadro" class="tab-panel" hidden>
-      <div id="board" class="board" aria-live="polite"></div>
+      <div class="quadro-header">
+        <div>
+          <h1 class="quadro-title">Quadro de <span class="quadro-title-accent">produção</span></h1>
+          <p class="quadro-subtitle">Acompanhe o status dos pedidos em cada etapa.</p>
+        </div>
+        <div class="quadro-actions">
+          <button type="button" id="quadro-lancamento-btn" class="btn-outline btn-outline--lg">
+            <i data-lucide="plus"></i><span>Lançamento</span>
+          </button>
+          <button type="button" id="quadro-novo-pedido-btn" class="btn-hero-primary btn-hero-primary--md">
+            <i data-lucide="plus"></i><span>NOVO PEDIDO</span>
+          </button>
+          <button type="button" id="quadro-sair-btn" class="btn-outline btn-outline--lg">
+            <i data-lucide="log-out"></i><span>Sair</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="quadro-summary" id="quadro-summary"></div>
+
+      <div class="kanban-grid" id="board" aria-live="polite"></div>
     </main>
 
     <main id="tab-painel" class="tab-panel" hidden>

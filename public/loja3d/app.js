@@ -10,6 +10,16 @@ const STATUS_DEFS = [
 // primeira vez é o gatilho da baixa automática de estoque.
 const STATUS_PRE_IMPRESSAO = ["recebido", "fila", "produzindo"];
 const STATUS_KEYS = STATUS_DEFS.map((s) => s.key);
+// Ícone + cor de cada status no Quadro (barra do topo da coluna, ícone do cabeçalho e do
+// resumo). Mesma ordem/chaves de STATUS_DEFS — só o visual, não mexe no fluxo em si.
+const STATUS_META = {
+  recebido: { icon: "inbox", color: "#CBD5E1", bg: "rgba(203,213,225,.08)" },
+  fila: { icon: "folder", color: "#3B82F6", bg: "rgba(59,130,246,.12)" },
+  produzindo: { icon: "cog", color: "#FF8A00", bg: "rgba(255,138,0,.12)" },
+  pos_processamento: { icon: "palette", color: "#9B5CF6", bg: "rgba(155,92,246,.12)" },
+  pronto: { icon: "circle-check", color: "#24D987", bg: "rgba(36,217,135,.12)" },
+  entregue: { icon: "package", color: "#CBD5E1", bg: "rgba(203,213,225,.08)" },
+};
 const ANEXOS_BUCKET = "loja3d-anexos";
 
 const config = window.SUPABASE_CONFIG || {};
@@ -106,6 +116,9 @@ const pedidosPaginaBuscaInput = document.getElementById("pedidos-pagina-busca");
 const pedidosPaginaNovoBtn = document.getElementById("pedidos-pagina-novo-btn");
 const pedidosPaginaListEl = document.getElementById("pedidos-pagina-list");
 const relatoriosContentEl = document.getElementById("relatorios-content");
+const quadroLancamentoBtn = document.getElementById("quadro-lancamento-btn");
+const quadroNovoPedidoBtn = document.getElementById("quadro-novo-pedido-btn");
+const quadroSairBtn = document.getElementById("quadro-sair-btn");
 const loginThemeToggleBtn = document.getElementById("login-theme-toggle-btn");
 
 const orderDialog = document.getElementById("order-dialog");
@@ -599,6 +612,14 @@ async function init() {
     console.error("Falha ao montar os botões das páginas Clientes/Pedidos:", err);
   }
 
+  try {
+    quadroLancamentoBtn.addEventListener("click", () => openMovimentoDialog(null));
+    quadroNovoPedidoBtn.addEventListener("click", () => openOrderDialog(null));
+    quadroSairBtn.addEventListener("click", () => db.auth.signOut());
+  } catch (err) {
+    console.error("Falha ao montar os botões do cabeçalho do Quadro:", err);
+  }
+
   estoqueSubtabButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       estoqueSubtabButtons.forEach((b) => b.classList.remove("active"));
@@ -976,12 +997,15 @@ function renderBoard() {
   }
 
   const totalAtrasados = allCards().filter((c) => isAtrasado(c.item, c.pedido)).length;
-  filterAtrasadosBtn.textContent = `⏰ Atrasados: ${totalAtrasados}`;
+  filterAtrasadosBtn.textContent = `Atrasados: ${totalAtrasados}`;
   if (filtroAtrasados) {
     cards = cards.filter((c) => isAtrasado(c.item, c.pedido));
   }
 
+  renderQuadroResumo();
+
   for (const def of STATUS_DEFS) {
+    const meta = STATUS_META[def.key];
     const items = cards
       .filter((c) => c.item.status === def.key)
       .sort((a, b) => {
@@ -992,22 +1016,33 @@ function renderBoard() {
       });
 
     const column = document.createElement("div");
-    column.className = "column";
+    column.className = "kanban-column";
     column.dataset.status = def.key;
 
+    const topBar = document.createElement("div");
+    topBar.className = "kanban-column-bar";
+    topBar.style.background = meta.color;
+    column.appendChild(topBar);
+
     const header = document.createElement("div");
-    header.className = "column-header";
-    header.innerHTML = `<span>${def.label}</span><span class="column-count">${items.length}</span>`;
+    header.className = "kanban-column-header";
+    header.innerHTML = `
+      <div class="kanban-column-title">
+        <span class="kanban-column-icon" style="background:${meta.bg};color:${meta.color}"><i data-lucide="${meta.icon}"></i></span>
+        <span>${escapeHtml(nomeStatusSemEmoji(def.label))}</span>
+      </div>
+      <span class="kanban-column-count">${items.length}</span>
+    `;
     column.appendChild(header);
 
     const body = document.createElement("div");
-    body.className = "column-body";
+    body.className = "kanban-column-body";
 
     if (items.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "column-empty";
-      empty.textContent = "Nenhum pedido aqui.";
-      body.appendChild(empty);
+      body.innerHTML = `<div class="kanban-empty">
+        <i data-lucide="${meta.icon}"></i>
+        <span>Nenhum pedido aqui.</span>
+      </div>`;
     } else {
       for (const card of items) {
         body.appendChild(renderCard(card.item, card.pedido, def.key));
@@ -1017,33 +1052,75 @@ function renderBoard() {
     column.appendChild(body);
     board.appendChild(column);
   }
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+// Resumo horizontal acima do quadro: total + contagem real de cada status, sempre a partir dos
+// pedidos carregados (nunca hardcoded) — não é afetado pela busca, só pelo filtro de atrasados
+// não entrar aqui, é a "foto" geral da produção.
+function renderQuadroResumo() {
+  const el = document.getElementById("quadro-summary");
+  if (!el) return;
+  const cards = allCards();
+
+  const segmentos = [
+    { label: "Total de pedidos", valor: cards.length, icon: "boxes", total: true },
+    ...STATUS_DEFS.map((def) => ({
+      label: nomeStatusSemEmoji(def.label),
+      valor: cards.filter((c) => c.item.status === def.key).length,
+      icon: STATUS_META[def.key].icon,
+      color: STATUS_META[def.key].color,
+      bg: STATUS_META[def.key].bg,
+    })),
+  ];
+
+  el.innerHTML = segmentos
+    .map(
+      (s) => `
+      <div class="quadro-summary-item${s.total ? " quadro-summary-item--total" : ""}">
+        <span class="quadro-summary-icon" style="${s.bg ? `background:${s.bg};color:${s.color}` : ""}"><i data-lucide="${s.icon}"></i></span>
+        <span class="quadro-summary-text">
+          <strong>${s.valor}</strong>
+          <small>${escapeHtml(s.label)}</small>
+        </span>
+      </div>`
+    )
+    .join("");
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function renderCard(item, pedido, statusKey) {
   const card = document.createElement("div");
-  card.className = "card" + (isAtrasado(item, pedido) ? " late" : "");
+  card.className = "kanban-card" + (isAtrasado(item, pedido) ? " late" : "");
   if (pedido.prioridade === "urgente") card.classList.add("urgente");
   card.addEventListener("click", () => openOrderDialog(pedido));
 
-  const title = document.createElement("div");
-  title.className = "card-title";
-  title.textContent = item.descricao;
-  card.appendChild(title);
+  const linha1 = document.createElement("div");
+  linha1.className = "kanban-card-linha1";
+  linha1.innerHTML = `<span class="kanban-card-id">#${item.id.slice(0, 4).toUpperCase()}</span>`;
+  if (pedido.prioridade === "urgente") {
+    linha1.appendChild(badgeIcon("flame", "Urgente", "late"));
+  }
+  card.appendChild(linha1);
 
   const client = document.createElement("div");
-  client.className = "card-client";
+  client.className = "kanban-card-client";
   client.textContent = pedido.cliente?.nome || "(sem cliente)";
   card.appendChild(client);
 
+  const title = document.createElement("div");
+  title.className = "kanban-card-title";
+  title.textContent = item.descricao;
+  card.appendChild(title);
+
   const meta = document.createElement("div");
-  meta.className = "card-meta";
-  if (pedido.prioridade === "urgente") meta.appendChild(badge("🔥 Urgente", "late"));
+  meta.className = "kanban-card-meta";
   meta.appendChild(badge(`Qtd: ${item.quantidade}`));
   if (item.material || item.cor) {
     meta.appendChild(badge([item.material, item.cor].filter(Boolean).join(" · ")));
   }
   if (pedido.prazo_entrega) {
-    meta.appendChild(badge(`Prazo: ${formatDate(pedido.prazo_entrega)}`, isAtrasado(item, pedido) ? "late" : ""));
+    meta.appendChild(badgeIcon("calendar-days", formatDate(pedido.prazo_entrega), isAtrasado(item, pedido) ? "late" : ""));
   }
   if (item.valor !== null && item.valor !== undefined) {
     meta.appendChild(badge(formatMoney(item.valor)));
@@ -1052,17 +1129,17 @@ function renderCard(item, pedido, statusKey) {
     badge(pedido.pagamento, pedido.pagamento === "pago" ? "pago" : pedido.pagamento === "parcial" ? "parcial" : "")
   );
   if (pedido.anexos && pedido.anexos.length > 0) {
-    meta.appendChild(badge(`📎 ${pedido.anexos.length}`));
+    meta.appendChild(badgeIcon("paperclip", String(pedido.anexos.length)));
   }
   card.appendChild(meta);
 
   const actions = document.createElement("div");
-  actions.className = "card-actions";
+  actions.className = "kanban-card-actions";
 
   const idx = STATUS_KEYS.indexOf(statusKey);
   const prevBtn = document.createElement("button");
   prevBtn.type = "button";
-  prevBtn.textContent = "◀";
+  prevBtn.innerHTML = `<i data-lucide="chevron-left"></i>`;
   prevBtn.disabled = idx === 0;
   prevBtn.title = "Mover para etapa anterior";
   prevBtn.addEventListener("click", (e) => {
@@ -1072,7 +1149,7 @@ function renderCard(item, pedido, statusKey) {
 
   const nextBtn = document.createElement("button");
   nextBtn.type = "button";
-  nextBtn.textContent = "▶";
+  nextBtn.innerHTML = `<i data-lucide="chevron-right"></i>`;
   nextBtn.disabled = idx === STATUS_KEYS.length - 1;
   nextBtn.title = "Mover para próxima etapa";
   nextBtn.addEventListener("click", (e) => {
@@ -1091,6 +1168,13 @@ function badge(text, extraClass = "") {
   const el = document.createElement("span");
   el.className = "badge" + (extraClass ? ` ${extraClass}` : "");
   el.textContent = text;
+  return el;
+}
+
+function badgeIcon(iconName, text, extraClass = "") {
+  const el = document.createElement("span");
+  el.className = "badge badge-icon" + (extraClass ? ` ${extraClass}` : "");
+  el.innerHTML = `<i data-lucide="${iconName}"></i>${escapeHtml(text)}`;
   return el;
 }
 
