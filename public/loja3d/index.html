@@ -1809,6 +1809,25 @@
     </div>
   </dialog>
 
+  <!-- Pré-visualização do PDF antes de baixar (orçamento/proposta) -->
+  <dialog id="pdf-preview-dialog" class="pdf-preview-dialog">
+    <button type="button" id="close-pdf-preview-btn" class="dialog-close-btn" aria-label="Fechar" title="Fechar">×</button>
+    <div class="dialog-body">
+      <h2>Pré-visualização do PDF</h2>
+      <p class="subtitle">Confira o documento antes de baixar.</p>
+      <div class="pdf-preview-frame-wrap">
+        <iframe id="pdf-preview-frame" title="Pré-visualização do PDF"></iframe>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="pdf-preview-fechar-btn" class="ghost">Fechar</button>
+        <button type="button" id="pdf-preview-baixar-btn" class="primary">
+          <i data-lucide="download"></i> Baixar PDF
+        </button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Template de uma linha de item (clonado via JS) -->
   <template id="item-row-template">
     <div class="item-row">

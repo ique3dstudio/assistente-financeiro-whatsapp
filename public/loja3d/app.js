@@ -157,6 +157,11 @@ const pixQrcodeCanvas = document.getElementById("pix-qrcode-canvas");
 const pixPayloadText = document.getElementById("pix-payload-text");
 const pixCopiarBtn = document.getElementById("pix-copiar-btn");
 const pixError = document.getElementById("pix-error");
+const pdfPreviewDialog = document.getElementById("pdf-preview-dialog");
+const closePdfPreviewBtn = document.getElementById("close-pdf-preview-btn");
+const pdfPreviewFrame = document.getElementById("pdf-preview-frame");
+const pdfPreviewFecharBtn = document.getElementById("pdf-preview-fechar-btn");
+const pdfPreviewBaixarBtn = document.getElementById("pdf-preview-baixar-btn");
 const itensList = document.getElementById("itens-list");
 const addItemBtn = document.getElementById("add-item-btn");
 const itemRowTemplate = document.getElementById("item-row-template");
@@ -428,6 +433,10 @@ async function init() {
   pixOrderBtn.addEventListener("click", openPixDialog);
   closePixBtn.addEventListener("click", () => pixDialog.close());
   pixCopiarBtn.addEventListener("click", copiarPayloadPix);
+  closePdfPreviewBtn.addEventListener("click", () => pdfPreviewDialog.close());
+  pdfPreviewFecharBtn.addEventListener("click", () => pdfPreviewDialog.close());
+  pdfPreviewBaixarBtn.addEventListener("click", baixarPdfPrevia);
+  pdfPreviewDialog.addEventListener("close", limparPreviaPdf);
 
   // Isolado em try/catch: se algum elemento novo do Estoque não existir por algum motivo (ex:
   // HTML e JS temporariamente fora de sincronia num recarregamento no meio de um deploy), o erro
@@ -4510,6 +4519,35 @@ function gatherOrderSnapshot() {
   };
 }
 
+let pdfPreviaDocAtual = null;
+let pdfPreviaNomeAtual = "";
+let pdfPreviaBlobUrlAtual = null;
+
+// Mostra o PDF gerado num iframe antes de baixar, pra dar chance de conferir o documento.
+// O download real só acontece quando o usuário clica "Baixar PDF" no dialog de pré-visualização.
+function mostrarPreviaPdf(doc, nomeArquivo) {
+  limparPreviaPdf();
+  pdfPreviaDocAtual = doc;
+  pdfPreviaNomeAtual = nomeArquivo;
+  pdfPreviaBlobUrlAtual = doc.output("bloburl");
+  pdfPreviewFrame.src = pdfPreviaBlobUrlAtual;
+  pdfPreviewDialog.showModal();
+}
+
+function baixarPdfPrevia() {
+  if (!pdfPreviaDocAtual) return;
+  pdfPreviaDocAtual.save(pdfPreviaNomeAtual);
+  pdfPreviewDialog.close();
+}
+
+function limparPreviaPdf() {
+  if (pdfPreviaBlobUrlAtual) URL.revokeObjectURL(pdfPreviaBlobUrlAtual);
+  pdfPreviaDocAtual = null;
+  pdfPreviaNomeAtual = "";
+  pdfPreviaBlobUrlAtual = null;
+  pdfPreviewFrame.src = "about:blank";
+}
+
 function gerarOrcamentoPdf() {
   const snap = gatherOrderSnapshot();
   if (snap.itens.length === 0) {
@@ -4572,7 +4610,7 @@ function gerarOrcamentoPdf() {
     y += 7;
   }
 
-  doc.save(`orcamento-${(snap.clienteNome || "pedido").replace(/\s+/g, "-")}.pdf`);
+  mostrarPreviaPdf(doc, `orcamento-${(snap.clienteNome || "pedido").replace(/\s+/g, "-")}.pdf`);
 }
 
 function enviarWhatsapp() {
@@ -6097,5 +6135,5 @@ function gerarPropostaPdf(orcamentoId) {
   );
   doc.text(`Vendedor · ${configuracoes?.telefone || ""}`, marginX + contentWidth, y, { align: "right" });
 
-  doc.save(`proposta-${(orc.cliente_nome || "orcamento").replace(/\s+/g, "-")}.pdf`);
+  mostrarPreviaPdf(doc, `proposta-${(orc.cliente_nome || "orcamento").replace(/\s+/g, "-")}.pdf`);
 }
