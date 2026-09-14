@@ -93,6 +93,7 @@ const financeiroMeiValoresEl = document.getElementById("financeiro-mei-valores")
 const financeiroMeiAlertaEl = document.getElementById("financeiro-mei-alerta");
 const financeiroProvisaoValorEl = document.getElementById("financeiro-provisao-valor");
 const financeiroProvisaoSubEl = document.getElementById("financeiro-provisao-sub");
+const estoqueDateText = document.getElementById("estoque-date-text");
 const financeiroDashboardEl = document.getElementById("financeiro-dashboard");
 const indicadoresDashboardEl = document.getElementById("indicadores-dashboard");
 const indicadoresTabelasEl = document.getElementById("indicadores-tabelas");
@@ -736,6 +737,7 @@ function atualizarUsuarioHeader() {
   inicioDateText.textContent = dataFormatada;
   if (painelDateText) painelDateText.textContent = dataFormatada;
   if (financeiroDateText) financeiroDateText.textContent = dataFormatada;
+  if (estoqueDateText) estoqueDateText.textContent = dataFormatada;
 }
 
 // Alertas reais (não inventados): pedidos atrasados + itens de estoque abaixo do mínimo —
@@ -4848,29 +4850,42 @@ function renderInsumosList() {
   });
 
   if (filtrados.length === 0) {
-    insumosListEl.innerHTML = `<li class="column-empty">Nenhum insumo encontrado.</li>`;
+    insumosListEl.innerHTML = `<div class="panel-empty panel-empty--grande">
+      <i data-lucide="box"></i>
+      <strong>Nenhum insumo encontrado.</strong>
+      <span>Cadastre seus insumos para controlar o estoque, consumo e movimentações.</span>
+      <button type="button" class="btn-hero-primary btn-hero-primary--sm" id="insumo-vazio-novo-btn"><i data-lucide="plus"></i>NOVO INSUMO</button>
+    </div>`;
+    document.getElementById("insumo-vazio-novo-btn")?.addEventListener("click", () => openInsumoDialog(null));
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
-  insumosListEl.innerHTML = filtrados
-    .map((i) => {
-      const saldo = calcularSaldoInsumo(i.id);
-      const abaixoDoMinimo = Number(i.estoque_minimo) > 0 && saldo <= Number(i.estoque_minimo);
-      const numRolos = rolos.filter((r) => r.insumo_id === i.id && r.status !== "descartado").length;
-      return `<li>
-        <span>
-          ${escapeHtml(i.nome)} · ${CATEGORIA_INSUMO_LABEL[i.categoria] || i.categoria}
-          — saldo: <strong class="${abaixoDoMinimo ? "estoque-baixo" : ""}">${formatQuantidade(saldo, i.unidade_medida)}</strong>${numRolos > 0 ? ` (${numRolos} rolo${numRolos > 1 ? "s" : ""})` : ""}
-          · custo médio: ${formatMoneyPreciso(i.custo_medio_ponderado)}/${i.unidade_medida}
-        </span>
-        <button type="button" data-id="${i.id}" class="edit-insumo-btn">✏️</button>
-      </li>`;
-    })
-    .join("");
+  insumosListEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>Nome</th><th>Categoria</th><th>Quantidade</th><th>Estoque mínimo</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      ${filtrados
+        .map((i) => {
+          const saldo = calcularSaldoInsumo(i.id);
+          const minimo = Number(i.estoque_minimo) || 0;
+          const status = minimo <= 0 ? { label: "Em dia", cls: "ok" } : saldo <= 0 ? { label: "Crítico", cls: "critico" } : saldo <= minimo ? { label: "Baixo", cls: "baixo" } : { label: "Em dia", cls: "ok" };
+          return `<tr>
+            <td>${escapeHtml(i.nome)}</td>
+            <td>${escapeHtml(CATEGORIA_INSUMO_LABEL[i.categoria] || i.categoria)}</td>
+            <td>${formatQuantidade(saldo, i.unidade_medida)}</td>
+            <td>${minimo > 0 ? formatQuantidade(minimo, i.unidade_medida) : "—"}</td>
+            <td><span class="badge-estoque-status badge-estoque-status--${status.cls}">${status.label}</span></td>
+            <td><button type="button" data-id="${i.id}" class="edit-insumo-btn btn-outline btn-outline--sm">Editar</button></td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
 
   insumosListEl.querySelectorAll(".edit-insumo-btn").forEach((btn) =>
     btn.addEventListener("click", () => openInsumoDialog(insumos.find((i) => i.id === btn.dataset.id)))
   );
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function atualizarCamposFilamentoInsumo() {
@@ -4976,23 +4991,34 @@ function renderRolosList() {
   });
 
   if (filtrados.length === 0) {
-    rolosListEl.innerHTML = `<li class="column-empty">Nenhum rolo encontrado.</li>`;
+    rolosListEl.innerHTML = `<div class="panel-empty panel-empty--grande">
+      <i data-lucide="disc-3"></i>
+      <strong>Nenhum rolo cadastrado.</strong>
+      <span>Cadastre os rolos para acompanhar o consumo do material.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
-  rolosListEl.innerHTML = filtrados
-    .map((r) => {
-      const insumo = insumos.find((i) => i.id === r.insumo_id);
-      return `<li>
-        <span>
-          <strong>${escapeHtml(r.id_curto)}</strong> — ${escapeHtml(insumo?.nome || "insumo removido")}
-          · ${Number(r.peso_atual_g).toLocaleString("pt-BR")}g / ${Number(r.peso_inicial_g).toLocaleString("pt-BR")}g
-          · <span class="status-badge ${r.status}">${STATUS_ROLO_LABEL[r.status] || r.status}</span>
-          ${r.local_armazenagem ? ` · 📍 ${escapeHtml(r.local_armazenagem)}` : ""}
-        </span>
-      </li>`;
-    })
-    .join("");
+  rolosListEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>ID</th><th>Insumo</th><th>Peso atual</th><th>Peso inicial</th><th>Local</th><th>Status</th></tr></thead>
+    <tbody>
+      ${filtrados
+        .map((r) => {
+          const insumo = insumos.find((i) => i.id === r.insumo_id);
+          return `<tr>
+            <td>${escapeHtml(r.id_curto)}</td>
+            <td>${escapeHtml(insumo?.nome || "insumo removido")}</td>
+            <td>${Number(r.peso_atual_g).toLocaleString("pt-BR")}g</td>
+            <td>${Number(r.peso_inicial_g).toLocaleString("pt-BR")}g</td>
+            <td>${r.local_armazenagem ? escapeHtml(r.local_armazenagem) : "—"}</td>
+            <td><span class="status-badge ${r.status}">${STATUS_ROLO_LABEL[r.status] || r.status}</span></td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 // Popula o <select> de insumo do modal de rolo — só insumos de categoria filamento, já que é
@@ -5099,7 +5125,12 @@ function renderMovimentosEstoqueList() {
   if (filtroTipo) lista = lista.filter((m) => m.tipo === filtroTipo);
 
   if (lista.length === 0) {
-    movimentosEstoqueListEl.innerHTML = `<p class="column-empty">Nenhuma movimentação encontrada.</p>`;
+    movimentosEstoqueListEl.innerHTML = `<div class="panel-empty panel-empty--grande">
+      <i data-lucide="arrow-left-right"></i>
+      <strong>Nenhuma movimentação encontrada.</strong>
+      <span>As entradas e saídas de estoque aparecerão aqui.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
@@ -5325,29 +5356,40 @@ function renderProdutosEstoqueList() {
   const filtrados = produtos.filter((p) => !busca || p.nome.toLowerCase().includes(busca));
 
   if (filtrados.length === 0) {
-    produtosEstoqueListEl.innerHTML = `<li class="column-empty">Nenhum produto cadastrado ainda.</li>`;
+    produtosEstoqueListEl.innerHTML = `<div class="panel-empty panel-empty--grande">
+      <i data-lucide="package"></i>
+      <strong>Nenhum produto cadastrado ainda.</strong>
+      <span>Cadastre seus produtos acabados para controlar o estoque de peças prontas.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 
-  produtosEstoqueListEl.innerHTML = filtrados
-    .map((p) => {
-      const saldo = Number(p.quantidade_estoque) || 0;
-      const abaixoDoMinimo = Number(p.estoque_minimo) > 0 && saldo <= Number(p.estoque_minimo);
-      return `<li>
-        <span>
-          ${escapeHtml(p.nome)}${p.cor ? " · " + escapeHtml(p.cor) : ""}
-          — estoque: <strong class="${abaixoDoMinimo ? "estoque-baixo" : ""}">${saldo} un</strong>
-          ${p.preco_venda ? ` · ${formatMoney(p.preco_venda)}` : ""}
-          ${abaixoDoMinimo ? '<span class="badge-alerta">⚠️ abaixo do mínimo</span>' : ""}
-        </span>
-        <button type="button" data-id="${p.id}" class="edit-produto-estoque-btn">✏️</button>
-      </li>`;
-    })
-    .join("");
+  produtosEstoqueListEl.innerHTML = `<div class="table-scroll"><table class="panel-table">
+    <thead><tr><th>Nome</th><th>Cor</th><th>Estoque</th><th>Preço de venda</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      ${filtrados
+        .map((p) => {
+          const saldo = Number(p.quantidade_estoque) || 0;
+          const minimo = Number(p.estoque_minimo) || 0;
+          const status = minimo <= 0 ? { label: "Em dia", cls: "ok" } : saldo <= 0 ? { label: "Crítico", cls: "critico" } : saldo <= minimo ? { label: "Baixo", cls: "baixo" } : { label: "Em dia", cls: "ok" };
+          return `<tr>
+            <td>${escapeHtml(p.nome)}</td>
+            <td>${p.cor ? escapeHtml(p.cor) : "—"}</td>
+            <td>${saldo} un</td>
+            <td>${p.preco_venda ? formatMoney(p.preco_venda) : "—"}</td>
+            <td><span class="badge-estoque-status badge-estoque-status--${status.cls}">${status.label}</span></td>
+            <td><button type="button" data-id="${p.id}" class="edit-produto-estoque-btn btn-outline btn-outline--sm">Editar</button></td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table></div>`;
 
   produtosEstoqueListEl.querySelectorAll(".edit-produto-estoque-btn").forEach((btn) =>
     btn.addEventListener("click", () => openProdutoEstoqueDialog(produtos.find((p) => p.id === btn.dataset.id)))
   );
+  if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function openProdutoEstoqueDialog(produto) {
@@ -5440,7 +5482,12 @@ function renderMovimentosProdutoList() {
   if (filtroTipo) lista = lista.filter((m) => m.tipo === filtroTipo);
 
   if (lista.length === 0) {
-    movimentosProdutoListEl.innerHTML = `<p class="column-empty">Nenhuma movimentação encontrada.</p>`;
+    movimentosProdutoListEl.innerHTML = `<div class="panel-empty panel-empty--grande">
+      <i data-lucide="arrow-left-right"></i>
+      <strong>Nenhuma movimentação encontrada.</strong>
+      <span>As entradas e saídas de produto acabado aparecerão aqui.</span>
+    </div>`;
+    if (typeof lucide !== "undefined") lucide.createIcons();
     return;
   }
 

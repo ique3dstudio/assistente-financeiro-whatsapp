@@ -742,20 +742,38 @@
     </main>
 
     <main id="tab-estoque" class="tab-panel" hidden>
+      <div class="inicio-hero">
+        <div class="inicio-hero-left">
+          <h1 class="inicio-title">Estoque</h1>
+          <p class="inicio-subtitle">Gerencie seus insumos, acompanhe o consumo e mantenha seu estoque sempre em dia.</p>
+        </div>
+        <div class="inicio-hero-right">
+          <div class="inicio-date">
+            <i data-lucide="calendar-days"></i>
+            <span class="inicio-date-text-wrap">
+              <span id="estoque-date-text" class="inicio-date-text"></span>
+              <span class="inicio-date-sub">Tenha um excelente dia!</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       <nav class="estoque-modo-tabs">
         <button type="button" class="estoque-modo-btn active" data-modo-estoque="materia-prima">
-          🧵 Matéria-prima <span class="subtitle-inline">filamento, resina, consumíveis…</span>
+          <span class="estoque-modo-icon"><i data-lucide="cylinder"></i></span>
+          <span class="estoque-modo-texto"><strong>Matéria-prima</strong><span class="subtitle-inline">filamento, resina, consumíveis…</span></span>
         </button>
         <button type="button" class="estoque-modo-btn" data-modo-estoque="produto-acabado">
-          📦 Produto acabado <span class="subtitle-inline">peças prontas pra vender</span>
+          <span class="estoque-modo-icon"><i data-lucide="box"></i></span>
+          <span class="estoque-modo-texto"><strong>Produto acabado</strong><span class="subtitle-inline">peças prontas pra vender</span></span>
         </button>
       </nav>
 
       <div id="estoque-modo-materia-prima" class="estoque-modo-painel">
       <nav class="subtabs">
-        <button type="button" class="estoque-subtab-btn active" data-subtab-estoque="insumos">Insumos</button>
-        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="rolos">Rolos</button>
-        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="movimentacoes">Movimentações</button>
+        <button type="button" class="estoque-subtab-btn active" data-subtab-estoque="insumos"><i data-lucide="cylinder"></i>Insumos</button>
+        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="rolos"><i data-lucide="disc-3"></i>Rolos</button>
+        <button type="button" class="estoque-subtab-btn" data-subtab-estoque="movimentacoes"><i data-lucide="arrow-left-right"></i>Movimentações</button>
       </nav>
 
       <div id="subtab-estoque-insumos" class="estoque-subpanel">
@@ -772,7 +790,7 @@
           <span class="spacer"></span>
           <button type="button" id="novo-insumo-btn" class="primary">+ Novo insumo</button>
         </div>
-        <ul id="insumos-list" class="materiais-list"></ul>
+        <div id="insumos-list" class="page-table-wrap"></div>
       </div>
 
       <div id="subtab-estoque-rolos" class="estoque-subpanel" hidden>
@@ -788,7 +806,7 @@
           <span class="spacer"></span>
           <button type="button" id="novo-rolo-btn" class="primary">+ Novo rolo (compra)</button>
         </div>
-        <ul id="rolos-list" class="materiais-list"></ul>
+        <div id="rolos-list" class="page-table-wrap"></div>
       </div>
 
       <div id="subtab-estoque-movimentacoes" class="estoque-subpanel" hidden>
@@ -810,8 +828,8 @@
 
       <div id="estoque-modo-produto-acabado" class="estoque-modo-painel" hidden>
       <nav class="subtabs">
-        <button type="button" class="produto-subtab-btn active" data-subtab-produto="catalogo">Produtos</button>
-        <button type="button" class="produto-subtab-btn" data-subtab-produto="movimentacoes">Movimentações</button>
+        <button type="button" class="produto-subtab-btn active" data-subtab-produto="catalogo"><i data-lucide="box"></i>Produtos</button>
+        <button type="button" class="produto-subtab-btn" data-subtab-produto="movimentacoes"><i data-lucide="arrow-left-right"></i>Movimentações</button>
       </nav>
 
       <div id="subtab-produto-catalogo" class="produto-subpanel">
@@ -820,7 +838,7 @@
           <span class="spacer"></span>
           <button type="button" id="novo-produto-estoque-btn" class="primary">+ Novo produto</button>
         </div>
-        <ul id="produtos-estoque-list" class="materiais-list"></ul>
+        <div id="produtos-estoque-list" class="page-table-wrap"></div>
       </div>
 
       <div id="subtab-produto-movimentacoes" class="produto-subpanel" hidden>
@@ -838,6 +856,21 @@
         </div>
         <div id="movimentos-produto-list"></div>
       </div>
+      </div>
+
+      <div class="estoque-info-grid">
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="box"></i></span>
+          <div><h3>Controle total</h3><p class="subtitle">Gerencie seus insumos de forma organizada</p></div>
+        </div>
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="activity"></i></span>
+          <div><h3>Acompanhe o consumo</h3><p class="subtitle">Veja as movimentações em tempo real</p></div>
+        </div>
+        <div class="estoque-info-card">
+          <span class="estoque-info-icon"><i data-lucide="shield-alert"></i></span>
+          <div><h3>Evite falta de estoque</h3><p class="subtitle">Mantenha seus insumos sempre disponíveis</p></div>
+        </div>
       </div>
     </main>
 

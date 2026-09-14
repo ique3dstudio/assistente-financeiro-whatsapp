@@ -1205,37 +1205,125 @@ legend {
 /* Estoque: separação bem visível entre matéria-prima (o que entra) e produto acabado (o que
    sai) — visual mais "pesado" que as sub-abas comuns, de propósito, pra não confundir os dois. */
 .estoque-modo-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 16px 16px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding-bottom: 20px;
 }
 
 .estoque-modo-btn {
-  flex: 1;
-  min-width: 220px;
-  background: var(--panel-2);
+  background: linear-gradient(145deg, #111822, #0d131b);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  padding: 18px;
   text-align: left;
-  font-size: 15px;
-  font-weight: 700;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-card);
+  min-height: 84px;
+}
+
+.estoque-modo-btn:hover {
+  border-color: #334052;
+}
+
+.estoque-modo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.estoque-modo-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.estoque-modo-texto {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.estoque-modo-texto strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .estoque-modo-btn .subtitle-inline {
   font-weight: 400;
   display: block;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .estoque-modo-btn.active {
+  border-color: rgba(255, 138, 0, 0.55);
+  box-shadow: var(--shadow-card), 0 0 0 1px rgba(255, 138, 0, 0.08) inset;
+}
+
+.estoque-modo-btn.active .estoque-modo-icon {
+  background: rgba(255, 138, 0, 0.12);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .estoque-modo-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sub-abas de Estoque (Insumos/Rolos/Movimentações, Produtos/Movimentações) */
+.estoque-subtab-btn,
+.produto-subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-input);
+  font-size: 14px;
+  font-weight: 600;
   background: var(--panel);
-  border-color: var(--accent);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.estoque-subtab-btn svg,
+.produto-subtab-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.estoque-subtab-btn:hover,
+.produto-subtab-btn:hover {
+  border-color: #334052;
   color: var(--text);
+}
+
+.estoque-subtab-btn.active,
+.produto-subtab-btn.active {
+  background: rgba(255, 138, 0, 0.06);
+  border-color: rgba(255, 138, 0, 0.28);
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+#estoque-modo-materia-prima > .subtabs,
+#estoque-modo-produto-acabado > .subtabs {
+  height: auto;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 18px;
 }
 
 .badge-alerta {
@@ -3193,4 +3281,156 @@ legend {
   .financeiro-kpi-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Estoque: status badges, empty state grande, cards informativos ---------- */
+.badge-estoque-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.badge-estoque-status--ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.badge-estoque-status--baixo {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--yellow);
+}
+
+.badge-estoque-status--critico {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.panel-empty--grande {
+  min-height: 365px;
+  padding: 32px;
+  gap: 14px;
+}
+
+.panel-empty--grande svg {
+  width: 64px;
+  height: 64px;
+  stroke-width: 1.5;
+}
+
+.panel-empty--grande strong {
+  font-size: 18px;
+}
+
+.panel-empty--grande span {
+  max-width: 420px;
+}
+
+.btn-hero-primary--sm {
+  height: 44px;
+  min-width: 0;
+  padding: 0 22px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.estoque-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.estoque-info-card {
+  background: linear-gradient(145deg, #111822, #0d131b);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 18px;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.estoque-info-card:hover {
+  border-color: #334052;
+}
+
+.estoque-info-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(148, 163, 184, 0.08);
+  color: #d6dfec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.estoque-info-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.estoque-info-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.estoque-info-card .subtitle {
+  margin: 2px 0 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+@media (max-width: 1023px) {
+  .estoque-info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .estoque-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- financeiro-table: visual premium (Financeiro + Movimentações de estoque) ---------- */
+.financeiro-table {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.financeiro-table th,
+.financeiro-table td {
+  padding: 0 12px;
+  height: 40px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.financeiro-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: #9ba7b8;
+  font-weight: 600;
+  font-size: 11px;
+  height: 36px;
+}
+
+.financeiro-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status-badge {
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
 }
