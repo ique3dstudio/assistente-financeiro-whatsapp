@@ -28,6 +28,7 @@ const D = {
   prato: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.4"/>',
   camera: '<path d="M4 8.4h2.8l1.4-2h7.6l1.4 2H20a1.6 1.6 0 0 1 1.6 1.6v9A1.6 1.6 0 0 1 20 20.6H4A1.6 1.6 0 0 1 2.4 19v-9A1.6 1.6 0 0 1 4 8.4z"/><circle cx="12" cy="14" r="3.6"/>',
   garfo: '<path d="M7 3v7.6a2.2 2.2 0 0 0 4.4 0V3M9.2 3v7.6M9.2 10.6V21M16 3c-1.5 0-2.4 1.6-2.4 4s.9 4 2.4 4M16 3v14.5"/>',
+  estrela: '<path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/><path d="M19 15l.6 1.8 1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6z"/>',
 };
 
 export function icone(nome, tamanho = null) {

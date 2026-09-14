@@ -89,7 +89,8 @@ banco continuam valendo — só a camada de tela seria reescrita em Expo. Nada d
 | E5.5 Diário: reflexão semanal e "um ano atrás" | ✅ feito |
 | E5.6 Como você se sentiu depois de comer | ✅ feito |
 | E1.12 Roda da vida e vision board (desdobrado de M2 — a revisão guiada saiu daqui e virou a E5.5) | ⬜ a fazer |
-| E6.3 WhatsApp — texto e áudio viram lançamento financeiro | ✅ feito para Finanças (⬜ depende de você para ativar — ver `PENDENTE-VOCE.md`); água/treino/humor ficam para a barra de comando (E6.1) |
+| E6.1 Barra de comando por IA (Hoje) — gasto, água, treino, agenda | ✅ feito (mesma chave Groq de E6.3) |
+| E6.3 WhatsApp — texto e áudio viram lançamento financeiro | ✅ feito para Finanças (⬜ depende de você para ativar — ver `PENDENTE-VOCE.md`); rotear pra outros módulos pelo WhatsApp é reaproveitar o roteador da E6.1, ainda a fazer |
 
 **Como rodar o SQL:** `db/RODAR-TUDO.sql` junta o núcleo e todos os módulos na ordem certa. Pode rodar de
 novo quantas vezes quiser — nada é apagado nem duplicado. O arquivo é gerado por `npm run sql` e validado
@@ -505,10 +506,15 @@ Aqui está o diferencial da seção 9 da espec. Só funciona bem **depois** que 
 - **Entrega:** um campo no topo da tela Hoje que entende linguagem natural e roteia para o módulo certo:
   "gastei 45 no almoço", "supino 4x8 com 60", "consulta com dentista quinta 15h", "bebi 500ml";
   sempre mostra o que entendeu antes de gravar, com 1 toque para confirmar ou corrigir.
-- **Banco:** `ia_comandos` (histórico, para melhorar o roteamento).
-- **Código:** `src/core/ai.js` (uma ferramenta por módulo), `src/core/roteador.js`.
-- **Aceite:** os 4 exemplos da espec funcionando na primeira tentativa.
-- **Você faz:** decidir o provedor de IA (ver quadro de custos abaixo) e colar a chave no Render.
+- **Banco:** nenhuma tabela nova — a barra grava direto nas tabelas de cada módulo (transacoes, agua_registros,
+  treino_series, agenda_eventos), exatamente como se você tivesse usado a tela de cada um.
+- **Código:** `src/core/ai.js` (interpretação genérica com tool use, uma ferramenta por módulo), `src/core/roteador.js`
+  (as 4 ferramentas, a prévia antes de gravar, e a gravação de verdade em cada módulo), `public/telas/hoje.js`
+  (o campo e o painel de confirmação).
+- **Aceite:** os 4 exemplos da espec funcionando na primeira tentativa — feito e testado (14 testes automatizados
+  cobrindo a lógica de casar exercício por nome, formatar a prévia e tratar comando não reconhecido).
+- **Você faz:** nada — usa a mesma chave da Groq já configurada para o WhatsApp (E6.3). Só funciona depois do
+  primeiro comando bem-sucedido do WhatsApp já ter validado a chave.
 
 ### E6.2 — Ditado e foto
 - **Entrega:** falar em vez de digitar na barra de comando; foto de cupom virando lançamento por OCR;

@@ -1,4 +1,7 @@
-import { acaoApi, anel, api, avisar, corDoModulo, dataLonga, escapar, estado, navegar, vazio } from "../ui.js";
+import {
+  $, abrirPainel, acaoApi, anel, api, atualizar, avisar, corDoModulo, dataLonga, escapar, estado,
+  fecharPainel, navegar, vazio, vibrar,
+} from "../ui.js";
 import { ORDEM_ANEIS, icone } from "../icones.js";
 
 export const rota = /^\/hoje$/;
@@ -74,6 +77,17 @@ export async function render() {
           : ""
       }
     </header>
+
+    <section class="secao">
+      <div class="cartao" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+        <label class="campo" style="margin:0"><span>Diga o que fazer</span>
+          <input id="comando-texto" placeholder="gastei 40 no mercado, bebi 500ml, supino 4x8 com 60..." /></label>
+        <button class="botao secundario" data-acao="comando-perguntar"
+                style="display:flex;align-items:center;justify-content:center;gap:6px">
+          ${icone("estrela", 16)} Perguntar
+        </button>
+      </div>
+    </section>
 
     <div class="secao aneis">${aneis}</div>
     ${dados.total ? periodos : semNada}
@@ -176,5 +190,55 @@ export const acoes = {
 
   async humor(nota) {
     await acaoApi("/diario/humor", { method: "POST", body: JSON.stringify({ nota: Number(nota) }) }, "Humor registrado");
+  },
+
+  // Barra de comando por IA (E6.1): sempre mostra o que entendeu antes de
+  // gravar — a IA só monta a prévia, nada é salvo até o toque em Confirmar.
+  async "comando-perguntar"() {
+    const campo = $("#comando-texto");
+    const texto = campo?.value.trim();
+    if (!texto) return avisar("Digite algo primeiro");
+
+    let preview;
+    try {
+      preview = await api("/comando/interpretar", { method: "POST", body: JSON.stringify({ texto }) });
+    } catch (erro) {
+      if (erro.message !== "sessao") avisar(erro.message);
+      return;
+    }
+
+    if (!preview?.modulo) {
+      return avisar("Não entendi esse comando — pelo módulo direto funciona normalmente.");
+    }
+    if (preview.erro) return avisar(preview.erro);
+
+    estado.rascunho = { comando: preview };
+    abrirPainel(`<div class="titulo">Confere se entendi certo</div>
+      <div style="padding:0 14px 14px">
+        <p style="font-size:17px;margin:4px 0 16px">${escapar(preview.resumo)}</p>
+        <button class="botao" data-acao="comando-confirmar" style="background:${corDoModulo(preview.modulo)}">Confirmar</button>
+      </div>
+      <button data-acao="fechar-painel">Cancelar</button>`);
+  },
+
+  async "comando-confirmar"() {
+    const preview = estado.rascunho?.comando;
+    if (!preview) return;
+    fecharPainel();
+    vibrar();
+
+    try {
+      const resultado = await api("/comando/confirmar", {
+        method: "POST",
+        body: JSON.stringify({ modulo: preview.modulo, dados: preview.dados }),
+      });
+      avisar(resultado.mensagem || "Registrado!");
+      const campo = $("#comando-texto");
+      if (campo) campo.value = "";
+      await atualizar();
+    } catch (erro) {
+      if (erro.message !== "sessao") avisar(erro.message);
+    }
+    estado.rascunho = null;
   },
 };

@@ -1,22 +1,49 @@
-// Interpreta mensagens de WhatsApp (digitadas ou transcritas de um áudio) como
-// lançamentos financeiros, usando um modelo Llama hospedado de graça na Groq,
-// com tool use: se a mensagem não descrever um gasto ou um recebimento, a IA
-// não chama a ferramenta e a função devolve null — quem chama decide o que
-// fazer com isso.
-//
-// Mesmo provedor da transcrição (src/core/transcricao.js), modelo diferente:
-// aqui é um Llama de texto, lá é o Whisper.
+// Núcleo de interpretação por IA com tool use, rodando na Groq (modelo Llama,
+// grátis). Duas camadas:
+//   - `interpretar`: genérica, recebe um prompt e uma lista de ferramentas
+//     (uma por módulo) e devolve qual foi chamada — usada pela barra de
+//     comando (src/core/roteador.js), que decide o módulo certo por mensagem.
+//   - `interpretarMensagem`: a original, uma ferramenta só (lançamento
+//     financeiro) — usada pelo WhatsApp (src/core/webhook.js), que só entende
+//     Finanças por enquanto.
 import OpenAI from "openai";
 
 const MODEL = process.env.GROQ_MODEL_TEXTO || "llama-3.3-70b-versatile";
 
-const PROMPT_SISTEMA = `Você é um assistente financeiro que interpreta mensagens de WhatsApp em português do Brasil,
+let cliente;
+function getCliente() {
+  if (!cliente) {
+    cliente = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+  }
+  return cliente;
+}
+
+// `tools`: lista de ferramentas no formato da OpenAI function calling. Devolve
+// `{ ferramenta, dados }` da que foi chamada, ou null se a IA não chamou
+// nenhuma (mensagem não reconhecida em nenhuma das ferramentas oferecidas).
+export async function interpretar(texto, { systemPrompt, tools }) {
+  const resposta = await getCliente().chat.completions.create({
+    model: MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: texto },
+    ],
+    tools,
+  });
+
+  const chamada = resposta.choices[0].message.tool_calls?.[0];
+  if (!chamada) return null;
+
+  return { ferramenta: chamada.function.name, dados: JSON.parse(chamada.function.arguments) };
+}
+
+const PROMPT_FINANCAS = `Você é um assistente financeiro que interpreta mensagens de WhatsApp em português do Brasil,
 digitadas ou transcritas de um áudio (podem ter erros de transcrição). Se a mensagem descrever um lançamento
 financeiro — um gasto ou um recebimento de dinheiro —, chame a ferramenta registrar_transacao com os dados
 extraídos. Se a mensagem NÃO for um lançamento financeiro (saudação, pergunta, pedido de resumo, comentário sem
 valor em dinheiro), não chame nenhuma ferramenta.`;
 
-function ferramenta(nomesCategorias) {
+function ferramentaFinancas(nomesCategorias) {
   return {
     type: "function",
     function: {
@@ -41,14 +68,6 @@ function ferramenta(nomesCategorias) {
   };
 }
 
-let cliente;
-function getCliente() {
-  if (!cliente) {
-    cliente = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
-  }
-  return cliente;
-}
-
 // `categoriasDisponiveis`: lista de categorias do usuário (`[{nome, tipo}, ...]`,
 // como devolve o service de finanças) — usada só para guiar a escolha da IA,
 // nunca trava o resultado: uma categoria fora da lista ainda é aceita, o
@@ -56,19 +75,13 @@ function getCliente() {
 export async function interpretarMensagem(texto, categoriasDisponiveis = []) {
   const nomes = [...new Set(categoriasDisponiveis.map((c) => c.nome))];
 
-  const resposta = await getCliente().chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: "system", content: PROMPT_SISTEMA },
-      { role: "user", content: texto },
-    ],
-    tools: [ferramenta(nomes)],
+  const resultado = await interpretar(texto, {
+    systemPrompt: PROMPT_FINANCAS,
+    tools: [ferramentaFinancas(nomes)],
   });
+  if (!resultado) return null;
 
-  const chamada = resposta.choices[0].message.tool_calls?.[0];
-  if (!chamada) return null;
-
-  const { valor, tipo, categoria, descricao } = JSON.parse(chamada.function.arguments);
+  const { valor, tipo, categoria, descricao } = resultado.dados;
   if (!Number.isFinite(Number(valor)) || Number(valor) <= 0) return null;
   if (!["receita", "despesa"].includes(tipo)) return null;
 

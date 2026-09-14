@@ -18,6 +18,11 @@ O que depende de você fica esperando aqui, marcado.
 > texto ou um áudio tipo "gastei 40 no mercado" e ele vira um gasto lançado sozinho, na categoria certa. Só que,
 > diferente de tudo que veio antes, isso depende de **3 cadastros externos** (não só do SQL) para ligar de
 > verdade. Veja a seção 4 abaixo — é o próximo passo mais importante da sua lista.
+>
+> **Bônus que já veio de graça:** a tela Hoje ganhou um campo "Diga o que fazer" no topo — funciona só com a
+> chave da Groq (a mesma do WhatsApp), sem precisar do Meta for Developers. Assim que colar `GROQ_API_KEY` no
+> Render, já dá pra testar direto pelo app: "bebi 500ml", "supino 4x8 com 60", "consulta com dentista quinta
+> 15h" ou "gastei 40 no mercado" — antes mesmo de terminar de configurar o WhatsApp.
 
 ## 1. Rodar o SQL (resolve quase tudo)
 

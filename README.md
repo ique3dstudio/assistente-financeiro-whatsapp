@@ -124,7 +124,7 @@ O plano completo está em [`ROADMAP.md`](ROADMAP.md), em 7 fases:
 | 3 | Dinheiro: contas, cartões e faturas, recorrentes, orçamento, relatórios, dívidas | feito |
 | 4 | Saúde e vícios: medicamentos, consultas, exames, contador, SOS, gatilhos | feito |
 | 5 | Dieta e diário: refeições, macros, ajuste adaptativo, humor, revisão semanal | feito |
-| 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | em andamento (WhatsApp lança gasto por texto/áudio; resto a fazer) |
+| 6 | Inteligência: barra de comando por IA, WhatsApp, briefing, insights cruzados, gamificação | em andamento (barra de comando e WhatsApp já lançam gasto/água/treino/agenda; briefing, insights e gamificação a fazer) |
 | 7 | Fechamento: export total, acabamento visual, calendário externo | a fazer |
 
 Veja `ROADMAP.md` para o detalhe etapa a etapa e `PENDENTE-VOCE.md` para o que depende de você.

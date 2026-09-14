@@ -10,6 +10,7 @@ import { montarHoje } from "./core/hoje.js";
 import { lerPerfil, salvarPerfil } from "./core/perfil.js";
 import { diagnosticar } from "./core/diagnostico.js";
 import { hoje } from "./core/datas.js";
+import { executarComando, interpretarComando } from "./core/roteador.js";
 import webhookRouter from "./core/webhook.js";
 
 const PASTA = path.dirname(fileURLToPath(import.meta.url));
@@ -73,6 +74,25 @@ app.get("/api/perfil", exigirLogin, async (req, res, next) => {
 app.put("/api/perfil", exigirLogin, async (req, res, next) => {
   try {
     res.json(await salvarPerfil(req.usuario, req.body || {}));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// Barra de comando por IA (E6.1): interpretar só monta a prévia (nada é
+// gravado); confirmar é quem grava de verdade — por isso passa pela mesma
+// idempotência dos módulos, para um reenvio de rede não duplicar o lançamento.
+app.post("/api/comando/interpretar", exigirLogin, async (req, res, next) => {
+  try {
+    res.json((await interpretarComando(req.usuario, req.body?.texto || "")) || { modulo: null });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+app.post("/api/comando/confirmar", exigirLogin, idempotencia, async (req, res, next) => {
+  try {
+    res.json(await executarComando(req.usuario, req.body?.modulo, req.body?.dados));
   } catch (erro) {
     next(erro);
   }

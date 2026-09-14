@@ -278,9 +278,27 @@ apareceu porque o novo módulo de dieta tornou o problema óbvio numa das fotos.
 - Ainda só entende **Finanças** — "bebi 500ml" ou "supino 4x8" pelo WhatsApp ainda não roteiam para os outros
   módulos; isso é o trabalho da barra de comando (E6.1), que reaproveita este mesmo webhook.
 
+## E6.1 — Barra de comando por IA
+- **Campo no topo da tela Hoje**: "gastei 45 no almoço", "bebi 500ml", "supino 4x8 com 60" ou "consulta com
+  dentista quinta 15h" já registram sozinhos, no módulo certo — sem abrir tela nenhuma.
+- **Sempre mostra o que entendeu antes de gravar**: a IA só monta uma prévia (nada é salvo); o app mostra a
+  frase de confirmação e só grava de verdade com 1 toque em "Confirmar".
+- **`src/core/ai.js` virou genérico**: a função `interpretar` de baixo nível agora aceita qualquer lista de
+  ferramentas — o WhatsApp (Finanças, uma ferramenta) e a barra de comando (4 ferramentas: gasto, água, treino,
+  agenda) usam a mesma base, sem duplicar a parte de chamar a IA.
+- **`src/core/roteador.js` novo**: define as 4 ferramentas, decide qual módulo cada uma vira, casa o nome do
+  exercício digitado ("supino") com o nome de verdade na sua biblioteca ("Supino reto com barra" — por
+  substring, preferindo o mais específico entre os que batem), converte data relativa ("quinta") em data exata
+  a partir de hoje, e só então grava usando o mesmo service de cada módulo — o mesmo caminho que a tela usaria.
+- **Nenhuma tabela nova**: a barra grava direto nas tabelas que já existiam.
+- Mensagem que não bate com nenhuma das 4 coisas (ex: um humor ou uma nota de diário) avisa que ainda não
+  entende aquilo, em vez de fingir — rotear para os outros módulos fica para uma etapa futura.
+- 14 testes cobrem a lógica pura: casamento de exercício, formatação da prévia de cada um dos 4 tipos, e os
+  casos de erro (valor inválido, exercício não encontrado, compromisso sem data).
+
 ## Qualidade
 - Front dividido em módulos (`public/ui.js` + `public/telas/*.js`), carregados como ES modules.
-- `npm test` roda **153 testes**: as regras de cálculo de todos os módulos (107 testes), **as 46 telas
+- `npm test` roda **167 testes**: as regras de cálculo de todos os módulos (121 testes), **as 46 telas
   renderizadas num DOM real** (jsdom, com respostas de mentira no lugar do servidor) e a **validação do SQL
   num Postgres real** (PGlite) — que confere que ele aplica limpo, que aplica duas vezes sem quebrar e que as
   tabelas aceitam exatamente os inserts do app, barrando os inválidos.
