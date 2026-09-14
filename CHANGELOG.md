@@ -253,12 +253,12 @@ apareceu porque o novo módulo de dieta tornou o problema óbvio numa das fotos.
 - **O webhook passa a processar mensagens de verdade.** Texto ou nota de voz mandados pro número do WhatsApp
   viram lançamento automático em Finanças: "gastei 40 no mercado" (digitado ou falado) cai como despesa, na
   categoria mais parecida entre as **suas** categorias cadastradas — não uma lista fixa.
-- **IA migrada de vez para Claude** (`src/core/ai.js`): o provedor de teste gratuito (NVIDIA) que estava desde
-  a primeira versão do projeto saiu; agora usa Anthropic com tool use, escolhendo entre as categorias reais do
-  seu Finanças a cada mensagem.
-- **Transcrição de áudio nova** (`src/core/transcricao.js`): nota de voz do WhatsApp (ogg/opus) é baixada da
-  API do Meta e transcrita pela Groq (Whisper open-source, hospedado de graça na faixa de uso de um app
-  pessoal) antes de passar pela mesma IA que entende o texto digitado.
+- **IA de texto e áudio rodando 100% na Groq** (`src/core/ai.js` e `src/core/transcricao.js`): o provedor de
+  teste antigo (NVIDIA) saiu; entrou um modelo Llama (tool use) para entender a mensagem e escolher a categoria
+  entre as reais do seu Finanças, e o Whisper open-source para transcrever nota de voz — mesma chave, mesmo
+  provedor, sem custo dentro do uso normal de um app pessoal (decisão do Gustavo, para não precisar de cartão
+  cadastrado). Trocar para um provedor pago no futuro, se a precisão incomodar, é mudar uma variável de
+  ambiente — nada no resto do código depende do provedor escolhido.
 - **Trava contra lançar duas vezes a mesma compra**: se você já tinha lançado algo pelo app e depois manda a
   mesma coisa por mensagem (ou vice-versa), o app reconhece (mesmo tipo, mesmo valor, data próxima) e avisa que
   já tinha, em vez de duplicar. A tabela `transacoes` ganhou `origem` (`manual` / `whatsapp` / `banco`) e

@@ -73,40 +73,43 @@ API); nesse caso o app já cai sozinho para você digitar o número, que continu
 |---|---|---|---|
 | Chaves de push (VAPID) | Eu gero e te mando; você cola no Render | Notificação com o app fechado | E1.11 |
 | Bucket privado no Supabase Storage | Painel do Supabase → Storage | Fotos de progresso do treino e PDF dos exames | E2.8 e E4.3 |
-| **Chave de IA (Anthropic)** | console.anthropic.com | Entender a mensagem do WhatsApp e extrair o lançamento; depois, barra de comando e gerador de treino | **E6.3 (agora)**, E6.1, E2.7 |
-| **Chave da Groq** | console.groq.com | Transcrever nota de voz do WhatsApp (texto digitado não usa isso) | **E6.3 (agora)** |
+| **Chave da Groq (uma só, 100% grátis)** | console.groq.com | Entender a mensagem do WhatsApp, extrair o lançamento E transcrever nota de voz | **E6.3 (agora)** |
 | **App no Meta for Developers** | developers.facebook.com | Receber e responder mensagens do WhatsApp | **E6.3 (agora)** |
 | Cron job no Render | Painel do Render | Briefing da manhã e fechamento da noite | E6.4 |
 
 ### Como ativar o lançamento por WhatsApp — passo a passo
 
-O código já está pronto e testado; falta só isto, tudo feito uma vez só:
+O código já está pronto e testado; a IA roda inteira na Groq (sem custo, sem cartão) — falta só isto, tudo
+feito uma vez só:
 
-1. **Chave da Anthropic**: entre em console.anthropic.com → API Keys → crie uma → cole no Render como
-   `ANTHROPIC_API_KEY`. É pago por uso, mas no seu volume (algumas mensagens por dia) fica em centavos por mês —
-   o modelo padrão já é o mais barato da família (Haiku).
-2. **Chave da Groq**: entre em console.groq.com → crie uma conta grátis → API Keys → crie uma → cole no Render
-   como `GROQ_API_KEY`. É de graça dentro do uso normal de um app pessoal; se um dia o limite gratuito mudar,
-   eu aviso na hora que aparecer um erro de transcrição nos logs.
-3. **App no Meta for Developers**: em developers.facebook.com, crie um app do tipo "Business", adicione o
+1. **Chave da Groq**: entre em console.groq.com → crie uma conta grátis (sem cartão) → API Keys → Create API
+   Key → cole no Render como `GROQ_API_KEY`. Essa mesma chave serve tanto para entender a mensagem quanto para
+   transcrever áudio — não precisa de mais nenhuma chave de IA.
+2. **App no Meta for Developers**: em developers.facebook.com, crie um app do tipo "Business", adicione o
    produto **WhatsApp**. Lá você já ganha um número de teste. Copie para o Render:
    - `WHATSAPP_ACCESS_TOKEN` (o token temporário de teste, ou um permanente se você já gerar um)
    - `WHATSAPP_PHONE_NUMBER_ID` (aparece na mesma tela)
    - `WHATSAPP_VERIFY_TOKEN`: você inventa qualquer texto (ex: `vidaos2026`) e cola **os dois lugares**: no
      Render e no painel do Meta, na hora de configurar o webhook
-4. **Configurar o webhook no Meta**: na mesma tela do produto WhatsApp, em "Configuration", cole a URL:
+3. **Configurar o webhook no Meta**: na mesma tela do produto WhatsApp, em "Configuration", cole a URL:
    `https://<seu-app>.onrender.com/webhook` e o Verify Token do passo anterior. Clique em "Verify and save".
    Depois, em "Webhook fields", inscreva-se em `messages`.
-5. **`WHATSAPP_MEU_NUMERO`**: o número de teste do Meta só fala com números que você cadastrar como
+4. **`WHATSAPP_MEU_NUMERO`**: o número de teste do Meta só fala com números que você cadastrar como
    "destinatário de teste" na mesma tela. Adicione o SEU WhatsApp lá (o Meta manda um código por WhatsApp pra
    confirmar). Depois, cole esse mesmo número no Render como `WHATSAPP_MEU_NUMERO`, com DDI e DDD, sem "+" e
    sem espaço (ex: `5511999999999`) — é a única trava de segurança dessa rota pública: sem isso configurado
    certinho, o app ignora toda mensagem recebida, por precaução.
-6. Manda um "oi, gastei 20 no café" pelo WhatsApp pro número de teste e o app deve responder confirmando o
+5. Manda um "oi, gastei 20 no café" pelo WhatsApp pro número de teste e o app deve responder confirmando o
    lançamento — confere no app se ele realmente apareceu em Finanças.
 
 Enquanto isso não estiver tudo configurado, nada quebra: o resto do app funciona normalmente, o webhook só
 fica recebendo e ignorando mensagens (ou nem isso, se o Meta ainda não tiver sido apontado pra ele).
+
+**Sobre usar um modelo grátis em vez de pago**: a Groq roda modelos Llama de código aberto — funciona muito
+bem para mensagens diretas ("gastei 40 no mercado", "recebi 200 de freela"), mas pode errar mais que um modelo
+pago em frases ambíguas ou incomuns. Se um dia você notar muita categoria errada ou lançamento que deveria ter
+sido detectado e não foi, me avisa — trocar para um provedor pago é questão de mudar uma variável de ambiente,
+não precisa reescrever nada.
 
 ## 5. Decisões que só você toma
 

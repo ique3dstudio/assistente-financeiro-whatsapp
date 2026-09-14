@@ -26,8 +26,8 @@ src/
     config.js             configurações que mudam pelo app (metas, etc.)
     datas.js              o "hoje" no seu fuso, não no fuso do servidor
     modulos.js            lista dos módulos + montagem do dashboard
-    ai.js                 interpreta mensagens de texto (Anthropic)
-    transcricao.js        transcreve áudio em texto (Groq)
+    ai.js                 interpreta mensagens de texto (Groq/Llama)
+    transcricao.js        transcreve áudio em texto (Groq/Whisper)
     whatsapp.js           envia mensagens e baixa mídia do WhatsApp
     webhook.js             recebe as mensagens do WhatsApp e vira lançamento
   modules/
@@ -77,8 +77,8 @@ Preencha:
   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 - `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` — em **Project Settings → API**
 
-As chaves de IA (Anthropic), transcrição (Groq) e WhatsApp só são necessárias para a entrada por mensagem —
-veja o passo a passo em `PENDENTE-VOCE.md`.
+A chave da Groq (IA de texto + transcrição, grátis) e as do WhatsApp só são necessárias para a entrada por
+mensagem — veja o passo a passo em `PENDENTE-VOCE.md`.
 
 ### 3. Rodar
 
@@ -96,7 +96,7 @@ mostra o estado da conexão com o Supabase, tabela por tabela.
 ```bash
 node scripts/test-agua.js 500                        # grava 500ml e mostra o panorama
 node scripts/test-financas.js                        # grava um lançamento e resume o mês
-node scripts/test-ai.js "gastei 50 no mercado"       # interpretação de mensagem (Anthropic)
+node scripts/test-ai.js "gastei 50 no mercado"       # interpretação de mensagem (Groq)
 node scripts/test-transcricao.js audio.ogg           # transcrição de um áudio local (Groq)
 node scripts/test-whatsapp.js 5511999999999 "oi"     # envio de mensagem real
 ```

@@ -528,11 +528,11 @@ Aqui está o diferencial da seção 9 da espec. Só funciona bem **depois** que 
   (de onde veio o lançamento — usado para não duplicar quando, no futuro, um extrato de banco também alimentar
   a mesma tabela).
 - **Código:** `src/core/webhook.js`, `src/core/whatsapp.js` (envio e download de mídia), `src/core/ai.js`
-  (migrado para Claude), `src/core/transcricao.js` (áudio → texto via Groq/Whisper).
+  (interpretação via Groq/Llama, 100% grátis), `src/core/transcricao.js` (áudio → texto via Groq/Whisper).
 - **Aceite:** mandar "gastei 40 no mercado" (texto ou áudio) pelo WhatsApp e ver o lançamento aparecer no app,
   na categoria certa, sem duplicar se você já tinha lançado à mão.
-- **Você faz:** finalizar o app no Meta for Developers, apontar o webhook para a URL do Render, gerar as chaves
-  Anthropic e Groq, e configurar `WHATSAPP_MEU_NUMERO` (ver `PENDENTE-VOCE.md`).
+- **Você faz:** finalizar o app no Meta for Developers, apontar o webhook para a URL do Render, gerar a chave
+  da Groq (grátis, sem cartão), e configurar `WHATSAPP_MEU_NUMERO` (ver `PENDENTE-VOCE.md`).
 
 ### E6.4 — Briefing da manhã e fechamento da noite
 - **Entrega:** notificação (e opcionalmente mensagem no WhatsApp) de manhã com agenda, treino previsto,
@@ -593,8 +593,7 @@ Aqui está o diferencial da seção 9 da espec. Só funciona bem **depois** que 
 |---|---|---|---|
 | Render (hospedagem) | já ativo | US$ 0 (dorme após 15 min) ou US$ 7/mês | O plano pago só vale a pena quando o WhatsApp entrar |
 | Supabase | já ativo | US$ 0 até 500 MB | Sobra muito para dados pessoais; fotos e PDFs consomem mais |
-| IA (Anthropic) | E6.1/E6.3 | centavos por dia no seu volume | Modelo padrão é o Haiku, o mais barato da família |
-| Transcrição de áudio (Groq/Whisper) | E6.2/E6.3 | grátis na faixa de uso normal | Cadastro grátis em console.groq.com; confira o limite atual na hora de gerar a chave |
+| IA de texto e áudio (Groq/Llama+Whisper) | E6.1/E6.2/E6.3 | grátis na faixa de uso normal | Cadastro sem cartão em console.groq.com; confira o limite atual na hora de gerar a chave. Se a precisão incomodar, dá para trocar por um provedor pago (Anthropic) mudando só uma variável de ambiente |
 | WhatsApp Cloud API | E6.3 | grátis nas conversas iniciadas por você | Precisa app no Meta for Developers |
 | Open Finance (Pluggy/Belvo) | pós-Fase 3 | pago, a partir de ~R$ 50/mês | Só se o lançamento manual não bastar |
 | Domínio próprio | opcional | ~R$ 40/ano | `vida.seudominio.com` em vez de `.onrender.com` |
